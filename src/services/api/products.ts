@@ -1,0 +1,192 @@
+import { API_CONFIG, fetchWithTimeout } from "@/config/api.config";
+
+const API_BASE = API_CONFIG.ENDPOINTS.PRODUCTS;
+
+export interface Variant {
+  id: string | number;
+  name?: string;
+  variantName?: string;
+  price: number;
+  sellingPrice: number;
+  mrp: number;
+  discountPrice?: number;
+  unit?: string;
+  quantity?: string | number;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  title?: string;
+  image?: string;
+  imageUrl?: string;
+  thumbnail?: string;
+  price: number;
+  originalPrice?: number;
+  mrp?: number;
+  unit?: string;
+  quantity?: string | number;
+  productVariants: Variant[];
+  variantId?: string | number;
+  minPrice?: number;
+}
+
+const mapProducts = (json: any): Product[] => {
+  const items = Array.isArray(json) ? json : json.value || json.data || [];
+  const list = items.content ? items.content : items;
+  return (Array.isArray(list) ? list : []).map((p: any) => {
+    const variants = p.variants || p.productVariants || [];
+    const normalizedVariants: Variant[] = variants.map((v: any) => ({
+      ...v,
+      variantName: v.name || v.variantName,
+      sellingPrice: v.sellingPrice ?? (v.price - (v.discountPrice || 0)),
+      mrp: v.mrp ?? v.price,
+    }));
+    const firstVariant = normalizedVariants[0];
+    return {
+      ...p,
+      id: String(p.id || p._id),
+      productVariants: normalizedVariants,
+      variantId: firstVariant?.id,
+      price: firstVariant ? firstVariant.sellingPrice : (p.minPrice || p.price || 0),
+    };
+  });
+};
+
+export const getProducts = async (storeId?: string | number): Promise<Product[]> => {
+  try {
+    const url = storeId ? `${API_BASE}?storeId=${storeId}` : `${API_BASE}`;
+    const response = await fetchWithTimeout(url);
+    if (!response.ok) {
+      console.error(`[getProducts] FAILED ${response.status}: ${url}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const json = await response.json();
+    return mapProducts(json);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return [];
+  }
+};
+
+export const getProductById = async (id: string | number): Promise<Product | null> => {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE}/${id}`);
+    if (!response.ok) {
+      console.error(`[getProductById] FAILED ${response.status}: ${API_BASE}/${id}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const json = await response.json();
+    // If it's a single object, wrap it in an array to use the mapper, then pick the first
+    const mapped = mapProducts(json);
+    return mapped.length > 0 ? mapped[0] : (json.id ? mapProducts([json])[0] : null);
+  } catch (error) {
+    console.error(`Error fetching product ${id}:`, error);
+    return null;
+  }
+};
+
+export const searchProducts = async (keyword: string): Promise<Product[]> => {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE}/search?keyword=${encodeURIComponent(keyword)}`);
+    if (!response.ok) {
+      console.error(`[searchProducts] FAILED ${response.status}: ${API_BASE}/search?keyword=${keyword}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const json = await response.json();
+    return mapProducts(json);
+  } catch (error) {
+    console.error("Error searching products:", error);
+    return [];
+  }
+};
+
+export const getTrendingProducts = async (): Promise<Product[]> => {
+  try {
+    // Try primary trending endpoint
+    let response = await fetchWithTimeout(`${API_BASE}/trending`);
+
+    // If primary fails or 404, try filtered fallback
+    if (!response.ok) {
+      console.log("Primary trending endpoint failed, trying fallback...");
+      response = await fetchWithTimeout(`${API_BASE}/filter?trending=true`);
+    }
+
+    if (!response.ok) {
+      console.error(`[getTrendingProducts] FAILED ${response.status} at ${response.url}. Primary and fallback endpoints failed.`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const json = await response.json();
+    return mapProducts(json);
+  } catch (error) {
+    console.error("Error fetching trending products:", error);
+    return [];
+  }
+};
+
+interface FilterProductParams {
+  categoryId?: string | number;
+  subCategoryId?: string | number;
+  storeId?: string | number;
+  minPrice?: number;
+  maxPrice?: number;
+  trending?: boolean;
+  keyword?: string;
+}
+
+export const filterProducts = async (params: FilterProductParams): Promise<Product[]> => {
+  try {
+    // Construct query string dynamically
+    const queryParams = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const url = queryString ? `${API_BASE}/filter?${queryString}` : `${API_BASE}/filter`;
+
+    const response = await fetchWithTimeout(url);
+    if (!response.ok) {
+      console.error(`[filterProducts] FAILED ${response.status}: ${url}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const json = await response.json();
+    return mapProducts(json);
+  } catch (error) {
+    console.error("Error filtering products:", error);
+    return [];
+  }
+};
+
+export const getBestSellerProducts = async (): Promise<Product[]> => {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE}/bestseller`);
+    if (!response.ok) {
+      console.error(`[getBestSellerProducts] FAILED ${response.status}: ${API_BASE}/bestseller`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const json = await response.json();
+    return mapProducts(json);
+  } catch (error) {
+    console.error("Error fetching best seller products:", error);
+    return [];
+  }
+};
+
+export const getProductsBySubcategory = async (subCategoryId: string | number): Promise<Product[]> => {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE}/subcategory/${subCategoryId}`);
+    if (!response.ok) {
+      console.error(`[getProductsBySubcategory] FAILED ${response.status}: ${API_BASE}/subcategory/${subCategoryId}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const json = await response.json();
+    return mapProducts(json);
+  } catch (error) {
+    console.error(`Error fetching products for subcategory ${subCategoryId}:`, error);
+    return [];
+  }
+};
