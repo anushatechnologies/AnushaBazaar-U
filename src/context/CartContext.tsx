@@ -9,16 +9,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useWallet } from "./WalletContext";
 import { useAuth } from "./AuthContext";
 import * as CartAPI from "../services/api/cart";
+import { addToWishlistApi, getWishlistApi } from "../services/api/products";
 
 export type Product = {
   id: string;
   name: string;
   price: number;
-  image: any;
+  image?: any;
   imageUrl?: string;
   icon?: string;
   unit?: string;
-  variantId?: number;
+  variantId?: string | number;
   variantName?: string;
 };
 
@@ -65,7 +66,7 @@ export const CartProvider = ({ children }: any) => {
   const [usePoints, setUsePoints] = useState(false);
   
   const { points } = useWallet();
-  const { jwtToken } = useAuth();
+  const { user, jwtToken } = useAuth();
 
   /* ================= LOAD STORAGE ================= */
 
@@ -73,12 +74,13 @@ export const CartProvider = ({ children }: any) => {
     loadData();
   }, []);
 
-  // Sync cart from server when user logs in
+  // Sync cart and wishlist from server when user logs in
   useEffect(() => {
-    if (jwtToken) {
+    if (jwtToken && user?.customerId) {
       refreshCart();
+      refreshWishlist();
     }
-  }, [jwtToken]);
+  }, [jwtToken, user?.customerId]);
 
   const loadData = async () => {
     try {
@@ -123,6 +125,18 @@ export const CartProvider = ({ children }: any) => {
       console.log("Cart refresh error:", error);
     }
   }, [jwtToken]);
+
+  const refreshWishlist = useCallback(async () => {
+    if (!jwtToken || !user?.customerId) return;
+    try {
+      const serverWishlist = await getWishlistApi(user.customerId);
+      if (serverWishlist) {
+        setWishlist(serverWishlist);
+      }
+    } catch (error) {
+      console.log("Wishlist refresh error:", error);
+    }
+  }, [jwtToken, user?.customerId]);
 
   /* ================= SAVE STORAGE ================= */
 
@@ -359,12 +373,20 @@ export const CartProvider = ({ children }: any) => {
 
   /* ================= WISHLIST ================= */
 
-  const addToWishlist = (product: Product) => {
+  const addToWishlist = async (product: Product) => {
     setWishlist((prev) => {
       const exists = prev.find((i) => i.id === product.id);
       if (exists) return prev;
       return [...prev, product];
     });
+
+    if (jwtToken && user?.customerId) {
+      try {
+        await addToWishlistApi(user.customerId, product.id);
+      } catch (err) {
+        console.log("Server add wishlist error:", err);
+      }
+    }
   };
 
   const removeFromWishlist = (id: string) => {

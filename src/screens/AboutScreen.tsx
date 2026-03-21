@@ -35,7 +35,7 @@ const AboutScreen = () => {
         {/* App Branding */}
         <View style={styles.logoContainer}>
           <Image
-            source={require("../../assets/company-logo.jpeg")}
+            source={require("../../assets/company-logo.png")}
             style={styles.logo}
             resizeMode="contain"
           />

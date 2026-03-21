@@ -1,4 +1,4 @@
-const API_ROOT = "http://13.49.18.149:9000/api";
+const API_ROOT = "https://api.anushatechnologies.com/api";
 const endpoints = [
   `${API_ROOT}/products/1`, // Assumption: there is a product with id 1
   `${API_ROOT}/products/subcategory/1`, // Assumption: there is a subcategory with id 1

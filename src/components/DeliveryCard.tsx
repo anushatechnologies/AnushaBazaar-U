@@ -8,7 +8,7 @@ const DeliveryCard = ({ count }: any) => {
       <Ionicons name="time-outline" size={22} color="#0A8754" />
 
       <View style={{ marginLeft: 10 }}>
-        <Text style={styles.title}>Delivery in 8 minutes</Text>
+        <Text style={styles.title}>Delivery in 15 minutes</Text>
         <Text style={styles.sub}>
           Shipment of {count} items
         </Text>

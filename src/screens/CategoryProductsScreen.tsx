@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -6,13 +6,14 @@ import {
   Pressable,
   Image,
   Text,
+  TextInput,
   ActivityIndicator,
   TouchableOpacity,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import TopBar from "../components/TopBar";
 import ProductFilterBar, { SortOption, PRICE_RANGES } from "../components/ProductFilterBar";
 import SkeletonCard from "../components/SkeletonCard";
 import ProductCard from "../components/ProductCard";
@@ -22,9 +23,8 @@ import FloatingCart from "../components/FloatingCart";
 
 const CategoryProductsScreen = ({ route }: any) => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { category } = route.params;
-
-  // We assume the category passed has an id or _id field from the admin panel
   const categoryId = category?.id || category?._id;
 
   const [subcategories, setSubCategories] = useState<any[]>([]);
@@ -37,6 +37,11 @@ const CategoryProductsScreen = ({ route }: any) => {
   const [sortBy, setSort] = useState<SortOption>("default");
   const [priceRange, setPrice] = useState(PRICE_RANGES[0]);
 
+  // Search state
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<TextInput>(null);
+
   useEffect(() => {
     loadSubcategories();
   }, [categoryId]);
@@ -45,19 +50,17 @@ const CategoryProductsScreen = ({ route }: any) => {
     loadProducts(selectedSubId);
   }, [selectedSubId, categoryId]);
 
+  // Re-apply filters whenever search query changes
+  useEffect(() => {
+    applyFilters(sortBy, priceRange, products);
+  }, [searchQuery]);
+
   const loadSubcategories = async () => {
     setLoadingSubcategories(true);
     try {
       const data = await getSubcategoriesByCategory(categoryId);
       const items = Array.isArray(data) ? data : data?.data || [];
-
-      // Prepend the "All" option
-      const allOption = {
-        id: "all",
-        name: "All",
-        icon: null,
-      };
-
+      const allOption = { id: "all", name: "All", icon: null };
       setSubCategories([allOption, ...items]);
     } catch (error) {
       console.error("Error loading subcategories:", error);
@@ -81,6 +84,14 @@ const CategoryProductsScreen = ({ route }: any) => {
 
   const applyFilters = (sort: SortOption, range: typeof PRICE_RANGES[0], base: any[]) => {
     let result = [...base];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(p =>
+        (p.name || p.title || "").toLowerCase().includes(q)
+      );
+    }
 
     if (range.max > 0) {
       result = result.filter(p => {
@@ -108,9 +119,18 @@ const CategoryProductsScreen = ({ route }: any) => {
     applyFilters(sortBy, r, products);
   };
 
+  const toggleSearch = () => {
+    if (isSearching) {
+      setSearchQuery("");
+      setIsSearching(false);
+      Keyboard.dismiss();
+    } else {
+      setIsSearching(true);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  };
+
   const renderProductItem = ({ item }: any) => {
-    // Map backend property names to frontend property names if needed
-    // Example: API might return `imageUrls[0]` instead of `image`
     const mappedProduct = {
       ...item,
       id: item.id || item._id,
@@ -127,10 +147,45 @@ const CategoryProductsScreen = ({ route }: any) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f9fdfb" }}>
-      <TopBar 
-        title={category?.name || "Category"} 
-        onSearch={() => navigation.navigate("SearchResults", { query: "" })}
-      />
+      {/* ─── Custom TopBar with Inline Search ─── */}
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#111" />
+        </TouchableOpacity>
+
+        {isSearching ? (
+          <View style={styles.searchInputBox}>
+            <Ionicons name="search" size={18} color="#9CA3AF" />
+            <TextInput
+              ref={searchInputRef}
+              style={styles.searchInput}
+              placeholder="Search in this category..."
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              onSubmitEditing={() => Keyboard.dismiss()}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={18} color="#D1D5DB" />
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <Text style={styles.topBarTitle} numberOfLines={1}>
+            {category?.name || "Category"}
+          </Text>
+        )}
+
+        <TouchableOpacity onPress={toggleSearch} style={styles.searchIconBtn} activeOpacity={0.7}>
+          <Ionicons name={isSearching ? "close" : "search-outline"} size={22} color="#111" />
+        </TouchableOpacity>
+      </View>
 
       <ProductFilterBar
         activeSort={sortBy}
@@ -202,8 +257,12 @@ const CategoryProductsScreen = ({ route }: any) => {
           ) : displayed.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={50} color="#ccc" />
-              <Text style={styles.emptyText}>No products match filters.</Text>
-              <TouchableOpacity onPress={() => { handleSort("default"); handlePrice(PRICE_RANGES[0]); }}>
+              <Text style={styles.emptyText}>
+                {searchQuery.trim()
+                  ? `No products found for "${searchQuery}"`
+                  : "No products match filters."}
+              </Text>
+              <TouchableOpacity onPress={() => { handleSort("default"); handlePrice(PRICE_RANGES[0]); setSearchQuery(""); }}>
                 <Text style={{ color: "#0A8754", fontWeight: "700", marginTop: 10 }}>Clear Filters</Text>
               </TouchableOpacity>
             </View>
@@ -228,6 +287,58 @@ const CategoryProductsScreen = ({ route }: any) => {
 export default CategoryProductsScreen;
 
 const styles = StyleSheet.create({
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  backBtn: {
+    padding: 4,
+    marginRight: 10,
+  },
+  topBarTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111",
+    letterSpacing: -0.5,
+  },
+  searchInputBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#111827",
+    padding: 0,
+  },
+  searchIconBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 20,
+    backgroundColor: "#F9FAFB",
+    marginLeft: 8,
+  },
+
   container: {
     flex: 1,
     flexDirection: "row",
@@ -292,5 +403,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: "#888",
     fontSize: 16,
+    textAlign: "center",
+    paddingHorizontal: 20,
   }
 });

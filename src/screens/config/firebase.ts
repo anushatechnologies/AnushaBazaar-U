@@ -2,12 +2,12 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD0HxBUfMEMgphKoXvZIOOySmdABZF5bdA",
-  authDomain: "phoneauth-ff032.firebaseapp.com",
-  projectId: "phoneauth-ff032",
-  storageBucket: "phoneauth-ff032.firebasestorage.app",
-  messagingSenderId: "314843029433",
-  appId: "1:314843029433:android:ff54f01a2471e3d3742068",
+  apiKey: "AIzaSyChxzqLaLTuN5cV1LV92yF6tRPh8ZV7FeI",
+  authDomain: "anushabazaar-2288e.firebaseapp.com",
+  projectId: "anushabazaar-2288e",
+  storageBucket: "anushabazaar-2288e.firebasestorage.app",
+  messagingSenderId: "64875938387",
+  appId: "1:64875938387:android:92945e5b265d394aba7ca6",
 };
 
 // Initialize Firebase (only once)

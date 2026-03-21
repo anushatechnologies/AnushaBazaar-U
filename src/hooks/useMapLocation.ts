@@ -16,7 +16,8 @@ export const useMapLocation = () => {
   const [region, setRegion] = useState<Region | null>(null);
   const [address, setAddress] = useState("");
   const [eta, setEta] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Only for specific actions
+  const [initialLoading, setInitialLoading] = useState(true); // For first map setup
 
   // Calculate ETA based on distance from store
   const calculateETA = useCallback((coords: Region) => {
@@ -30,8 +31,8 @@ export const useMapLocation = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
 
-    // ETA Rule: 10 mins base + 2-3 mins per km
-    const estimatedTime = Math.max(10, Math.round(10 + distance * 2.5));
+    // ETA Rule: 15 mins base + 2-3 mins per km
+    const estimatedTime = Math.max(15, Math.round(15 + distance * 2.5));
     setEta(estimatedTime);
   }, []);
 
@@ -62,19 +63,39 @@ export const useMapLocation = () => {
   }, [calculateETA]);
 
   // Get current user location
-  const getCurrentLocation = useCallback(async () => {
+  const getCurrentLocation = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setInitialLoading(true);
+      else setLoading(true);
+
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status !== "granted") {
-        Alert.alert("Permission denied", "We need location permission to find you on the map.");
+        if (!isInitial) {
+          Alert.alert("Permission denied", "We need location permission to find you on the map.");
+        }
+        setInitialLoading(false);
         setLoading(false);
         return;
       }
 
+      // 1. Try last known position for instant update
+      const lastLoc = await Location.getLastKnownPositionAsync();
+      if (lastLoc) {
+        const lastRegion: Region = {
+          latitude: lastLoc.coords.latitude,
+          longitude: lastLoc.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setRegion(lastRegion);
+        if (isInitial) setInitialLoading(false);
+        mapRef.current?.animateToRegion(lastRegion, 400);
+      }
+
+      // 2. Fetch fresh position with Balanced accuracy (faster than High)
       const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced,
       });
 
       const newRegion: Region = {
@@ -86,9 +107,13 @@ export const useMapLocation = () => {
 
       mapRef.current?.animateToRegion(newRegion, 600);
       setRegion(newRegion);
+      
+      // Update address without blocking UI
       updateAddressAndETA(newRegion);
     } catch (error) {
-      Alert.alert("Error", "Unable to fetch location. Please try again.");
+      console.log("[useMapLocation] Error:", error);
+    } finally {
+      setInitialLoading(false);
       setLoading(false);
     }
   }, [updateAddressAndETA]);
@@ -119,7 +144,7 @@ export const useMapLocation = () => {
   }, [pinAnim, updateAddressAndETA]);
 
   useEffect(() => {
-    getCurrentLocation();
+    getCurrentLocation(true);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -143,6 +168,7 @@ export const useMapLocation = () => {
     address,
     eta,
     loading,
+    initialLoading,
     mapRef,
     pinAnim,
     getCurrentLocation,

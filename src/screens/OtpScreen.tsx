@@ -174,6 +174,9 @@ const OtpScreen = () => {
                 value={code}
                 onChangeText={setCode}
                 autoFocus
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
+                importantForAutofill="yes"
             />
 
             {renderOtpBoxes()}

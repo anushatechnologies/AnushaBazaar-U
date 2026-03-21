@@ -63,7 +63,7 @@ const SignupPopup: React.FC<SignupPopupProps> = ({ visible, onClose, onSignup, p
             <View style={styles.content}>
               <View style={styles.logoContainer}>
                 <Image 
-                  source={require("../../assets/company-logo.jpeg")} 
+                  source={require("../../assets/company-logo.png")} 
                   style={styles.logo}
                   resizeMode="cover"
                 />

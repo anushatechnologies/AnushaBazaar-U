@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Platform, PermissionsAndroid } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import AppLoader from "./src/components/AppLoader";
 import RootStack from "./src/navigation/RootStack";
@@ -10,11 +11,13 @@ import { WalletProvider } from "./src/context/WalletContext";
 import { TabBarProvider } from "./src/context/TabBarContext";
 import { NotificationsProvider } from "./src/context/NotificationsContext";
 import * as Linking from "expo-linking";
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
 
 const prefix = Linking.createURL("/");
 
 const linking = {
-  prefixes: [prefix, "https://anushabazaar.com", "anushabazaar://", "http://13.49.18.149"],
+  prefixes: [prefix, "https://anushabazaar.com", "anushabazaar://", "https://api.anushatechnologies.com"],
   config: {
     screens: {
       MainTabs: {
@@ -33,10 +36,33 @@ const linking = {
   },
 } as any;
 
+const requestAllPermissions = async () => {
+  try {
+    // 1. Location
+    await Location.requestForegroundPermissionsAsync();
+
+    // 2. Notifications
+    await Notifications.requestPermissionsAsync();
+
+    // 3. Microphone & Phone (Android only)
+    if (Platform.OS === "android") {
+      await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
+      ]);
+    }
+  } catch (e) {
+    console.log("Permission request error:", e);
+  }
+};
+
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {
+    // Request all permissions on app launch
+    requestAllPermissions();
+
     // Show splash animation for 2 seconds
     const timer = setTimeout(() => {
       setAppIsReady(true);

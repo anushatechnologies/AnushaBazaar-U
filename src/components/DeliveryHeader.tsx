@@ -20,7 +20,7 @@ const DeliveryHeader = () => {
 
   const { user } = useAuth();
   const { location } = useLocation();
-  const { balance } = useWallet();
+  const { points } = useWallet();
   const { unreadCount } = useNotifications();
   const insets = useSafeAreaInsets();
 
@@ -37,7 +37,7 @@ const DeliveryHeader = () => {
         </View>
 
         <View style={styles.icons}>
-          {/* WALLET */}
+          {/* WALLET - COMING SOON */}
           <Pressable
             style={styles.walletPill}
             onPress={() => navigation.navigate("Wallet")}
@@ -46,7 +46,7 @@ const DeliveryHeader = () => {
               <Ionicons name="wallet-outline" size={14} color="#0A8754" />
             </View>
             <Text style={styles.walletText}>
-              ₹{(balance || 0).toLocaleString()}
+              Wallet
             </Text>
           </Pressable>
 
@@ -68,7 +68,7 @@ const DeliveryHeader = () => {
 
       {/* DELIVERY TIME */}
       <View style={styles.deliveryRow}>
-        <Text style={styles.time}>45 minutes</Text>
+        <Text style={styles.time}>15 minutes</Text>
       </View>
 
       {/* LOCATION SELECT */}

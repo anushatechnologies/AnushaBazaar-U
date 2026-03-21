@@ -3,45 +3,45 @@ export const categoryData = {
     subCategories: [
       {
         name: "All",
-        icon: require("../../assets/images/categories/vegetables.png"),
+        icon: null,
         products: [
           {
             id: "1",
             name: "Tomato",
             price: 40,
-            image: require("../../assets/images/products/tomato.png"),
+            image: null,
           },
           {
             id: "2",
             name: "Potato",
             price: 30,
-            image: require("../../assets/images/products/potato.png"),
+            image: null,
           },
         ],
       },
 
       {
         name: "Fresh Vegetables",
-        icon: require("../../assets/images/categories/vegetables.png"),
+        icon: null,
         products: [
           {
             id: "3",
             name: "Carrot",
             price: 50,
-            image: require("../../assets/images/products/carrot.png"),
+            image: null,
           },
         ],
       },
 
       {
         name: "Fresh Fruits",
-        icon: require("../../assets/images/categories/fruits.png"),
+        icon: null,
         products: [
           {
             id: "4",
             name: "Banana",
             price: 60,
-            image: require("../../assets/images/products/banana.png"),
+            image: null,
           },
         ],
       },

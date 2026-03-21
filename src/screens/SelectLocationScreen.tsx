@@ -14,7 +14,7 @@ import GpsButton from "../components/map/GpsButton";
 import MapBottomCard from "../components/map/MapBottomCard";
 
 const { width } = Dimensions.get("window");
-const GOOGLE_MAPS_APIKEY = "AIzaSyAJpg-ngs-RlNxzeeQGwu9DL6rqWlyYaqg";
+const GOOGLE_MAPS_APIKEY = "AIzaSyChxzqLaLTuN5cV1LV92yF6tRPh8ZV7FeI";
 
 const DARK_MAP_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
@@ -35,6 +35,7 @@ const SelectLocationScreen = () => {
     address,
     eta,
     loading,
+    initialLoading,
     mapRef,
     pinAnim,
     getCurrentLocation,
@@ -54,7 +55,7 @@ const SelectLocationScreen = () => {
     navigation.goBack();
   };
 
-  if (loading || !region) {
+  if (initialLoading || !region) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" color="#0A8754" />
@@ -97,6 +98,11 @@ const SelectLocationScreen = () => {
           >
             <Ionicons name="arrow-back" size={24} color="#111" />
           </TouchableOpacity>
+          {loading && (
+            <View style={styles.inlineLoader}>
+              <ActivityIndicator size="small" color="#0A8754" />
+            </View>
+          )}
         </View>
 
         <View style={styles.searchWrapper}>
@@ -150,7 +156,7 @@ const SelectLocationScreen = () => {
       </View>
 
       <View style={[styles.gpsWrapper, { bottom: 335 + insets.bottom }]}>
-        <GpsButton onPress={getCurrentLocation} />
+        <GpsButton onPress={() => getCurrentLocation(false)} />
       </View>
 
       <MapBottomCard
@@ -175,6 +181,8 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   topRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
   },
   backBtn: {
@@ -297,6 +305,19 @@ const styles = StyleSheet.create({
     elevation: 10,
     shadowColor: "#000",
     shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  inlineLoader: {
+    backgroundColor: "#fff",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 12,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
     shadowRadius: 5,
   },
 });

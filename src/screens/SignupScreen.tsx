@@ -1,22 +1,20 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
+  StyleSheet,
   TextInput,
   Pressable,
-  StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
   Image,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import firebase from "./config/firebase";
 
 const SignupScreen = () => {
   const navigation = useNavigation<any>();
@@ -25,144 +23,103 @@ const SignupScreen = () => {
 
   const routePhone = route.params?.phone || "";
   const [phone, setPhone] = useState(routePhone);
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
   const isValidPhone = /^[6-9]\d{9}$/.test(phone);
 
   const handleSignup = async () => {
     if (!name.trim()) {
-      Alert.alert("Required Field", "Please enter your full name to continue.");
+      Alert.alert("Required", "Please enter your name");
       return;
     }
     if (!isValidPhone) {
-      Alert.alert("Invalid Number", "Please enter a valid 10-digit mobile number.");
+      Alert.alert("Invalid Number", "Please enter a valid 10-digit mobile number");
       return;
     }
 
     setLoading(true);
-
     try {
-      const phoneProvider = new firebase.auth.PhoneAuthProvider();
-      const verificationId = await phoneProvider.verifyPhoneNumber(
-        `+91${phone}`,
-        recaptchaVerifier.current!
-      );
-
       setLoading(false);
       navigation.navigate("Otp", {
         phone,
-        verificationId,
+        verificationId: "test-verification-id",
         signupData: {
-            name: name.trim(),
-            email: email.trim()
-        }
+          name: name.trim(),
+          email: email.trim(),
+        },
       });
     } catch (error: any) {
       setLoading(false);
-      console.log("OTP Error:", error);
-      Alert.alert(
-        "OTP Failed",
-        error?.message || "Could not send OTP. Please try again."
-      );
+      Alert.alert("Error", error?.message || "Something went wrong");
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.root} 
+    <KeyboardAvoidingView
+      style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebase.app().options}
-        attemptInvisibleVerification={true}
-      />
-
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         bounces={false}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Background Decorative Elements */}
         <View style={styles.bgCircle1} />
-        
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <View style={styles.bgCircle2} />
+
+        <View style={[styles.backBtnContainer, { top: insets.top + 10 }]}>
           <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={24} color="#1E293B" />
           </Pressable>
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.titleSection}>
+        <View style={[styles.content, { paddingTop: insets.top + 80 }]}>
+          <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Image 
-                source={require("../../assets/company-logo.jpeg")} 
+              <Image
+                source={require("../../assets/company-logo.png")}
                 style={styles.logo}
-                resizeMode="cover"
               />
             </View>
-            <Text style={styles.title}>Join Anusha Bazaar</Text>
-            <Text style={styles.subtitle}>Create an account to start your premium grocery experience</Text>
+            <Text style={styles.brandName}>Join Us</Text>
           </View>
 
           <View style={styles.card}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name*</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. John Doe"
-                  placeholderTextColor="#94a3b8"
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
+            <Text style={styles.cardTitle}>Create Account</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address (Optional)</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={20} color="#94a3b8" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. john@example.com"
-                  placeholderTextColor="#94a3b8"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-            </View>
+            <TextInput
+              placeholder="Full Name"
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+            />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Mobile Number</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={{ fontSize: 16, fontWeight: "700", color: "#64748B", marginRight: 8, marginTop: 2 }}>+91</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="99999 99999"
-                  placeholderTextColor="#94a3b8"
-                  keyboardType="number-pad"
-                  maxLength={10}
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-            </View>
+            <TextInput
+              placeholder="Email (Optional)"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              style={styles.input}
+            />
+
+            <TextInput
+              placeholder="Phone Number"
+              keyboardType="number-pad"
+              maxLength={10}
+              value={phone}
+              onChangeText={setPhone}
+              style={styles.input}
+            />
 
             <Pressable
               style={({ pressed }) => [
                 styles.primaryButton,
                 (!name.trim() || !isValidPhone || loading) && styles.buttonDisabled,
-                pressed && styles.buttonPressed
+                pressed && styles.buttonPressed,
               ]}
               onPress={handleSignup}
               disabled={!name.trim() || !isValidPhone || loading}
@@ -170,18 +127,10 @@ const SignupScreen = () => {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <>
-                  <Text style={styles.buttonText}>Continue to OTP</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#fff" />
-                </>
+                <Text style={styles.buttonText}>Sign Up</Text>
               )}
             </Pressable>
           </View>
-
-          <Text style={styles.footerText}>
-            Already have an account?{" "}
-            <Text style={styles.loginLink} onPress={() => navigation.navigate("Login")}>Log In</Text>
-          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -200,22 +149,38 @@ const styles = StyleSheet.create({
   },
   bgCircle1: {
     position: "absolute",
-    bottom: -150,
+    top: -100,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "#E2F2E9",
+    opacity: 0.6,
+  },
+  bgCircle2: {
+    position: "absolute",
+    top: 200,
     left: -150,
     width: 400,
     height: 400,
     borderRadius: 200,
-    backgroundColor: "#E2F2E9",
-    opacity: 0.5,
+    backgroundColor: "#FEF9C3",
+    opacity: 0.4,
   },
-  header: {
-    paddingHorizontal: 20,
-    zIndex: 10,
+  content: {
+    flex: 1,
+    paddingHorizontal: 28,
+    paddingBottom: 40,
+  },
+  backBtnContainer: {
+    position: "absolute",
+    left: 20,
+    zIndex: 100,
   },
   backBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
@@ -224,20 +189,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 40,
-    paddingBottom: 40,
-  },
-  titleSection: {
+  header: {
+    alignItems: "center",
     marginBottom: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#0F172A",
-    letterSpacing: -0.5,
   },
   logoContainer: {
     width: 80,
@@ -246,7 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
     elevation: 8,
     shadowColor: "#0A8754",
     shadowOffset: { width: 0, height: 10 },
@@ -258,12 +212,11 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  subtitle: {
-    fontSize: 15,
-    color: "#64748B",
-    marginTop: 8,
-    lineHeight: 22,
-    fontWeight: "500",
+  brandName: {
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#0F172A",
+    letterSpacing: -1,
   },
   card: {
     backgroundColor: "#fff",
@@ -274,57 +227,32 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 30,
-    marginBottom: 32,
   },
-  inputGroup: {
-    marginBottom: 24,
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginBottom: 20,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#475569",
-    marginBottom: 10,
-    marginLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
+  input: {
     backgroundColor: "#F8FAFC",
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: "#F1F5F9",
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    height: 60,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
     fontSize: 16,
     fontWeight: "600",
     color: "#1E293B",
-  },
-  disabledInput: {
-    backgroundColor: "#F1F5F9",
-    borderColor: "#E2E8F0",
-  },
-  phoneText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#64748B",
+    marginBottom: 16,
   },
   primaryButton: {
     backgroundColor: "#0A8754",
     height: 64,
     borderRadius: 20,
-    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
-    marginTop: 10,
+    marginTop: 8,
     elevation: 8,
     shadowColor: "#0A8754",
     shadowOffset: { width: 0, height: 8 },
@@ -343,16 +271,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 17,
-    fontWeight: "800",
-  },
-  footerText: {
-    textAlign: "center",
-    fontSize: 15,
-    color: "#64748B",
-    fontWeight: "500",
-  },
-  loginLink: {
-    color: "#0A8754",
     fontWeight: "800",
   },
 });

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from 'expo-location';
 
 interface LocationData {
   latitude: number;
@@ -10,6 +11,8 @@ interface LocationData {
 interface LocationContextType {
   location: LocationData | null;
   setLocation: (data: LocationData) => void;
+  hasPermission: boolean | null;
+  checkPermission: () => Promise<boolean>;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -17,10 +20,25 @@ const LocationContext = createContext<LocationContextType | undefined>(undefined
 export const LocationProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [location, setLocationState] = useState<LocationData | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
     loadSavedLocation();
+    checkPermission();
   }, []);
+
+  const checkPermission = async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      const granted = status === 'granted';
+      setHasPermission(granted);
+      return granted;
+    } catch (error) {
+      console.log("Permission check error", error);
+      setHasPermission(false);
+      return false;
+    }
+  };
 
   const loadSavedLocation = async () => {
     try {
@@ -44,7 +62,7 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   return (
-    <LocationContext.Provider value={{ location, setLocation }}>
+    <LocationContext.Provider value={{ location, setLocation, hasPermission, checkPermission }}>
       {children}
     </LocationContext.Provider>
   );

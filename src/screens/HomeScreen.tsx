@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -22,12 +22,15 @@ import BestSellerSection from "../components/BestSellerSection";
 import FloatingCart from "../components/FloatingCart";
 import AllProductsFeed from "../components/AllProductsFeed";
 import { useAuth } from "../context/AuthContext";
+import { useLocation } from "../context/LocationContext";
+import { useAppPermissions } from "../hooks/useAppPermissions";
+import * as ExpoLocation from "expo-location";
 import { useNavigation, CompositeNavigationProp } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootTabParamList } from "../navigation/BottomTabs";
 import { RootStackParamList } from "../navigation/RootStack";
-// import { useTabBar } from "../context/TabBarContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "Home">,
@@ -37,13 +40,53 @@ type HomeScreenNavigationProp = CompositeNavigationProp<
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user } = useAuth();
-  // const { onScrollUp, onScrollDown } = useTabBar();
+  const { setLocation, hasPermission, checkPermission } = useLocation();
+  const { requestLocationPermission } = useAppPermissions();
+  const insets = useSafeAreaInsets();
+  
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("All");
   const lastScrollY = useRef(0);
   
-  // Search overlay state
   const [showSearch, setShowSearch] = useState(false);
+
+  useEffect(() => {
+    handleInitialPermission();
+  }, []);
+
+  const handleInitialPermission = async () => {
+    try {
+      const currentStatus = await checkPermission();
+      if (!currentStatus) {
+        const status = await requestLocationPermission();
+        if (status === 'granted') {
+          await checkPermission();
+          const currentLocation = await ExpoLocation.getCurrentPositionAsync({
+            accuracy: ExpoLocation.Accuracy.Balanced,
+          });
+          
+          if (currentLocation) {
+            const [addressResult] = await ExpoLocation.reverseGeocodeAsync({
+              latitude: currentLocation.coords.latitude,
+              longitude: currentLocation.coords.longitude,
+            });
+
+            const formattedAddress = addressResult 
+              ? `${addressResult.name || ''}, ${addressResult.district || ''}, ${addressResult.city || ''}`
+              : "Current Location";
+
+            setLocation({
+              latitude: currentLocation.coords.latitude,
+              longitude: currentLocation.coords.longitude,
+              address: formattedAddress,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in handleInitialPermission:", error);
+    }
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -51,18 +94,11 @@ const HomeScreen = () => {
   };
 
   const handleScroll = (e: any) => {
-    const currentY = e.nativeEvent.contentOffset.y;
-    /* if (currentY > lastScrollY.current + 5) {
-      // Scrolling down (content moving up)
-      onScrollUp();
-    } else if (currentY < lastScrollY.current - 5) {
-      // Scrolling up (content moving down)
-      onScrollDown();
-    } */
-    lastScrollY.current = currentY;
+    lastScrollY.current = e.nativeEvent.contentOffset.y;
   };
 
   const sections = [
+    { key: "sticky_header" }, 
     { key: "banner" },
     { key: "categories" },
     { key: "trending" },
@@ -73,9 +109,15 @@ const HomeScreen = () => {
 
   const renderSection = ({ item }: any) => {
     switch (item.key) {
+      case "sticky_header":
+        return (
+          <View style={styles.stickyHeaderWrapper}>
+            <AnimatedSearchTrigger onPress={() => setShowSearch(true)} />
+            <CategoryTabs onChange={setFilter} />
+          </View>
+        );
       case "banner":
         return <BannerCarousel />;
-
       case "categories":
         return (
           <>
@@ -86,7 +128,6 @@ const HomeScreen = () => {
             <CategoryGrid />
           </>
         );
-
       case "trending":
         return (
           <>
@@ -97,16 +138,14 @@ const HomeScreen = () => {
             <TrendingList filter={filter} />
           </>
         );
-
       case "orderAgain":
-        if (!user) return null; // Only show if logged in
+        if (!user) return null;
         return (
           <>
             <SectionTitle
               title="Order Again"
               onPress={() => navigation.navigate("Order Again")}
             />
-            {/* Simple horizontal list for recent items */}
             <FlatList
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -124,7 +163,6 @@ const HomeScreen = () => {
             />
           </>
         );
-
       case "bestSeller":
         return (
           <>
@@ -135,35 +173,33 @@ const HomeScreen = () => {
             <BestSellerSection />
           </>
         );
-
       case "allProducts":
         return <AllProductsFeed categoryFilter={filter} />;
-
       default:
         return null;
     }
   };
 
-
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
       <FlatList
         data={sections}
         keyExtractor={(item) => item.key}
         renderItem={renderSection}
         showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[0]} 
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            progressViewOffset={insets.top + 60}
           />
         }
         ListHeaderComponent={
           <View style={styles.headerWrapper}>
             <DeliveryHeader />
-      {/* Tappable search bar — opens SearchOverlay */}
-          <AnimatedSearchTrigger onPress={() => setShowSearch(true)} />
-            <CategoryTabs onChange={setFilter} />
           </View>
         }
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -172,7 +208,6 @@ const HomeScreen = () => {
       />
 
       <SearchOverlay isVisible={showSearch} onClose={() => setShowSearch(false)} />
-
       <FloatingCart currentRoute="Home" />
     </View>
   );
@@ -196,11 +231,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f9fdfb",
   },
-
   headerWrapper: {
     backgroundColor: "#F8D66D",
   },
-
+  stickyHeaderWrapper: {
+    backgroundColor: "#FFF",
+    paddingTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -208,13 +252,11 @@ const styles = StyleSheet.create({
     marginTop: 25,
     marginBottom: 12,
   },
-
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#111",
   },
-
   viewAll: {
     color: "#0A8754",
     fontWeight: "600",

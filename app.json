@@ -5,31 +5,29 @@
     "scheme": "anushabazaar",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/company-logo.jpeg",
+    "icon": "./assets/company-logo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/company-logo.jpeg",
+      "image": "./assets/company-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#121212"
     },
     "android": {
-      "usesCleartextTraffic": true,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_PHONE_STATE"
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyAJpg-ngs-RlNxzeeQGwu9DL6rqWlyYaqg"
+          "apiKey": "AIzaSyChxzqLaLTuN5cV1LV92yF6tRPh8ZV7FeI"
         }
       },
-      "package": "com.deliveryapp"
+      "package": "com.anusha.deliveryapp",
+      "enableProguardInReleaseBuilds": true
     },
     "plugins": [
       [
@@ -38,6 +36,12 @@
           "locationAlwaysAndWhenInUsePermission": "Allow Anusha Bazaar to access your location for delivery."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "dcdcad28-ac38-4705-ac19-d6aa50a5a275"
+      }
+    },
+    "owner": "anushabazaar2"
   }
 }

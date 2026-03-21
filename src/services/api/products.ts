@@ -1,6 +1,7 @@
 import { API_CONFIG, fetchWithTimeout } from "@/config/api.config";
 
 const API_BASE = API_CONFIG.ENDPOINTS.PRODUCTS;
+const CUSTOMER_BASE = API_CONFIG.ENDPOINTS.CUSTOMER;
 
 export interface Variant {
   id: string | number;
@@ -103,17 +104,10 @@ export const searchProducts = async (keyword: string): Promise<Product[]> => {
 
 export const getTrendingProducts = async (): Promise<Product[]> => {
   try {
-    // Try primary trending endpoint
-    let response = await fetchWithTimeout(`${API_BASE}/trending`);
-
-    // If primary fails or 404, try filtered fallback
+    const response = await fetchWithTimeout(`${API_BASE}/trending`);
+    
     if (!response.ok) {
-      console.log("Primary trending endpoint failed, trying fallback...");
-      response = await fetchWithTimeout(`${API_BASE}/filter?trending=true`);
-    }
-
-    if (!response.ok) {
-      console.error(`[getTrendingProducts] FAILED ${response.status} at ${response.url}. Primary and fallback endpoints failed.`);
+      console.error(`[getTrendingProducts] FAILED ${response.status}: ${API_BASE}/trending`);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const json = await response.json();
@@ -187,6 +181,53 @@ export const getProductsBySubcategory = async (subCategoryId: string | number): 
     return mapProducts(json);
   } catch (error) {
     console.error(`Error fetching products for subcategory ${subCategoryId}:`, error);
+    return [];
+  }
+};
+
+/* ================= NEW: RATINGS & WISHLIST ================= */
+
+export const submitProductRating = async (data: {
+  customerId: number | string;
+  productId: number | string;
+  rating: number;
+  comment: string;
+}): Promise<boolean> => {
+  try {
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/rating`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error submitting rating:", error);
+    return false;
+  }
+};
+
+export const addToWishlistApi = async (customerId: number | string, productId: number | string): Promise<boolean> => {
+  try {
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerId, productId }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error adding to wishlist:", error);
+    return false;
+  }
+};
+
+export const getWishlistApi = async (customerId: number | string): Promise<Product[]> => {
+  try {
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist/${customerId}`);
+    if (!response.ok) return [];
+    const json = await response.json();
+    return mapProducts(json);
+  } catch (error) {
+    console.error("Error fetching wishlist:", error);
     return [];
   }
 };

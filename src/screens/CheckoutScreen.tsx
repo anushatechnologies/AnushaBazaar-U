@@ -477,12 +477,15 @@ const CheckoutScreen = ({ navigation }: any) => {
               <Text style={[styles.priceValue, { color: "#0A8754" }]}>-₹{discount.toFixed(2)}</Text>
             </View>
           )}
+          {/* DISABLED: Reward coins hidden 
           {usePoints && pointsDiscount > 0 && (
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Anusha Coins</Text>
               <Text style={[styles.priceValue, { color: "#0A8754" }]}>-₹{pointsDiscount.toFixed(2)}</Text>
             </View>
-          )}
+          )} 
+          */}
+
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Delivery Charge</Text>
             <Text style={styles.freeText}>FREE</Text>

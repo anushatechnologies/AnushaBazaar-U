@@ -1,0 +1,36 @@
+# Dependencies (reinstalled on EAS)
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native generated folders
+android/
+ios/
+
+# Git
+.git/
+
+# IDE
+.vscode/
+
+# Debug/temp files
+*.orig.*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+tsc_output.txt
+tsc_output_2.txt
+tsc_final.txt
+run_tsc.js
+test_api.js
+size_report.txt
+
+# macOS
+.DS_Store
+
+# Duplicate assets
+assets/AB2 (1).png
+assets/company-logo-2.png

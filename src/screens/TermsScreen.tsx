@@ -68,7 +68,7 @@ const TermsScreen = () => {
 
         <Text style={styles.sectionTitle}>5. Delivery</Text>
         <Text style={styles.paragraph}>
-          We strive to deliver all orders within our advertised 10-minute timeframe. However, delivery times may vary based on factors beyond our control, including but not limited to weather conditions, traffic, or unforeseen circumstances. We are not liable for any delays in delivery.
+          We strive to deliver all orders within our advertised 15-minute timeframe. However, delivery times may vary based on factors beyond our control, including but not limited to weather conditions, traffic, or unforeseen circumstances. We are not liable for any delays in delivery.
         </Text>
 
         <Text style={styles.sectionTitle}>6. Returns and Refunds</Text>

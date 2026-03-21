@@ -1,5 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useLocation } from "../context/LocationContext";
 
 import BottomTabs from "./BottomTabs";
 
@@ -38,6 +39,7 @@ import TermsScreen from "../screens/TermsScreen";
 import GeneralInfoScreen from "../screens/GeneralInfoScreen";
 import AboutScreen from "../screens/AboutScreen";
 import HelpScreen from "../screens/HelpScreen";
+import PermissionScreen from "../screens/PermissionScreen";
 
 /* ================= TYPES ================= */
 
@@ -87,6 +89,7 @@ export type RootStackParamList = {
 
   /* Tracking */
   OrderTracking: { orderId: string | number };
+  Permission: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -94,6 +97,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 /* ================= NAVIGATION ================= */
 
 const RootStack = () => {
+  const { location, hasPermission } = useLocation();
+
   return (
     <Stack.Navigator
       initialRouteName="MainTabs"
@@ -225,9 +230,11 @@ const RootStack = () => {
         name="OrderTracking"
         getComponent={() => require("../screens/OrderTrackingScreen").default}
       />
+      
+      <Stack.Screen name="Permission" component={PermissionScreen} />
     </Stack.Navigator>
   );
 };
 
 
-export default RootStack;
+export default RootStack;

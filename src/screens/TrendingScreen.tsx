@@ -188,6 +188,7 @@ const TrendingScreen = () => {
 
   return (
     <View style={styles.root}>
+      <ListHeader />
       {loading ? (
         <View style={styles.gridOverlay}>
           <FlatList
@@ -208,7 +209,6 @@ const TrendingScreen = () => {
             </View>
           )}
           numColumns={2}
-          ListHeaderComponent={ListHeader}
           ListEmptyComponent={ListEmpty}
           columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listPad}

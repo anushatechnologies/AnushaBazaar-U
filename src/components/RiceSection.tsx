@@ -10,10 +10,9 @@ import {
 const RiceSection = () => {
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../../assets/images/products/rice.png")} 
-        style={styles.image}
-      />
+      <View style={[styles.image, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{color: '#999'}}>Image from Admin</Text>
+      </View>
 
       <Text style={styles.title}>Premium Basmati Rice Bags</Text>
       <Text style={styles.subtitle}>

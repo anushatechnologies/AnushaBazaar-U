@@ -5,7 +5,7 @@
  * in the application bundle during development and production.
  */
 
-const API_ROOT = process.env.EXPO_PUBLIC_API_URL || "http://13.49.18.149:9000/api";
+const API_ROOT = process.env.EXPO_PUBLIC_API_URL || "https://api.anushatechnologies.com/api";
 const SHARE_URL = process.env.EXPO_PUBLIC_SHARE_URL || "https://anushabazaar.com";
 
 export const API_CONFIG = {
@@ -22,6 +22,8 @@ export const API_CONFIG = {
     PROFILE: `${API_ROOT}/customer/profile`,
     NOTIFICATIONS: `${API_ROOT}/notifications`,
     STORES: `${API_ROOT}/stores`,
+    BANNERS: `${API_ROOT}/customer/banners`,
+    CUSTOMER: `${API_ROOT}/customer`,
   },
   TIMEOUT: 10000,
 };

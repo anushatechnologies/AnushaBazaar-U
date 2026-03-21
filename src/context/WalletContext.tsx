@@ -21,7 +21,7 @@ const POINTS_KEY = "@wallet_points";
 
 export const WalletProvider = ({ children }: any) => {
     const { jwtToken } = useAuth();
-    const [balance, setBalance] = useState(2450); // Default balance
+    const [balance, setBalance] = useState(0); // Wallet disabled - no balance
     const [points, setPoints] = useState(120); // Default points
     const [loading, setLoading] = useState(true);
 
@@ -77,18 +77,16 @@ export const WalletProvider = ({ children }: any) => {
         }
     };
 
+    // DISABLED: Online payments not yet integrated
     const addMoney = async (amount: number) => {
-        const newBalance = balance + amount;
-        setBalance(newBalance);
-        await saveData(newBalance, points);
+        // Wallet top-up is disabled until payment gateway is integrated
+        console.log("[Wallet] addMoney disabled - no payment gateway");
     };
 
+    // DISABLED: Cannot spend wallet money
     const spendMoney = async (amount: number): Promise<boolean> => {
-        if (balance < amount) return false;
-        const newBalance = balance - amount;
-        setBalance(newBalance);
-        await saveData(newBalance, points);
-        return true;
+        // Wallet spending is disabled
+        return false;
     };
 
     const addPoints = async (amount: number) => {

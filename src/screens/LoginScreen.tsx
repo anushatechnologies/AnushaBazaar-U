@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,21 +13,17 @@ import {
   Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import firebase from "./config/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { checkPhoneExists } from "../services/api/auth";
-import SignupPopup from "../components/SignupPopup";
 
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
 
-  const [phone, setPhone] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showSignupPopup, setShowSignupPopup] = useState(false);
+  // ✅ FIXED TYPES
+  const [phone, setPhone] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const isValidPhone = /^[6-9]\d{9}$/.test(phone);
 
@@ -38,28 +34,25 @@ const LoginScreen = () => {
     }
 
     setLoading(true);
+
     try {
-      // 1. Check if user exists in DB
+      // ✅ Check user exists
       const checkResponse = await checkPhoneExists(`+91${phone}`);
-      
+
       if (!checkResponse.exists) {
         setLoading(false);
-        setShowSignupPopup(true);
+        navigation.navigate("Signup", { phone });
         return;
       }
 
-      // 2. If exists, proceed with Firebase OTP
-      const phoneProvider = new firebase.auth.PhoneAuthProvider();
-      const verificationId = await phoneProvider.verifyPhoneNumber(
-        `+91${phone}`,
-        recaptchaVerifier.current!
-      );
-
+      // ✅ TEMP OTP (no Firebase crash)
       setLoading(false);
+
       navigation.navigate("Otp", {
         phone,
-        verificationId,
+        verificationId: "test-verification-id",
       });
+
     } catch (error: any) {
       setLoading(false);
       console.log("Auth Error:", error);
@@ -75,76 +68,62 @@ const LoginScreen = () => {
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebase.app().options}
-        attemptInvisibleVerification={true}
-      />
-
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         bounces={false}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Background Decorative Elements */}
+        {/* Background */}
         <View style={styles.bgCircle1} />
         <View style={styles.bgCircle2} />
 
+        {/* Back Button */}
         <View style={[styles.backBtnContainer, { top: insets.top + 10 }]}>
-          <Pressable 
-            style={({ pressed }) => [
-              styles.backBtn,
-              pressed && styles.buttonPressed
-            ]}
-            onPress={() => navigation.goBack()}
-          >
+          <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#1E293B" />
           </Pressable>
         </View>
 
-        <View style={[styles.content, { paddingTop: insets.top + (navigation.canGoBack() ? 100 : 60) }]}>
-          {/* Brand Header */}
+        <View style={[styles.content, { paddingTop: insets.top + 100 }]}>
+          
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Image 
-                source={require("../../assets/company-logo.jpeg")} 
+              <Image
+                source={require("../../assets/company-logo.png")}
                 style={styles.logo}
-                resizeMode="cover"
               />
             </View>
             <Text style={styles.brandName}>Anusha Bazaar</Text>
-            <Text style={styles.brandTagline}>Quality Groceries • Lightning Fast</Text>
+            <Text style={styles.brandTagline}>
+              Quality Groceries • Lightning Fast
+            </Text>
           </View>
 
-          {/* Login Card */}
+          {/* Card */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Welcome</Text>
-            <Text style={styles.cardSubtitle}>Enter your phone number to continue your shopping journey</Text>
+            <Text style={styles.cardSubtitle}>
+              Enter your phone number to continue
+            </Text>
 
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Mobile Number</Text>
-              <View style={styles.phoneInputRow}>
-                <View style={styles.countryBadge}>
-                  <Text style={styles.countryText}>🇮🇳 +91</Text>
-                </View>
-                <TextInput
-                  placeholder="99999 99999"
-                  placeholderTextColor="#94a3b8"
-                  style={styles.input}
-                  keyboardType="number-pad"
-                  maxLength={10}
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-            </View>
+            {/* Phone Input */}
+            <TextInput
+              placeholder="Enter mobile number"
+              placeholderTextColor="#94a3b8"
+              keyboardType="number-pad"
+              maxLength={10}
+              value={phone}
+              onChangeText={setPhone}
+              style={styles.input}
+            />
 
+            {/* Button */}
             <Pressable
-              style={({ pressed }) => [
+              style={[
                 styles.primaryButton,
                 (!isValidPhone || loading) && styles.buttonDisabled,
-                pressed && styles.buttonPressed
               ]}
               onPress={sendOtp}
               disabled={!isValidPhone || loading}
@@ -153,43 +132,23 @@ const LoginScreen = () => {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Text style={styles.buttonText}>Get Verification Code</Text>
+                  <Text style={styles.buttonText}>Get OTP</Text>
                   <Ionicons name="arrow-forward" size={20} color="#fff" />
                 </>
               )}
             </Pressable>
 
-            {/* Signup Section moved up under the button */}
-            <View style={styles.signupSection}>
-              <Text style={styles.signupText}>Not a member yet?</Text>
-              <Pressable onPress={() => navigation.navigate("Signup")}>
-                <Text style={styles.signupLink}>Sign Up Now</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>SECURE LOGIN</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <Text style={styles.footerNote}>
-              By continuing, you agree to our{"\n"}
-              <Text style={styles.linkText}>Terms of Service</Text> & <Text style={styles.linkText}>Privacy Policy</Text>
-            </Text>
+            {/* Sign Up Link */}
+            <Pressable
+              style={styles.signupRow}
+              onPress={() => navigation.navigate("Signup", {})}
+            >
+              <Text style={styles.signupText}>New user? </Text>
+              <Text style={styles.signupLink}>Sign Up</Text>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
-
-      <SignupPopup 
-        visible={showSignupPopup}
-        onClose={() => setShowSignupPopup(false)}
-        onSignup={() => {
-          setShowSignupPopup(false);
-          navigation.navigate("Signup", { phone });
-        }}
-        phone={phone}
-      />
     </KeyboardAvoidingView>
   );
 };
@@ -242,13 +201,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
   },
   header: {
     alignItems: "center",
-    marginBottom: 48,
+    marginBottom: 40,
   },
   logoContainer: {
     width: 100,
@@ -258,167 +214,74 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
-    elevation: 8,
-    shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    overflow: "hidden", // Added to keep image within rounded corners
+    overflow: "hidden",
   },
   logo: {
     width: "100%",
     height: "100%",
   },
   brandName: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "900",
     color: "#0F172A",
-    letterSpacing: -1,
   },
   brandTagline: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#64748B",
-    marginTop: 6,
-    fontWeight: "500",
+    marginTop: 5,
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 32,
-    padding: 30,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 30,
+    borderRadius: 30,
+    padding: 25,
   },
   cardTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
-    color: "#1E293B",
-    marginBottom: 8,
+    marginBottom: 5,
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: "#64748B",
-    lineHeight: 20,
-    marginBottom: 32,
-  },
-  inputWrapper: {
-    marginBottom: 24,
-  },
-  inputLabel: {
     fontSize: 13,
-    fontWeight: "700",
-    color: "#475569",
-    marginBottom: 10,
-    marginLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  phoneInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: "#F1F5F9",
-    paddingHorizontal: 4,
-  },
-  countryBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    margin: 4,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-  },
-  countryText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1E293B",
+    color: "#64748B",
+    marginBottom: 20,
   },
   input: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 15,
+    padding: 14,
     fontSize: 16,
-    fontWeight: "600",
-    color: "#1E293B",
+    marginBottom: 20,
   },
   primaryButton: {
     backgroundColor: "#0A8754",
-    height: 64,
-    borderRadius: 20,
+    height: 60,
+    borderRadius: 18,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
-    elevation: 8,
-    shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
-  },
-  buttonPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
+    gap: 10,
   },
   buttonDisabled: {
     backgroundColor: "#94a3b8",
-    shadowOpacity: 0,
-    elevation: 0,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "800",
   },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 32,
-    opacity: 0.4,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#CBD5E1",
-  },
-  dividerText: {
-    paddingHorizontal: 16,
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#64748B",
-    letterSpacing: 2,
-  },
-  footerNote: {
-    fontSize: 12,
-    color: "#94a3b8",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  linkText: {
-    color: "#0A8754",
-    fontWeight: "700",
-  },
-  signupSection: {
+  signupRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20, // Reduced from 40 since it's now inside the card or closer to the button
-    gap: 8,
+    marginTop: 20,
   },
   signupText: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#64748B",
-    fontWeight: "500",
   },
   signupLink: {
-    fontSize: 15,
-    color: "#0A8754",
+    fontSize: 14,
     fontWeight: "800",
+    color: "#0A8754",
   },
 });

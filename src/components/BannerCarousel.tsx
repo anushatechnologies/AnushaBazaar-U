@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import { getActiveBanners, Banner } from "../services/api/banners";
 import {
   View,
   FlatList,
@@ -8,50 +9,33 @@ import {
   Animated,
   Text,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
-const banners = [
-  {
-    id: "1",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=900&q=80",
-    tag: "🛒 Upto 40% OFF",
-    title: "Fresh Vegetables",
-    subtitle: "Direct from farms to your door",
-    tagBg: "#0A8754",
-  },
-  {
-    id: "2",
-    image: "https://images.unsplash.com/photo-1560472355-536de3962603?w=900&q=80",
-    tag: "🔥 Flash Sale",
-    title: "Dairy & Eggs",
-    subtitle: "Best prices guaranteed today",
-    tagBg: "#EF4444",
-  },
-  {
-    id: "3",
-    image: "https://images.unsplash.com/photo-1584473457409-ae5c91d211ff?w=900&q=80",
-    tag: "✨ New Arrivals",
-    title: "Exotic Fruits",
-    subtitle: "Imported & locally sourced",
-    tagBg: "#F59E0B",
-  },
-  {
-    id: "4",
-    image: "https://images.unsplash.com/photo-1607082349566-187342175e2f?w=900&q=80",
-    tag: "⚡ Quick Deals",
-    title: "Snacks & Beverages",
-    subtitle: "Your daily essentials, delivered fast",
-    tagBg: "#8B5CF6",
-  },
-];
-
 const BannerCarousel = () => {
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [loading, setLoading] = useState(true);
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    fetchBanners();
+  }, []);
+
+  const fetchBanners = async () => {
+    try {
+      const data = await getActiveBanners();
+      setBanners(data);
+    } catch (error) {
+      console.error("Banner fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -67,7 +51,24 @@ const BannerCarousel = () => {
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [currentIndex]);
+  }, [currentIndex, banners.length]);
+
+  if (loading && banners.length === 0) {
+    return (
+      <View style={[styles.bannerContainer, { height: 175, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator color="#0A8754" />
+      </View>
+    );
+  }
+
+  if (banners.length === 0) {
+    return (
+      <View style={[styles.bannerContainer, { height: 175, backgroundColor: "#E9F5F0", justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ marginTop: 8, color: "#0A8754", fontWeight: "700", fontSize: 16 }}>Exciting Offers Coming Soon!</Text>
+      </View>
+    );
+  }
+
 
   return (
     <View>

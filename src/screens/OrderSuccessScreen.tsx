@@ -63,7 +63,7 @@ const OrderSuccessScreen = () => {
           <View style={styles.divider} />
           <View style={styles.orderDetail}>
             <Text style={styles.detailLabel}>Estimated Delivery</Text>
-            <Text style={styles.detailValue}>45 mins</Text>
+            <Text style={styles.detailValue}>15 mins</Text>
           </View>
         </Animated.View>
 

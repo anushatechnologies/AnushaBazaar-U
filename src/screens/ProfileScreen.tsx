@@ -25,13 +25,8 @@ const ProfileScreen = () => {
   const { points } = useWallet();
   const insets = useSafeAreaInsets();
   
-  const getTier = (pts: number) => {
-    if (pts >= 2000) return { name: "Gold", color: "#EAB308", icon: "crown" };
-    if (pts >= 500) return { name: "Silver", color: "#94A3B8", icon: "shield" };
-    return { name: "Bronze", color: "#B45309", icon: "medal" };
-  };
-
-  const tier = getTier(points);
+  // DISABLED: Rewards/Coins system hidden for now
+  // const tier = getTier(points);
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -121,9 +116,11 @@ const ProfileScreen = () => {
           />
           <View style={styles.divider} />
           <MenuItem 
-            title="Payments & Wallets" 
+            title="Payments & Wallet" 
             icon="card-outline" 
-            onPress={() => navigation.navigate("Payment")} 
+            onPress={() => navigation.navigate("Wallet")} 
+            badge="Coming Soon"
+            badgeColor="#6B7280"
           />
         </View>
 

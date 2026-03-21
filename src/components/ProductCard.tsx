@@ -12,6 +12,8 @@ Platform,
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useCart } from "../context/CartContext";
+import PriceRow from "./common/PriceRow";
+import QuantitySelector from "./common/QuantitySelector";
 
 const ProductCard = ({ product }: any) => {
 
@@ -83,10 +85,7 @@ const imageSource = typeof imageUrl === "string" && imageUrl.startsWith("http")
 
       <Text numberOfLines={2} style={styles.name}>{product?.name}</Text>
 
-      <View style={styles.priceRow}>
-        <Text style={styles.price}>₹{sellingPrice}</Text>
-        {mrp > sellingPrice && <Text style={styles.originalPrice}>₹{mrp}</Text>}
-      </View>
+      <PriceRow sellingPrice={sellingPrice} mrp={mrp} />
 
       {!cartItem ? (
         <View style={styles.addBtnContainer}>
@@ -110,14 +109,12 @@ const imageSource = typeof imageUrl === "string" && imageUrl.startsWith("http")
           )}
         </View>
       ) : (
-        <View style={styles.qtyContainer}>
-          <Pressable style={styles.qtyBtnBox} onPress={() => decreaseQty(cartItem.id)}>
-            <Text style={styles.qtyBtn}>-</Text>
-          </Pressable>
-          <Text style={styles.qty}>{cartItem.quantity}</Text>
-          <Pressable style={styles.qtyBtnBox} onPress={() => increaseQty(cartItem.id)}>
-            <Text style={styles.qtyBtn}>+</Text>
-          </Pressable>
+        <View style={{ marginTop: 6 }}>
+          <QuantitySelector
+            quantity={cartItem.quantity}
+            onIncrease={() => increaseQty(cartItem.id)}
+            onDecrease={() => decreaseQty(cartItem.id)}
+          />
         </View>
       )}
     </View>
@@ -172,27 +169,6 @@ name:{
   lineHeight:17,
 },
 
-priceRow:{
-  flexDirection:"row",
-  alignItems:"center",
-  gap:6,
-  marginTop:4,
-  marginBottom:2,
-},
-
-price:{
-  color:"#0A8754",
-  fontWeight:"800",
-  fontSize:15,
-},
-
-originalPrice:{
-  color:"#aaa",
-  fontSize:12,
-  textDecorationLine:"line-through",
-  fontWeight:"500",
-},
-
   addBtn: {
     backgroundColor: "#fff",
     borderWidth: 1.5,
@@ -213,38 +189,6 @@ originalPrice:{
     fontWeight: "900",
     fontSize: 13,
     letterSpacing: 0.5,
-  },
-
-  qtyContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
-    backgroundColor: "#0C831F",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    elevation: 4,
-    shadowColor: "#0C831F",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-
-  qtyBtnBox: {
-    paddingHorizontal: 8,
-  },
-
-  qtyBtn: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: "#fff",
-  },
-
-  qty: {
-    fontWeight: "900",
-    fontSize: 16,
-    color: "#fff",
   },
 
 wishlistIcon: {
