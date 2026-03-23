@@ -15,6 +15,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import auth from "@react-native-firebase/auth";
 
 const SignupScreen = () => {
   const navigation = useNavigation<any>();
@@ -41,10 +42,12 @@ const SignupScreen = () => {
 
     setLoading(true);
     try {
+      const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
       setLoading(false);
+      
       navigation.navigate("Otp", {
         phone,
-        verificationId: "test-verification-id",
+        verificationId: confirmation.verificationId,
         signupData: {
           name: name.trim(),
           email: email.trim(),

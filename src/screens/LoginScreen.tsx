@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { checkPhoneExists } from "../services/api/auth";
+import auth from "@react-native-firebase/auth";
 
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
@@ -45,12 +46,13 @@ const LoginScreen = () => {
         return;
       }
 
-      // ✅ TEMP OTP (no Firebase crash)
+      // Send OTP via Native Firebase
+      const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
+      
       setLoading(false);
-
       navigation.navigate("Otp", {
         phone,
-        verificationId: "test-verification-id",
+        verificationId: confirmation.verificationId,
       });
 
     } catch (error: any) {

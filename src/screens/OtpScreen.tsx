@@ -14,7 +14,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import firebase from "./config/firebase";
+import auth from "@react-native-firebase/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { loginWithFirebaseToken, signupWithFirebaseToken } from "../services/api/auth";
 
@@ -53,11 +53,11 @@ const OtpScreen = () => {
     setLoading(true);
 
     try {
-      const credential = firebase.auth.PhoneAuthProvider.credential(
+      const credential = auth.PhoneAuthProvider.credential(
         verificationId,
         code
       );
-      const userCredential = await firebase.auth().signInWithCredential(credential);
+      const userCredential = await auth().signInWithCredential(credential);
       const firebaseIdToken = await userCredential.user?.getIdToken();
 
       if (!firebaseIdToken) {

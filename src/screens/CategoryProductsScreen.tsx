@@ -139,7 +139,7 @@ const CategoryProductsScreen = ({ route }: any) => {
     };
 
     return (
-      <View style={{ width: "48%", marginBottom: 12 }}>
+      <View style={{ width: "31%", marginBottom: 12 }}>
         <ProductCard product={mappedProduct} />
       </View>
     );

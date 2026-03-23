@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
@@ -38,6 +37,7 @@ const BannerCarousel = () => {
   };
 
   useEffect(() => {
+    if (banners.length === 0) return;
     const interval = setInterval(() => {
       const nextIndex =
         currentIndex === banners.length - 1 ? 0 : currentIndex + 1;
@@ -69,7 +69,6 @@ const BannerCarousel = () => {
     );
   }
 
-
   return (
     <View>
       <Animated.FlatList
@@ -78,7 +77,7 @@ const BannerCarousel = () => {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           { useNativeDriver: false }
@@ -90,22 +89,10 @@ const BannerCarousel = () => {
               style={styles.image}
               resizeMode="cover"
             />
-            {/* Dark gradient overlay for text readability */}
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.65)"]}
-              style={styles.overlay}
-            >
-              <View style={[styles.tag, { backgroundColor: item.tagBg }]}>
-                <Text style={styles.tagText}>{item.tag}</Text>
-              </View>
-              <Text style={styles.bannerTitle}>{item.title}</Text>
-              <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
-            </LinearGradient>
           </TouchableOpacity>
         )}
       />
 
-      {/* Animated Pagination Dots */}
       <View style={styles.pagination}>
         {banners.map((_, i) => {
           const dotWidth = scrollX.interpolate({
@@ -142,42 +129,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 175,
     borderRadius: 20,
-  },
-  overlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 14,
-    right: 14,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    justifyContent: "flex-end",
-  },
-  tag: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginBottom: 6,
-  },
-  tagText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-  bannerTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: -0.3,
-  },
-  bannerSubtitle: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 12,
-    fontWeight: "500",
-    marginTop: 2,
   },
   pagination: {
     flexDirection: "row",

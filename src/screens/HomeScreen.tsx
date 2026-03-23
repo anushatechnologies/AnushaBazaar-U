@@ -6,6 +6,7 @@ import {
   StatusBar,
   RefreshControl,
   FlatList,
+  Animated,
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,7 +47,8 @@ const HomeScreen = () => {
   
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("All");
-  const lastScrollY = useRef(0);
+  const [headerHeight, setHeaderHeight] = useState(150);
+  const scrollY = useRef(new Animated.Value(0)).current;
   
   const [showSearch, setShowSearch] = useState(false);
 
@@ -93,9 +95,10 @@ const HomeScreen = () => {
     setTimeout(() => setRefreshing(false), 1500);
   };
 
-  const handleScroll = (e: any) => {
-    lastScrollY.current = e.nativeEvent.contentOffset.y;
-  };
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: true }
+  );
 
   const sections = [
     { key: "sticky_header" }, 
@@ -154,8 +157,8 @@ const HomeScreen = () => {
                 { id: "1", name: "Fortune Soya Health Oil", price: 135, oldPrice: 155, icon: "https://www.jiomart.com/images/product/original/490000072/fortune-soya-health-refined-soyabean-oil-1-l-pouch-product-images-o490000072-p490000072-0-202203151213.jpg", unit: "1 L" },
                 { id: "2", name: "Aashirvaad Atta", price: 210, oldPrice: 240, icon: "https://www.bigbasket.com/media/uploads/p/l/126906_8-aashirvaad-atta-whole-wheat.jpg", unit: "5 kg" }
               ]}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
+              keyExtractor={(item: any) => item.id}
+              renderItem={({ item }: { item: any }) => (
                 <View style={{ width: 140, marginRight: 12 }}>
                   <ProductCard product={item} />
                 </View>
@@ -184,12 +187,11 @@ const HomeScreen = () => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
-      <FlatList
+      <Animated.FlatList
         data={sections}
         keyExtractor={(item) => item.key}
         renderItem={renderSection}
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[0]} 
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -198,7 +200,10 @@ const HomeScreen = () => {
           />
         }
         ListHeaderComponent={
-          <View style={styles.headerWrapper}>
+          <View 
+            style={styles.headerWrapper}
+            onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+          >
             <DeliveryHeader />
           </View>
         }
@@ -206,6 +211,26 @@ const HomeScreen = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       />
+
+      <Animated.View 
+        style={[
+          styles.floatingSearch, 
+          { 
+            transform: [{
+              translateY: scrollY.interpolate({
+                inputRange: [Math.max(0, headerHeight - 1), headerHeight],
+                outputRange: [-300, 0],
+                extrapolate: 'clamp'
+              })
+            }]
+          }
+        ]}
+      >
+        <View style={[styles.stickyHeaderWrapper, { paddingTop: insets.top + 8 }]}>
+          <AnimatedSearchTrigger onPress={() => setShowSearch(true)} />
+          <CategoryTabs onChange={setFilter} />
+        </View>
+      </Animated.View>
 
       <SearchOverlay isVisible={showSearch} onClose={() => setShowSearch(false)} />
       <FloatingCart currentRoute="Home" />
@@ -244,6 +269,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 5,
+  },
+  floatingSearch: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 999,
   },
   sectionHeader: {
     flexDirection: "row",

@@ -4,7 +4,14 @@ const API_BASE = API_CONFIG.ENDPOINTS.BANNERS;
 
 export interface Banner {
   id: string | number;
+  name?: string;
   image: string;
+  videoUrl?: string | null;
+  targetUrl?: string | null;
+  displayOrder?: number;
+  isActive?: boolean;
+  
+  // Legacy fields (kept for backward compatibility with UI components)
   tag?: string;
   title?: string;
   subtitle?: string;
@@ -23,11 +30,12 @@ export const getActiveBanners = async (): Promise<Banner[]> => {
     
     return items.map((item: any) => ({
       id: item.id || item._id,
-      image: item.image || item.imageUrl,
-      tag: item.tag || "SALE",
-      title: item.title || "",
-      subtitle: item.subtitle || "",
-      tagBg: item.tagBg || "#0A8754",
+      name: item.name || "",
+      image: item.imageUrl || item.image || "",
+      videoUrl: item.videoUrl || null,
+      targetUrl: item.targetUrl || null,
+      displayOrder: item.displayOrder || 0,
+      isActive: item.isActive !== undefined ? item.isActive : true,
     }));
   } catch (error) {
     console.error("Error fetching banners:", error);

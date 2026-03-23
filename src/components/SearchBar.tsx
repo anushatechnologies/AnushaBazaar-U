@@ -24,11 +24,11 @@ interface SearchBarProps {
 
 const placeholders = [
   "Search 'milk'",
-  "Search 'chicken'",
-  "Search 'relish'",
-  "Search 'eggs'",
-  "Search 'fresh fish'",
-  "Search 'meat'",
+  "Search 'fresh vegetables'",
+  "Search 'electronics'",
+  "Search 'snacks'",
+  "Search 'fruits'",
+  "Search 'atta & dal'",
 ];
 
 const SearchBar = ({
@@ -39,7 +39,7 @@ const SearchBar = ({
   onChangeText,
 }: SearchBarProps) => {
   const [internalText, setInternalText] = useState(value || "");
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -51,26 +51,21 @@ const SearchBar = ({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      // Animate out
       Animated.timing(scrollAnim, {
         toValue: -20,
-        duration: 300,
+        duration: 500,
         useNativeDriver: true,
       }).start(() => {
-        setPlaceholderIndex((prev: number) => (prev + 1) % placeholders.length);
-        // Reset position to bottom
-        scrollAnim.setValue(20);
-        // Animate in
-        Animated.timing(scrollAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
+        setCurrentIndex((prev: number) => (prev + 1) % placeholders.length);
+        scrollAnim.setValue(0);
       });
-    }, 3000);
+    }, 2500);
 
     return () => clearInterval(timer);
   }, []);
+
+  const current = placeholders[currentIndex];
+  const next = placeholders[(currentIndex + 1) % placeholders.length];
 
   const performSearch = async (text: string) => {
     if (!text.trim()) {
@@ -134,9 +129,12 @@ const SearchBar = ({
 
         <View style={styles.inputWrapper}>
           {displayText.length === 0 && (
-            <Animated.View style={[styles.placeholderContainer, { transform: [{ translateY: scrollAnim }] }]}>
-              <Text style={styles.placeholderText}>{placeholders[placeholderIndex]}</Text>
-            </Animated.View>
+            <View style={styles.placeholderContainer}>
+              <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
+                <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>{current}</Text>
+                <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>{next}</Text>
+              </Animated.View>
+            </View>
           )}
           <TextInput
             ref={inputRef}
@@ -205,11 +203,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
+    height: 20,
+    overflow: "hidden",
+    justifyContent: "flex-start",
   },
   placeholderText: {
     fontSize: 15,
     color: "#94A3B8",
     fontWeight: "500",
+    lineHeight: 20,
   },
   input: {
     flex: 1,

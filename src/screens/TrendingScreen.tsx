@@ -204,7 +204,7 @@ const TrendingScreen = () => {
           data={displayed}
           keyExtractor={(item, i) => item.id?.toString() || String(i)}
           renderItem={({ item }) => (
-            <View style={{ width: "48%" }}>
+            <View style={{ width: "31%" }}>
               <ProductCard product={item} />
             </View>
           )}

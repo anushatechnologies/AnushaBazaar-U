@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import firebase from "../screens/config/firebase";
+import auth from "@react-native-firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type UserType = {
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: any) => {
     checkPersistentSession();
 
     // Firebase Auth State Observer
-    const unsubscribe = firebase.auth().onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         // We defer to whatever was passed through `login()` since Firebase doesn't always have `displayName`,
         // but if they re-open the app, AsyncStorage handles the main state load above.
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: any) => {
 
   const logout = async () => {
     try {
-      await firebase.auth().signOut();
+      await auth().signOut();
       await AsyncStorage.removeItem("@Anusha:UserProfile");
       await AsyncStorage.removeItem("@Anusha:jwtToken");
     } catch (error) {

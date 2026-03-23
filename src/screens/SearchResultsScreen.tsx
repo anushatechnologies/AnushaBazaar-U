@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardWrapper: {
-    width: "48%",
+    width: "31%",
   },
 
   /* Empty State */

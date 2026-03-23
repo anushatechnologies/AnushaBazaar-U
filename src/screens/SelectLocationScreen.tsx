@@ -121,7 +121,7 @@ const SelectLocationScreen = () => {
                 }
               }}
               query={{
-                key: GOOGLE_MAPS_APIKEY,
+                key:GOOGLE_MAPS_APIKEY ,
                 language: "en",
                 components: "country:in",
               }}

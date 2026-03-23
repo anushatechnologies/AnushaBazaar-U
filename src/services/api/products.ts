@@ -172,9 +172,9 @@ export const getBestSellerProducts = async (): Promise<Product[]> => {
 
 export const getProductsBySubcategory = async (subCategoryId: string | number): Promise<Product[]> => {
   try {
-    const response = await fetchWithTimeout(`${API_BASE}/subcategory/${subCategoryId}`);
+    const response = await fetchWithTimeout(`${API_BASE}/filter?subCategoryId=${subCategoryId}`);
     if (!response.ok) {
-      console.error(`[getProductsBySubcategory] FAILED ${response.status}: ${API_BASE}/subcategory/${subCategoryId}`);
+      console.error(`[getProductsBySubcategory] FAILED ${response.status}: ${API_BASE}/filter?subCategoryId=${subCategoryId}`);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const json = await response.json();

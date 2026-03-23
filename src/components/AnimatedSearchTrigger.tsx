@@ -14,39 +14,34 @@ interface AnimatedSearchTriggerProps {
 
 const placeholders = [
   "Search 'milk'",
-  "Search 'chicken'",
-  "Search 'relish'",
-  "Search 'eggs'",
-  "Search 'fresh fish'",
-  "Search 'meat'",
+  "Search 'fresh vegetables'",
+  "Search 'electronics'",
+  "Search 'snacks'",
+  "Search 'fruits'",
+  "Search 'atta & dal'",
 ];
 
 const AnimatedSearchTrigger = ({ onPress }: AnimatedSearchTriggerProps) => {
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const scrollAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const timer = setInterval(() => {
-      // Animate out (slide up and fade)
       Animated.timing(scrollAnim, {
         toValue: -20,
-        duration: 300,
+        duration: 500,
         useNativeDriver: true,
       }).start(() => {
-        setPlaceholderIndex((prev: number) => (prev + 1) % placeholders.length);
-        // Reset position to bottom
-        scrollAnim.setValue(20);
-        // Animate in (slide up to center)
-        Animated.timing(scrollAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
+        setCurrentIndex((prev: number) => (prev + 1) % placeholders.length);
+        scrollAnim.setValue(0);
       });
-    }, 3000);
+    }, 2500);
 
     return () => clearInterval(timer);
   }, []);
+
+  const current = placeholders[currentIndex];
+  const next = placeholders[(currentIndex + 1) % placeholders.length];
 
   return (
     <TouchableOpacity
@@ -58,8 +53,11 @@ const AnimatedSearchTrigger = ({ onPress }: AnimatedSearchTriggerProps) => {
       
       <View style={styles.textContainer}>
         <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
-          <Text style={styles.placeholderText}>
-            {placeholders[placeholderIndex]}
+          <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>
+            {current}
+          </Text>
+          <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>
+            {next}
           </Text>
         </Animated.View>
       </View>
@@ -97,12 +95,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 20, // fixed height to clip animation
     overflow: "hidden",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   placeholderText: {
     fontSize: 15,
     color: "#64748B",
     fontWeight: "500",
+    lineHeight: 20,
   },
   divider: {
     width: 1,

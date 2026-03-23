@@ -27,9 +27,11 @@
         }
       },
       "package": "com.anusha.deliveryapp",
+      "googleServicesFile": "./google-services.json",
       "enableProguardInReleaseBuilds": true
     },
     "plugins": [
+      "@react-native-firebase/app",
       [
         "expo-location",
         {

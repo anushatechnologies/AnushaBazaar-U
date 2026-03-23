@@ -118,7 +118,7 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
             ) : (
                 <View style={styles.grid}>
                     {displayed.map((item, index) => (
-                        <View key={item.id?.toString() || index} style={{ width: "48%", marginBottom: 12 }}>
+                        <View key={item.id?.toString() || index} style={{ width: "31%", marginBottom: 12 }}>
                             <ProductCard product={item} />
                         </View>
                     ))}
