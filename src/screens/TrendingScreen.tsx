@@ -192,9 +192,13 @@ const TrendingScreen = () => {
       {loading ? (
         <View style={styles.gridOverlay}>
           <FlatList
-            data={[1,2,3,4,5,6]}
-            numColumns={2}
-            renderItem={() => <SkeletonCard />}
+            data={[1,2,3,4,5,6,7,8,9]}
+            numColumns={3}
+            renderItem={() => (
+              <View style={{ width: "32%" }}>
+                <SkeletonCard />
+              </View>
+            )}
             columnWrapperStyle={styles.columnWrapper}
             contentContainerStyle={styles.listPad}
           />
@@ -204,11 +208,11 @@ const TrendingScreen = () => {
           data={displayed}
           keyExtractor={(item, i) => item.id?.toString() || String(i)}
           renderItem={({ item }) => (
-            <View style={{ width: "31%" }}>
+            <View style={{ width: "32%" }}>
               <ProductCard product={item} />
             </View>
           )}
-          numColumns={2}
+          numColumns={3}
           ListEmptyComponent={ListEmpty}
           columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listPad}

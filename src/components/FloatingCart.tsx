@@ -5,7 +5,8 @@ import {
     StyleSheet,
     Pressable,
     Animated,
-    Dimensions
+    Dimensions,
+    Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,9 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+    // Get last 3 unique items for thumbnails
+    const thumbnails = cart.slice(-3).reverse();
+
     useEffect(() => {
         // Hide on Cart screen or if empty
         if (totalItems > 0 && currentRoute !== "Cart" && currentRoute !== "Checkout") {
@@ -40,14 +44,6 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
                 friction: 8,
                 useNativeDriver: true,
             }).start();
-            
-            // Start subtle pulsing animation
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, { toValue: 1.05, duration: 1500, useNativeDriver: true }),
-                    Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true })
-                ])
-            ).start();
         } else {
             Animated.spring(slideAnim, {
                 toValue: 150,
@@ -76,33 +72,39 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
                 onPress={() => navigation.navigate("Cart")}
             >
                 <LinearGradient
-                    colors={["#10B981", "#047A55"]}
+                    colors={["#0C831F", "#0B6E1A"]}
                     start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                    end={{ x: 1, y: 0 }}
                     style={styles.cartGradient}
                 >
                     <View style={styles.left}>
-                        <Animated.View style={[styles.iconCircle, { transform: [{ scale: pulseAnim }] }]}>
-                            <Ionicons name="cart" size={20} color="#047A55" />
-                            <View style={styles.badge}>
-                                <Text style={styles.badgeText}>{totalItems}</Text>
-                            </View>
-                        </Animated.View>
+                        {/* Thumbnails stack */}
+                        <View style={styles.thumbStack}>
+                            {thumbnails.map((item, idx) => {
+                                const img = item.imageUrl || item.image;
+                                const source = typeof img === "string" ? { uri: img } : img;
+                                return (
+                                    <View 
+                                        key={item.id} 
+                                        style={[
+                                            styles.thumbCircle, 
+                                            { marginLeft: idx === 0 ? 0 : -20, zIndex: 10 - idx }
+                                        ]}
+                                    >
+                                        <Image source={source} style={styles.thumbImg} resizeMode="contain" />
+                                    </View>
+                                );
+                            })}
+                        </View>
                         <View style={styles.textColumn}>
-                            <Text style={styles.priceText}>
-                                ₹{totalPrice.toLocaleString()}
-                            </Text>
-                            <Text style={styles.itemsText}>
-                                {totalItems} {totalItems === 1 ? "Item" : "Items"}
-                            </Text>
+                            <Text style={styles.itemsCountText}>{totalItems} items</Text>
+                            <Text style={styles.priceText}>₹{totalPrice.toLocaleString()}</Text>
                         </View>
                     </View>
 
                     <View style={styles.right}>
                         <Text style={styles.viewCart}>View Cart</Text>
-                        <View style={styles.arrowCircle}>
-                            <Ionicons name="chevron-forward" size={16} color="#047A55" />
-                        </View>
+                        <Ionicons name="caret-forward" size={12} color="#fff" />
                     </View>
                 </LinearGradient>
             </Pressable>
@@ -122,94 +124,72 @@ const styles = StyleSheet.create({
         zIndex: 9999,
     },
     cartContainer: {
-        width: width * 0.9,
-        shadowColor: "#059669",
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
-        elevation: 14,
+        width: width * 0.94,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 10,
     },
     cartGradient: {
-        height: 64,
-        paddingLeft: 10,
-        paddingRight: 10,
-        borderRadius: 35,
+        height: 56,
+        paddingHorizontal: 16,
+        borderRadius: 12, // More rectangular like Blinkit/Zepto
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.15)",
     },
     left: {
         flexDirection: "row",
         alignItems: "center",
+        flex: 1,
     },
-    iconCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: "#fff",
-        justifyContent: "center",
+    thumbStack: {
+        flexDirection: "row",
         alignItems: "center",
         marginRight: 12,
-        position: "relative",
     },
-    badge: {
-        position: "absolute",
-        top: -2,
-        right: -4,
-        backgroundColor: "#F59E0B",
-        minWidth: 18,
-        height: 18,
-        borderRadius: 9,
+    thumbCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: "#fff",
+        borderWidth: 1.5,
+        borderColor: "#0C831F",
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 4,
-        borderWidth: 2,
-        borderColor: "#fff",
+        overflow: "hidden",
     },
-    badgeText: {
-        color: "#fff",
-        fontSize: 10,
-        fontWeight: "900",
+    thumbImg: {
+        width: "90%",
+        height: "90%",
     },
     textColumn: {
         justifyContent: "center",
     },
+    itemsCountText: {
+        color: "#fff",
+        fontSize: 11,
+        fontWeight: "600",
+        opacity: 0.9,
+    },
     priceText: {
         color: "#fff",
-        fontWeight: "900",
-        fontSize: 17,
-        letterSpacing: 0.5,
-    },
-    itemsText: {
-        color: "rgba(255,255,255,0.8)",
-        fontWeight: "600",
-        fontSize: 11,
-        marginTop: 1,
+        fontWeight: "800",
+        fontSize: 16,
     },
     right: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.15)",
-        paddingVertical: 6,
-        paddingLeft: 14,
-        paddingRight: 6,
-        borderRadius: 30,
+        backgroundColor: "rgba(255,255,255,0.05)",
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        gap: 4,
     },
     viewCart: {
         color: "#fff",
         fontWeight: "800",
         fontSize: 13,
-        marginRight: 8,
-        letterSpacing: 0.3,
     },
-    arrowCircle: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: "#fff",
-        justifyContent: "center",
-        alignItems: "center",
-    }
 });

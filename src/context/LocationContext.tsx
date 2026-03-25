@@ -13,6 +13,7 @@ interface LocationContextType {
   setLocation: (data: LocationData) => void;
   hasPermission: boolean | null;
   checkPermission: () => Promise<boolean>;
+  isDetecting: boolean;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -21,6 +22,7 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
 
   const [location, setLocationState] = useState<LocationData | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
 
   useEffect(() => {
     loadSavedLocation();
@@ -29,14 +31,49 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
 
   const checkPermission = async () => {
     try {
-      const { status } = await Location.getForegroundPermissionsAsync();
+      const { status } = await Location.requestForegroundPermissionsAsync();
       const granted = status === 'granted';
       setHasPermission(granted);
+      
+      if (granted) {
+        setIsDetecting(true);
+        const saved = await AsyncStorage.getItem("user_location");
+        if (!saved) {
+          getCurrentLocation();
+        } else {
+          setIsDetecting(false);
+        }
+      }
       return granted;
     } catch (error) {
       console.log("Permission check error", error);
       setHasPermission(false);
       return false;
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    setIsDetecting(true);
+    try {
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const [addr] = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude
+      });
+
+      if (addr) {
+        const addressStr = `${addr.name || ""}, ${addr.street || ""}, ${addr.city || ""}`.replace(/^, |, $/g, "");
+        const newLoc = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          address: addressStr || "Current Location"
+        };
+        setLocation(newLoc);
+      }
+    } catch (error) {
+      console.log("Auto-detect error", error);
+    } finally {
+      setIsDetecting(false);
     }
   };
 
@@ -62,7 +99,7 @@ export const LocationProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   return (
-    <LocationContext.Provider value={{ location, setLocation, hasPermission, checkPermission }}>
+    <LocationContext.Provider value={{ location, setLocation, hasPermission, checkPermission, isDetecting }}>
       {children}
     </LocationContext.Provider>
   );

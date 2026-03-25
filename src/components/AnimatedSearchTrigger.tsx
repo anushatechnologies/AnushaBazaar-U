@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 interface AnimatedSearchTriggerProps {
   onPress: () => void;
+  onMicPress?: () => void;
 }
 
 const placeholders = [
@@ -21,7 +22,7 @@ const placeholders = [
   "Search 'atta & dal'",
 ];
 
-const AnimatedSearchTrigger = ({ onPress }: AnimatedSearchTriggerProps) => {
+const AnimatedSearchTrigger = ({ onPress, onMicPress }: AnimatedSearchTriggerProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollAnim = useRef(new Animated.Value(0)).current;
 
@@ -63,7 +64,9 @@ const AnimatedSearchTrigger = ({ onPress }: AnimatedSearchTriggerProps) => {
       </View>
 
       <View style={styles.divider} />
-      <Ionicons name="mic-outline" size={18} color="#EF4444" />
+      <TouchableOpacity onPress={onMicPress || onPress} activeOpacity={0.7}>
+        <Ionicons name="mic-outline" size={18} color="#EF4444" />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 };

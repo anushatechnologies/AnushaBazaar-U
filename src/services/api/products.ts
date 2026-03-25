@@ -206,6 +206,18 @@ export const submitProductRating = async (data: {
   }
 };
 
+export const getProductRatings = async (productId: string | number): Promise<any[]> => {
+  try {
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/rating/${productId}`);
+    if (!response.ok) return [];
+    const json = await response.json();
+    return Array.isArray(json) ? json : (json.data || []);
+  } catch (error) {
+    console.error("Error fetching ratings:", error);
+    return [];
+  }
+};
+
 export const addToWishlistApi = async (customerId: number | string, productId: number | string): Promise<boolean> => {
   try {
     const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist`, {

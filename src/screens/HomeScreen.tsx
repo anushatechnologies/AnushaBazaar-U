@@ -51,6 +51,7 @@ const HomeScreen = () => {
   const scrollY = useRef(new Animated.Value(0)).current;
   
   const [showSearch, setShowSearch] = useState(false);
+  const [showSearchVoice, setShowSearchVoice] = useState(false);
 
   useEffect(() => {
     handleInitialPermission();
@@ -115,7 +116,10 @@ const HomeScreen = () => {
       case "sticky_header":
         return (
           <View style={styles.stickyHeaderWrapper}>
-            <AnimatedSearchTrigger onPress={() => setShowSearch(true)} />
+            <AnimatedSearchTrigger 
+              onPress={() => { setShowSearch(true); setShowSearchVoice(false); }} 
+              onMicPress={() => { setShowSearch(true); setShowSearchVoice(true); }}
+            />
             <CategoryTabs onChange={setFilter} />
           </View>
         );
@@ -227,12 +231,19 @@ const HomeScreen = () => {
         ]}
       >
         <View style={[styles.stickyHeaderWrapper, { paddingTop: insets.top + 8 }]}>
-          <AnimatedSearchTrigger onPress={() => setShowSearch(true)} />
+          <AnimatedSearchTrigger 
+            onPress={() => { setShowSearch(true); setShowSearchVoice(false); }} 
+            onMicPress={() => { setShowSearch(true); setShowSearchVoice(true); }}
+          />
           <CategoryTabs onChange={setFilter} />
         </View>
       </Animated.View>
 
-      <SearchOverlay isVisible={showSearch} onClose={() => setShowSearch(false)} />
+      <SearchOverlay 
+        isVisible={showSearch} 
+        onClose={() => { setShowSearch(false); setShowSearchVoice(false); }} 
+        initialVoiceMode={showSearchVoice}
+      />
       <FloatingCart currentRoute="Home" />
     </View>
   );

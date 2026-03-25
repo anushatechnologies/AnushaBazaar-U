@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { searchProducts } from "../services/api/products";
 import { useCart } from "../context/CartContext";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
 
 const RECENT_KEY = "anusha_recent_searches";
 const MAX_RECENT = 8;
@@ -32,9 +33,10 @@ const TRENDING_TERMS = [
 interface SearchOverlayProps {
   isVisible: boolean;
   onClose: () => void;
+  initialVoiceMode?: boolean;
 }
 
-const SearchOverlay = ({ isVisible, onClose }: SearchOverlayProps) => {
+const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayProps) => {
   const navigation = useNavigation<any>();
   const inputRef = useRef<TextInput>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -48,6 +50,13 @@ const SearchOverlay = ({ isVisible, onClose }: SearchOverlayProps) => {
 
   const { cart, addToCart, increaseQty, decreaseQty } = useCart();
 
+  const handleVoiceResult = useCallback((text: string) => {
+    setSearchText(text);
+    submitSearch(text);
+  }, [setRecentSearches, onClose, navigation]);
+
+  const { isListening, startListening, stopListening, error: voiceError } = useVoiceSearch(handleVoiceResult);
+
   // Animate in/out
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -59,11 +68,15 @@ const SearchOverlay = ({ isVisible, onClose }: SearchOverlayProps) => {
     if (isVisible) {
       loadRecent();
       setTimeout(() => inputRef.current?.focus(), 150);
+      if (initialVoiceMode) {
+        setTimeout(() => startListening(), 400);
+      }
     } else {
       setSearchText("");
       setSuggestions([]);
+      stopListening();
     }
-  }, [isVisible]);
+  }, [isVisible, initialVoiceMode]);
 
   // Android back button
   useEffect(() => {
@@ -170,10 +183,32 @@ const SearchOverlay = ({ isVisible, onClose }: SearchOverlayProps) => {
               <Ionicons name="close-circle" size={18} color="#D1D5DB" />
             </TouchableOpacity>
           ) : (
-            <Ionicons name="mic-outline" size={18} color="#9CA3AF" />
+            <TouchableOpacity 
+              onPress={isListening ? stopListening : startListening}
+              style={[styles.micBtn, isListening && styles.micBtnActive]}
+            >
+              <Ionicons 
+                name={isListening ? "mic" : "mic-outline"} 
+                size={20} 
+                color={isListening ? "#fff" : "#EF4444"} 
+              />
+            </TouchableOpacity>
           )}
         </View>
       </View>
+
+      {/* ── Listening Overlay ── */}
+      {isListening && (
+        <View style={styles.listeningOverlay}>
+          <View style={styles.pulseCircle}>
+            <Ionicons name="mic" size={40} color="#fff" />
+          </View>
+          <Text style={styles.listeningText}>Listening...</Text>
+          <TouchableOpacity style={styles.cancelVoice} onPress={stopListening}>
+            <Text style={styles.cancelVoiceText}>Tap to cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* ── Body ── */}
       <ScrollView
@@ -496,4 +531,49 @@ const styles = StyleSheet.create({
     borderColor: "#BBF7D0",
   },
   chipText: { fontSize: 13, fontWeight: "600", color: "#065F46" },
+
+  micBtn: {
+    padding: 4,
+  },
+  micBtnActive: {
+    backgroundColor: "#EF4444",
+    borderRadius: 12,
+  },
+  listeningOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    zIndex: 6000,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pulseCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  listeningText: {
+    marginTop: 20,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111",
+  },
+  cancelVoice: {
+    marginTop: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
+  },
+  cancelVoiceText: {
+    color: "#6B7280",
+    fontWeight: "600",
+  },
 });

@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
   sectionLoader: { paddingVertical: 40, alignItems: "center" },
   noDataText: { paddingHorizontal: 16, color: "#9CA3AF", fontSize: 14, marginBottom: 12 },
-  hPad: { paddingHorizontal: 16, paddingBottom: 16 },
+  hPad: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
 
   /* Past order empty */
   emptyPast: { paddingHorizontal: 16, paddingBottom: 16 },
@@ -475,15 +475,16 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardImgBox: {
-    height: 110,
+    height: 120, // Increased height
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
     position: "relative",
+    padding: 4,
   },
-  cardImg: { width: "80%", height: "80%" },
+  cardImg: { width: "100%", height: "100%" },
   
   badge: {
     position: "absolute",

@@ -19,7 +19,7 @@ const DeliveryHeader = () => {
   const navigation = useNavigation<any>();
 
   const { user } = useAuth();
-  const { location } = useLocation();
+  const { location, isDetecting } = useLocation();
   const { points } = useWallet();
   const { unreadCount } = useNotifications();
   const insets = useSafeAreaInsets();
@@ -78,7 +78,7 @@ const DeliveryHeader = () => {
       >
         <Ionicons name="location-outline" size={16} color="#555" />
         <Text numberOfLines={1} style={styles.location}>
-          {location?.address || "Select delivery location"}
+          {isDetecting ? "Detecting your location..." : (location?.address || "Select delivery location")}
         </Text>
         <Ionicons name="chevron-down" size={16} color="#555" />
       </Pressable>

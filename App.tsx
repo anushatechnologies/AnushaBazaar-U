@@ -13,6 +13,7 @@ import { NotificationsProvider } from "./src/context/NotificationsContext";
 import * as Linking from "expo-linking";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
+import messaging from '@react-native-firebase/messaging';
 
 const prefix = Linking.createURL("/");
 
@@ -58,6 +59,18 @@ const requestAllPermissions = async () => {
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+
+  useEffect(() => {
+    const getToken = async () => {
+      try {
+        const token = await messaging().getToken();
+        console.log('🔥 YOUR FCM TOKEN:', token);
+      } catch (e) {
+        console.error('Failed to get token', e);
+      }
+    };
+    getToken();
+  }, []);
 
   useEffect(() => {
     // Request all permissions on app launch

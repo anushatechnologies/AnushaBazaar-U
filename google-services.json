@@ -12,22 +12,13 @@
           "package_name": "com.anusha.deliveryapp"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "64875938387-3ftin43fi2m8iejd7i80ujra1jihdm9n.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.anusha.deliveryapp",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
-          }
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyA1boMLneteAG92WXtgzEOaLLzpBK7j1Lg"
         },
         {
-          "current_key": "AIzaSyChxzqLaLTuN5cV1LV92yF6tRPh8ZV7FeI"
+          "current_key": "AIzaSyBMZfGGMXsIOZYBpCRW7lVpPVhaRQnAnjo"
         },
         {
           "current_key": "AIzaSyBwJqttG6psPpCl0Cl567V6aQWozcE6eZo"
@@ -46,22 +37,13 @@
           "package_name": "com.customer.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "64875938387-vdeesqnusbin4hnes7oct974ou42r3us.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.customer.app",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
-          }
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyA1boMLneteAG92WXtgzEOaLLzpBK7j1Lg"
         },
         {
-          "current_key": "AIzaSyChxzqLaLTuN5cV1LV92yF6tRPh8ZV7FeI"
+          "current_key": "AIzaSyBMZfGGMXsIOZYBpCRW7lVpPVhaRQnAnjo"
         },
         {
           "current_key": "AIzaSyBwJqttG6psPpCl0Cl567V6aQWozcE6eZo"

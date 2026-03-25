@@ -7,12 +7,13 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "../context/CartContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { filterProducts, submitProductRating } from "../services/api/products";
+import { filterProducts, submitProductRating, getProductRatings } from "../services/api/products";
 import { useAuth } from "../context/AuthContext";
 import { Alert } from "react-native";
 import ProductCard from "../components/ProductCard";
@@ -78,9 +79,31 @@ const ProductDetailScreen = ({ route }: any) => {
   const hasDiscount = displayMrp > displayPrice;
   
   // Rating State
+  const [ratings, setRatings] = React.useState<any[]>([]);
   const [rating, setRating] = React.useState(5);
   const [comment, setComment] = React.useState("");
   const [submittingRating, setSubmittingRating] = React.useState(false);
+  const [loadingRatings, setLoadingRatings] = React.useState(true);
+
+  React.useEffect(() => {
+    fetchRatings();
+  }, [product.id]);
+
+  const fetchRatings = async () => {
+    setLoadingRatings(true);
+    try {
+      const data = await getProductRatings(product.id);
+      setRatings(data);
+    } catch (error) {
+      console.error("Error fetching ratings:", error);
+    } finally {
+      setLoadingRatings(false);
+    }
+  };
+
+  const averageRating = ratings.length > 0 
+    ? (ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length).toFixed(1) 
+    : "5.0";
 
   const isWishlisted = wishlist.some((item: any) => String(item.id) === String(product.id));
 
@@ -114,6 +137,7 @@ const ProductDetailScreen = ({ route }: any) => {
       if (success) {
         Alert.alert("Success", "Thank you for your rating!");
         setComment("");
+        fetchRatings(); // Refresh ratings
       } else {
         Alert.alert("Error", "Could not submit rating. Please try again.");
       }
@@ -177,12 +201,14 @@ const ProductDetailScreen = ({ route }: any) => {
             <View style={styles.brandBadge}>
               <Text style={styles.brandText}>{product.brand || "Anusha Exclusive"}</Text>
             </View>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{product.categoryName || "Premium"}</Text>
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={12} color="#fff" />
+              <Text style={styles.ratingBadgeText}>{averageRating}</Text>
             </View>
           </View>
 
           <Text style={styles.name}>{product.name}</Text>
+          <Text style={styles.reviewerCount}>{ratings.length} ratings</Text>
 
           <View style={styles.priceRow}>
             <PriceRow 
@@ -206,39 +232,41 @@ const ProductDetailScreen = ({ route }: any) => {
 
           {product.productVariants && product.productVariants.length > 1 && (
             <View style={styles.variantSection}>
-              <View style={styles.variantHeader}>
-                <Text style={styles.variantTitle}>Select Variant</Text>
-                <Text style={styles.variantSubtitle}>Choose your preference</Text>
-              </View>
+              <Text style={styles.variantTitle}>Select Variant</Text>
               <View style={styles.variantList}>
-                {product.productVariants.map((v: any) => (
-                  <Pressable
-                    key={v.id}
-                    onPress={() => setSelectedVariant(v)}
-                    style={[
-                      styles.variantChip,
-                      selectedVariant?.id === v.id && styles.variantChipSelected
-                    ]}
-                  >
-                    <View style={styles.chipLeft}>
-                      <View style={[styles.radio, selectedVariant?.id === v.id && styles.radioActive]}>
-                        {selectedVariant?.id === v.id && <View style={styles.radioInner} />}
+                {product.productVariants.map((v: any) => {
+                  const variantCartItem = cart.find((item: any) => String(item.variantId) === String(v.id));
+                  return (
+                    <View key={v.id} style={styles.variantRow}>
+                      <View style={styles.variantInfo}>
+                        <Text style={styles.variantNameText}>{v.variantName}</Text>
+                        <View style={styles.variantPriceBox}>
+                          <Text style={styles.variantSellingPrice}>₹{v.sellingPrice}</Text>
+                          {v.mrp > v.sellingPrice && (
+                            <Text style={styles.variantMrpText}>₹{v.mrp}</Text>
+                          )}
+                        </View>
                       </View>
-                      <Text style={[
-                        styles.variantChipText,
-                        selectedVariant?.id === v.id && styles.variantChipTextSelected
-                      ]}>
-                        {v.variantName}
-                      </Text>
+                      <View style={styles.variantAction}>
+                        {!variantCartItem ? (
+                          <Pressable
+                            style={styles.variantAddButton}
+                            onPress={() => addToCart(product, v)}
+                          >
+                            <Text style={styles.variantAddText}>ADD</Text>
+                          </Pressable>
+                        ) : (
+                          <QuantitySelector
+                            quantity={variantCartItem.quantity}
+                            onIncrease={() => increaseQty(variantCartItem.id)}
+                            onDecrease={() => decreaseQty(variantCartItem.id)}
+                            mini
+                          />
+                        )}
+                      </View>
                     </View>
-                    <Text style={[
-                      styles.variantChipPrice,
-                      selectedVariant?.id === v.id && styles.variantChipPriceSelected
-                    ]}>
-                      ₹{v.sellingPrice}
-                    </Text>
-                  </Pressable>
-                ))}
+                  );
+                })}
               </View>
             </View>
           )}
@@ -249,22 +277,6 @@ const ProductDetailScreen = ({ route }: any) => {
               {product.description || "No description provided."}
             </Text>
           </View>
-
-          {!cartItem ? (
-            <Pressable
-              style={styles.addBtn}
-              onPress={() => addToCart(product, selectedVariant)}
-            >
-              <Text style={styles.addText}>Add to Cart</Text>
-            </Pressable>
-          ) : (
-            <QuantitySelector
-              quantity={cartItem.quantity}
-              onIncrease={() => increaseQty(cartItem.id)}
-              onDecrease={() => decreaseQty(cartItem.id)}
-              containerStyle={{ marginTop: 25, paddingVertical: 14, paddingHorizontal: 25 }}
-            />
-          )}
 
           <View style={styles.divider} />
 
@@ -283,50 +295,19 @@ const ProductDetailScreen = ({ route }: any) => {
               ))}
             </View>
             <View style={styles.inputContainer}>
-              <View style={styles.commentInputBox}>
-                <Ionicons name="chatbubble-outline" size={20} color="#666" style={{ marginTop: 12, marginLeft: 12 }} />
-                <View style={{ flex: 1, padding: 12 }}>
-                  <Text style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Your Review</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text
-                      style={[styles.commentInput, { flex: 1 }]}
-                      onPress={() => {
-                        // In a real app we'd use a proper TextInput modal or expanding box
-                      }}
-                    >
-                      {comment || "Write your thoughts about this product..."}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              
-              {/* Dummy TextInput since I can't easily add a full functional one without more context, but I'll add a simplified version */}
-              <View style={[styles.commentInputBox, { marginTop: 10, height: 100 }]}>
-                 <View style={{ flex: 1, padding: 10 }}>
-                   <Text style={{ fontSize: 12, color: '#888' }}>Share your feedback</Text>
-                   <View style={{ flex: 1 }}>
-                     {/* Simplified interaction for the sake of this task */}
-                     <Text 
-                        style={{ color: comment ? '#333' : '#bbb', marginTop: 5 }}
-                        onPress={() => {
-                           // Use Alert.prompt as a quick way for user to enter text in this restricted environment
-                           Alert.prompt(
-                             "Write a Review",
-                             "Enter your comment below:",
-                             [
-                               { text: "Cancel", style: "cancel" },
-                               { text: "OK", onPress: (text: string | undefined) => setComment(text || "") }
-                             ],
-                             "plain-text",
-                             comment
-                           );
-                        }}
-                     >
-                        {comment || "Click here to write a comment..."}
-                     </Text>
-                   </View>
+               <View style={styles.commentInputBox}>
+                 <Ionicons name="chatbubble-outline" size={20} color="#666" style={{ marginTop: 12, marginLeft: 12 }} />
+                 <View style={{ flex: 1, padding: 12 }}>
+                   <Text style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Your Review</Text>
+                   <TextInput
+                      style={styles.commentTextInput}
+                      placeholder="Write your thoughts about this product..."
+                      value={comment}
+                      onChangeText={setComment}
+                      multiline
+                   />
                  </View>
-              </View>
+               </View>
 
               <Pressable
                 style={[styles.submitBtn, submittingRating && { opacity: 0.7 }]}
@@ -340,6 +321,25 @@ const ProductDetailScreen = ({ route }: any) => {
                 )}
               </Pressable>
             </View>
+
+            {ratings.length > 0 && (
+              <View style={styles.reviewsList}>
+                <Text style={styles.reviewsTitle}>Customer Reviews ({ratings.length})</Text>
+                {ratings.map((r, idx) => (
+                  <View key={idx} style={styles.reviewItem}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewStars}>
+                        {[1, 2, 3, 4, 5].map(s => (
+                          <Ionicons key={s} name="star" size={12} color={s <= r.rating ? "#FFB800" : "#E5E7EB"} />
+                        ))}
+                      </View>
+                      <Text style={styles.reviewDate}>Verified User</Text>
+                    </View>
+                    <Text style={styles.reviewComment}>{r.comment}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -454,7 +454,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     paddingVertical: 10,
   },
-
   infoContainer: {
     backgroundColor: "#fff",
     marginTop: 10,
@@ -462,19 +461,23 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
-
   name: {
-    fontSize: 24,
-    fontWeight: "900",
+    fontSize: 18,
+    fontWeight: "800",
     color: "#111",
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    letterSpacing: -0.2,
+    marginBottom: 2,
   },
-
+  reviewerCount: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 10,
+  },
   badgeRow: {
     flexDirection: "row",
     gap: 8,
     marginBottom: 12,
+    alignItems: "center",
   },
   brandBadge: {
     backgroundColor: "#E6F5EE",
@@ -488,16 +491,19 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textTransform: "uppercase",
   },
-  categoryBadge: {
-    backgroundColor: "#F3F4F6",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+  ratingBadge: {
+    backgroundColor: "#0A8754",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  categoryText: {
-    color: "#666",
-    fontSize: 11,
-    fontWeight: "700",
+  ratingBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
   },
   priceRow: {
     flexDirection: "row",
@@ -520,135 +526,96 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
   },
-
   divider: {
     height: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f2f2f2",
     marginVertical: 20,
   },
-
   detailsGroup: {
-    marginTop: 25,
+    marginTop: 20,
   },
   detailsHeader: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
     color: "#111",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   description: {
-    color: "#555",
-    lineHeight: 22,
-    fontSize: 14,
-  },
-
-  addBtn: {
-    backgroundColor: "#fff",
-    borderWidth: 1.5,
-    borderColor: "#0C831F",
-    marginTop: 25,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    elevation: 4,
-    shadowColor: "#0C831F",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-  },
-
-  addText: {
-    color: "#0C831F",
-    fontWeight: "900",
-    fontSize: 16,
-    letterSpacing: 0.5,
+    color: "#666",
+    lineHeight: 20,
+    fontSize: 13,
   },
   variantSection: {
-    marginVertical: 20,
-    backgroundColor: "#F8FDFB",
-    padding: 15,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E9F7F1",
-  },
-  variantHeader: {
-    marginBottom: 15,
+    marginVertical: 10,
   },
   variantTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#333",
-  },
-  variantSubtitle: {
-    fontSize: 12,
-    color: "#888",
-    marginTop: 2,
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#111",
+    marginBottom: 12,
   },
   variantList: {
     gap: 12,
   },
-  variantChip: {
+  variantRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 14,
+    padding: 12,
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: "#eee",
     backgroundColor: "#fff",
   },
-  variantChipSelected: {
-    borderColor: "#0A8754",
-    backgroundColor: "#E9F7F1",
+  variantInfo: {
+    flex: 1,
   },
-  chipLeft: {
+  variantNameText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  variantPriceBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 6,
+    marginTop: 4,
   },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#ccc",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  radioActive: {
-    borderColor: "#0A8754",
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#0A8754",
-  },
-  variantChipText: {
+  variantSellingPrice: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#444",
+    fontWeight: "800",
+    color: "#111",
   },
-  variantChipTextSelected: {
-    color: "#0A8754",
+  variantMrpText: {
+    fontSize: 12,
+    color: "#888",
+    textDecorationLine: "line-through",
   },
-  variantChipPrice: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "600",
+  variantAction: {
+    width: 80,
+    alignItems: "flex-end",
   },
-  variantChipPriceSelected: {
-    color: "#0A8754",
+  variantAddButton: {
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#0C831F",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  variantAddText: {
+    color: "#0C831F",
+    fontWeight: "800",
+    fontSize: 12,
   },
   ratingSection: {
-    marginTop: 25,
-    marginBottom: 20,
+    marginTop: 10,
+    marginBottom: 40,
   },
   starsRow: {
     flexDirection: "row",
     gap: 8,
-    marginVertical: 15,
+    marginVertical: 12,
   },
   inputContainer: {
     marginTop: 5,
@@ -660,25 +627,56 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  commentInput: {
+  commentTextInput: {
     fontSize: 14,
     color: "#374151",
+    minHeight: 60,
+    textAlignVertical: "top",
   },
   submitBtn: {
     backgroundColor: "#0A8754",
-    marginTop: 20,
+    marginTop: 15,
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
-    elevation: 2,
-    shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   submitText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 16,
+    fontSize: 15,
+  },
+  reviewsList: {
+    marginTop: 30,
+  },
+  reviewsTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#111",
+    marginBottom: 15,
+  },
+  reviewItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f2f2f2",
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  reviewStars: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  reviewDate: {
+    fontSize: 11,
+    color: "#888",
+    fontWeight: "600",
+  },
+  reviewComment: {
+    fontSize: 13,
+    color: "#444",
+    lineHeight: 18,
   },
 });

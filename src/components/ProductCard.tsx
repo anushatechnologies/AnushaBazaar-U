@@ -7,14 +7,19 @@ import {
   Pressable,
   ToastAndroid,
   Platform,
+  Modal,
+  TouchableWithoutFeedback,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { useCart } from "../context/CartContext";
+import { useCart, CartItem } from "../context/CartContext";
 import QuantitySelector from "./common/QuantitySelector";
 
 const ProductCard = ({ product }: any) => {
   const navigation = useNavigation<any>();
+  const [isVariantModalVisible, setVariantModalVisible] = React.useState(false);
+  
   const {
     cart,
     wishlist,
@@ -88,7 +93,7 @@ const ProductCard = ({ product }: any) => {
                   style={styles.addBtn}
                   onPress={() => {
                     if (product?.productVariants && product.productVariants.length > 1) {
-                      navigation.navigate("ProductDetail", { product });
+                      setVariantModalVisible(true);
                     } else {
                       addToCart(product);
                       if (Platform.OS === "android") {
@@ -129,21 +134,81 @@ const ProductCard = ({ product }: any) => {
         )}
 
         <Text numberOfLines={2} style={styles.name}>{product?.name || "Product Name"}</Text>
-        
-        <View style={styles.ratingRow}>
-           <Text style={styles.ratingStars}>⭐⭐⭐⭐⭐</Text>
-           <Text style={styles.ratingCount}> (12k)</Text>
-        </View>
-        
-        <View style={styles.timeRow}>
-           <Text style={styles.timeText}>🕒 9 mins</Text>
-        </View>
 
         <View style={styles.footerPill}>
           <Text style={styles.footerPillText}>All {product?.categoryName || "items"} ▶</Text>
         </View>
 
       </View>
+
+      <Modal
+        visible={isVariantModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setVariantModalVisible(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay} 
+          onPress={() => setVariantModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalInner}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Variant</Text>
+                  <Pressable onPress={() => setVariantModalVisible(false)} style={styles.closeModalBtn}>
+                    <Ionicons name="close" size={24} color="#333" />
+                  </Pressable>
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
+                  {product?.productVariants?.map((variant: any) => {
+                    const variantCartItem = cart?.find((i: any) => String(i.variantId) === String(variant.id));
+                    
+                    return (
+                      <View key={variant.id} style={styles.variantRow}>
+                        <View style={styles.variantDetails}>
+                          <Text style={styles.variantName}>{variant.variantName}</Text>
+                          <View style={styles.variantPriceRow}>
+                            <Text style={styles.variantSellingPrice}>₹{variant.sellingPrice}</Text>
+                            {variant.mrp > variant.sellingPrice && (
+                              <Text style={styles.variantMrp}>₹{variant.mrp}</Text>
+                            )}
+                          </View>
+                        </View>
+                        
+                        <View style={styles.variantAction}>
+                          {!variantCartItem ? (
+                            <Pressable
+                              style={styles.variantAddBtn}
+                              onPress={() => {
+                                addToCart(product, variant);
+                                if (Platform.OS === "android") {
+                                  ToastAndroid.show(`${variant.variantName} added`, ToastAndroid.SHORT);
+                                }
+                              }}
+                            >
+                              <Text style={styles.variantAddText}>ADD</Text>
+                            </Pressable>
+                          ) : (
+                            <View style={styles.variantQuantityBox}>
+                              <QuantitySelector
+                                quantity={variantCartItem.quantity}
+                                onIncrease={() => increaseQty(variantCartItem.id)}
+                                onDecrease={() => decreaseQty(variantCartItem.id)}
+                              />
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
@@ -163,15 +228,16 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1,
     borderRadius: 8,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "#fff", // White background like Zepto
     overflow: "hidden",
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
+    padding: 2,
   },
   image: {
-    width: "85%",
-    height: "85%",
+    width: "100%", // Full width
+    height: "100%", // Full height
   },
   imagePlaceholder: {
     flex: 1,
@@ -326,5 +392,90 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: "#0C831F",
     fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "60%",
+  },
+  modalInner: {
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111",
+  },
+  closeModalBtn: {
+    padding: 4,
+  },
+  modalScroll: {
+    marginBottom: 20,
+  },
+  variantRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  variantDetails: {
+    flex: 1,
+  },
+  variantName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
+  },
+  variantPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  variantSellingPrice: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#111",
+  },
+  variantMrp: {
+    fontSize: 12,
+    color: "#888",
+    textDecorationLine: "line-through",
+  },
+  variantAction: {
+    width: 80,
+    alignItems: "flex-end",
+  },
+  variantAddBtn: {
+    backgroundColor: "#ecfceb",
+    borderWidth: 1,
+    borderColor: "#0C831F",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  variantAddText: {
+    color: "#0C831F",
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  variantQuantityBox: {
+    transform: [{ scale: 0.9 }],
+    transformOrigin: "right center",
   },
 });

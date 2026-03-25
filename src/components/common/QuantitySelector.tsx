@@ -6,17 +6,22 @@ interface QuantitySelectorProps {
   onIncrease: () => void;
   onDecrease: () => void;
   containerStyle?: any;
+  mini?: boolean;
 }
 
-const QuantitySelector: React.FC<QuantitySelectorProps> = ({ quantity, onIncrease, onDecrease, containerStyle }) => {
+const QuantitySelector: React.FC<QuantitySelectorProps> = ({ quantity, onIncrease, onDecrease, containerStyle, mini }) => {
   return (
-    <View style={[styles.qtyContainer, containerStyle]}>
+    <View style={[
+      styles.qtyContainer, 
+      mini && { paddingVertical: 4, paddingHorizontal: 4, borderRadius: 6 },
+      containerStyle
+    ]}>
       <Pressable style={styles.qtyBtnBox} onPress={onDecrease}>
-        <Text style={styles.qtyBtn}>-</Text>
+        <Text style={[styles.qtyBtn, mini && { fontSize: 16 }]}>-</Text>
       </Pressable>
-      <Text style={styles.qty}>{quantity}</Text>
+      <Text style={[styles.qty, mini && { fontSize: 13 }]}>{quantity}</Text>
       <Pressable style={styles.qtyBtnBox} onPress={onIncrease}>
-        <Text style={styles.qtyBtn}>+</Text>
+        <Text style={[styles.qtyBtn, mini && { fontSize: 16 }]}>+</Text>
       </Pressable>
     </View>
   );

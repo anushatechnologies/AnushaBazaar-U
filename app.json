@@ -3,7 +3,7 @@
     "name": "AnushaBazaar",
     "slug": "AnushaBazaar",
     "scheme": "anushabazaar",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/company-logo.png",
     "userInterfaceStyle": "light",
@@ -13,13 +13,12 @@
       "backgroundColor": "#121212"
     },
     "android": {
+      "versionCode": 3,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.READ_PHONE_STATE"
+        "RECORD_AUDIO",
+        "READ_PHONE_STATE"
       ],
       "config": {
         "googleMaps": {
@@ -30,12 +29,27 @@
       "googleServicesFile": "./google-services.json",
       "enableProguardInReleaseBuilds": true
     },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anusha.deliveryapp",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app uses microphone for voice search",
+        "NSSpeechRecognitionUsageDescription": "This app uses speech recognition for voice search"
+      }
+    },
     "plugins": [
       "@react-native-firebase/app",
       [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Anusha Bazaar to access your location for delivery."
+        }
+      ],
+      [
+        "@react-native-voice/voice",
+        {
+          "microphonePermission": "Allow Anusha Bazaar to access your microphone for voice search.",
+          "speechRecognitionPermission": "Allow Anusha Bazaar to recognize your speech for voice search."
         }
       ]
     ],
