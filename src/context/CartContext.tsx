@@ -10,6 +10,7 @@ import { useWallet } from "./WalletContext";
 import { useAuth } from "./AuthContext";
 import * as CartAPI from "../services/api/cart";
 import { addToWishlistApi, getWishlistApi } from "../services/api/products";
+import { normalizeImageUrl } from "../utils/image";
 
 export type Product = {
   id: string;
@@ -105,20 +106,23 @@ export const CartProvider = ({ children }: any) => {
       const serverCart = await CartAPI.getCart(jwtToken);
       console.log("[CartSync] Raw Server Cart:", JSON.stringify(serverCart, null, 2));
       if (serverCart && serverCart.items) {
-        const mapped: CartItem[] = serverCart.items.map((item: any) => ({
+        const mapped: CartItem[] = serverCart.items.map((item: any) => {
+          const normalizedImage = normalizeImageUrl(item.productImage) || "";
+          return {
           // We use variantId as the local unique key for UI consistency,
           // as each variant is a unique line item in the basket.
           id: String(item.variantId || item.productId),
           name: item.productName || "Product",
           variantName: item.variantName,
           price: item.unitPrice || item.price || 0,
-          image: item.productImage || null,
-          imageUrl: item.productImage || undefined,
+          image: normalizedImage || null,
+          imageUrl: normalizedImage || undefined,
           quantity: item.quantity || 1,
           variantId: item.variantId,
           productId: item.productId, // Preserve productId for order consistency
           cartItemId: item.id, // This is the ID used for PUT/DELETE
-        }));
+          };
+        });
         setCart(mapped);
       }
     } catch (error) {

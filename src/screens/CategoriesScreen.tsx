@@ -18,6 +18,7 @@ import ProductCard from "../components/ProductCard";
 import { getCategories } from "../services/api/categories";
 import { useTabBar } from "../context/TabBarContext";
 import FloatingCart from "../components/FloatingCart";
+import { scale } from "../utils/responsive";
 
 /* ─── Blinkit-inspired colour palette ─── */
 const PALETTE = [
@@ -157,7 +158,7 @@ const CategoriesScreen = () => {
   );
 
   const renderProductItem = ({ item }: { item: any }) => (
-    <View style={{ width: "48%", marginBottom: 12 }}>
+    <View style={{ width: "48%", marginBottom: scale(12) }}>
       <ProductCard product={item} />
     </View>
   );
@@ -263,13 +264,13 @@ const CategoriesScreen = () => {
                 Products {productResults.length > 0 ? `(${productResults.length})` : ""}
               </Text>
               {isSearching && productResults.length === 0 ? (
-                <View style={{ padding: 20, alignItems: "center" }}>
+                <View style={{ padding: scale(20), alignItems: "center" }}>
                   <ActivityIndicator size="small" color="#0A8754" />
                 </View>
               ) : productResults.length > 0 ? (
                 <View style={styles.productGrid}>
                   {productResults.map((item, idx) => (
-                    <View key={item.id || idx} style={{ width: "48%", marginBottom: 12 }}>
+                    <View key={item.id || idx} style={{ width: "48%", marginBottom: scale(12) }}>
                       <ProductCard product={item} />
                     </View>
                   ))}
@@ -302,11 +303,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
+    gap: scale(10),
   },
   loaderText: {
     color: "#888",
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "500",
   },
 
@@ -315,63 +316,63 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
-    paddingTop: 16,
-    paddingBottom: 10,
+    paddingHorizontal: scale(4),
+    paddingTop: scale(16),
+    paddingBottom: scale(10),
   },
   subTitle: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "700",
     color: "#444",
-    marginBottom: 12,
-    marginTop: 8,
-    paddingHorizontal: 4,
+    marginBottom: scale(12),
+    marginTop: scale(8),
+    paddingHorizontal: scale(4),
   },
   divider: {
     height: 1,
     backgroundColor: "#E2E8F0",
-    marginVertical: 16,
-    marginHorizontal: 4,
+    marginVertical: scale(16),
+    marginHorizontal: scale(4),
   },
   emptyResultsText: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#888",
     textAlign: "center",
-    marginTop: 10,
+    marginTop: scale(10),
     fontStyle: "italic",
   },
   sectionTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: scale(8),
   },
   titleAccentBar: {
-    width: 4,
-    height: 20,
-    borderRadius: 4,
+    width: scale(4),
+    height: scale(20),
+    borderRadius: scale(4),
     backgroundColor: "#0A8754",
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "800",
     color: "#111",
-    letterSpacing: -0.2,
+    letterSpacing: scale(-0.2),
   },
   countBadge: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "600",
     color: "#0A8754",
     backgroundColor: "#E6F5EE",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(3),
+    borderRadius: scale(20),
     overflow: "hidden",
   },
 
   /* Grid */
   listPad: {
-    paddingHorizontal: 14,
-    paddingBottom: 100,
+    paddingHorizontal: scale(14),
+    paddingBottom: scale(100),
   },
   grid: {
     flexDirection: "row",
@@ -380,7 +381,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     width: "31.5%",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   productGrid: {
     flexDirection: "row",
@@ -389,23 +390,23 @@ const styles = StyleSheet.create({
   },
   row: {
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
 
   /* ── Blinkit-style card ── */
   card: {
     width: "100%",
-    borderRadius: 18,
-    paddingTop: 18,
-    paddingHorizontal: 6,
+    borderRadius: scale(18),
+    paddingTop: scale(18),
+    paddingHorizontal: scale(6),
     paddingBottom: 0,
     alignItems: "center",
     overflow: "hidden",
     /* Shadow */
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: scale(3) },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: scale(8),
     elevation: 4,
   },
   cardPressed: {
@@ -416,11 +417,11 @@ const styles = StyleSheet.create({
   /* Icon bubble */
   bubble: {
     width: "100%",
-    height: 120, // Adjusted for 316x414 proportions in mobile grid
-    borderRadius: 12,
+    height: scale(120), // Adjusted for 316x414 proportions in mobile grid
+    borderRadius: scale(12),
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: scale(8),
     overflow: "hidden",
   },
   img: {
@@ -428,44 +429,44 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   fallbackEmoji: {
-    fontSize: 28,
+    fontSize: scale(28),
   },
 
   /* Name label */
   cardName: {
-    fontSize: 11.5,
+    fontSize: scale(11.5),
     fontWeight: "700",
     color: "#1a1a1a",
     textAlign: "center",
-    lineHeight: 16,
-    paddingHorizontal: 4,
-    marginBottom: 10,
-    letterSpacing: 0.1,
+    lineHeight: scale(16),
+    paddingHorizontal: scale(4),
+    marginBottom: scale(10),
+    letterSpacing: scale(0.1),
   },
 
   /* Blinkit bottom colour strip */
   bottomStrip: {
     width: "100%",
-    height: 5,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
+    height: scale(5),
+    borderBottomLeftRadius: scale(18),
+    borderBottomRightRadius: scale(18),
   },
 
   /* Empty state */
   empty: {
     alignItems: "center",
-    paddingTop: 60,
-    paddingBottom: 30,
+    paddingTop: scale(60),
+    paddingBottom: scale(30),
   },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyIcon: { fontSize: scale(48), marginBottom: scale(12) },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "700",
     color: "#333",
-    marginBottom: 6,
+    marginBottom: scale(6),
   },
   emptyHint: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#999",
   },
 });

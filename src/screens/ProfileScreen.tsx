@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { Share } from "react-native";
 import { API_CONFIG } from "../config/api.config";
+import { scale } from "../utils/responsive";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -35,10 +36,10 @@ const ProfileScreen = () => {
       <ScrollView
         style={styles.container}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: scale(40) }}
       >
         {/* Header */}
-        <View style={[styles.topSection, { paddingTop: Math.max(insets.top, 24) }]}>
+        <View style={[styles.topSection, { paddingTop: Math.max(insets.top, scale(24)) }]}>
           <View style={styles.headerRow}>
             <Pressable 
               style={({ pressed }) => [
@@ -47,7 +48,7 @@ const ProfileScreen = () => {
               ]}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={24} color="#111827" />
+              <Ionicons name="arrow-back" size={scale(24)} color="#111827" />
             </Pressable>
             <Text style={styles.headerTitle}>Account Details</Text>
           </View>
@@ -86,7 +87,7 @@ const ProfileScreen = () => {
             >
               <Ionicons
                 name="pencil"
-                size={18}
+                size={scale(18)}
                 color="#0A8754"
               />
             </Pressable>
@@ -168,7 +169,7 @@ const ProfileScreen = () => {
             style={styles.logoutBtn}
             onPress={() => setShowLogoutModal(true)}
           >
-            <Ionicons name="log-out-outline" size={20} color="#E8294A" style={{ marginRight: 8 }} />
+            <Ionicons name="log-out-outline" size={scale(20)} color="#E8294A" style={{ marginRight: scale(8) }} />
             <Text style={styles.logoutText}>Log Out</Text>
           </Pressable>
         )}
@@ -237,7 +238,7 @@ const MenuItem = ({ title, icon, onPress, hideChevron, badge, badgeColor }: Menu
   >
     <View style={styles.menuLeft}>
       <View style={styles.iconBox}>
-        <Ionicons name={icon} size={20} color="#6B7280" />
+        <Ionicons name={icon} size={scale(20)} color="#6B7280" />
       </View>
       <Text style={styles.menuText}>{title}</Text>
     </View>
@@ -247,139 +248,137 @@ const MenuItem = ({ title, icon, onPress, hideChevron, badge, badgeColor }: Menu
           <Text style={[styles.badgeText, { color: badgeColor || "#6B7280" }]}>{badge}</Text>
         </View>
       )}
-      {!hideChevron && <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />}
+      {!hideChevron && <Ionicons name="chevron-forward" size={scale(18)} color="#D1D5DB" />}
     </View>
   </Pressable>
 );
 
-export default ProfileScreen;
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9FAFB" },
 
-  topSection: { paddingHorizontal: 20, paddingBottom: 16 },
+  topSection: { paddingHorizontal: scale(20), paddingBottom: scale(16) },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: scale(12),
   },
   backBtnSmall: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     elevation: 2,
     shadowColor: "#000",
     shadowOpacity: 0.05,
-    shadowRadius: 5,
+    shadowRadius: scale(5),
   },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: "#111827" },
+  headerTitle: { fontSize: scale(28), fontWeight: "700", color: "#111827" },
 
   /* -- Profile Card -- */
   profileCard: {
-    marginHorizontal: 16,
-    marginBottom: 24,
+    marginHorizontal: scale(16),
+    marginBottom: scale(24),
     backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 16,
+    padding: scale(20),
+    borderRadius: scale(16),
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowRadius: scale(8),
     elevation: 2,
     borderWidth: 1,
     borderColor: "#F3F4F6",
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: scale(64),
+    height: scale(64),
+    borderRadius: scale(32),
     backgroundColor: "#E5F4ED",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: scale(16),
     borderWidth: 1,
-    borderColor: "#D3ECDY",
+    borderColor: "#D3ECD0",
   },
   avatarText: {
     color: "#0A8754",
-    fontSize: 24,
+    fontSize: scale(24),
     fontWeight: "800",
   },
   profileInfo: { flex: 1, justifyContent: "center" },
-  name: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  phone: { color: "#6B7280", marginTop: 4, fontSize: 14, fontWeight: "500" },
+  name: { fontSize: scale(18), fontWeight: "700", color: "#111827" },
+  phone: { color: "#6B7280", marginTop: scale(4), fontSize: scale(14), fontWeight: "500" },
   
-  loginBtnContainer: { alignSelf: "flex-start", marginTop: 2 },
-  loginText: { color: "#0A8754", fontWeight: "700", fontSize: 16 },
+  loginBtnContainer: { alignSelf: "flex-start", marginTop: scale(2) },
+  loginText: { color: "#0A8754", fontWeight: "700", fontSize: scale(16) },
 
   editBtn: {
-    padding: 8,
+    padding: scale(8),
     backgroundColor: "#F9FAFB",
-    borderRadius: 20,
+    borderRadius: scale(20),
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
 
   /* -- Menu Groups -- */
   menuGroup: {
-    marginHorizontal: 16,
-    marginBottom: 20,
+    marginHorizontal: scale(16),
+    marginBottom: scale(20),
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderRadius: scale(16),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.02,
-    shadowRadius: 6,
+    shadowRadius: scale(6),
     elevation: 1,
     borderWidth: 1,
     borderColor: "#F3F4F6",
     overflow: "hidden",
   },
   menuItem: {
-    padding: 16,
+    padding: scale(16),
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   menuLeft: { flexDirection: "row", alignItems: "center" },
   iconBox: {
-    width: 36, height: 36,
-    borderRadius: 18,
+    width: scale(36), height: scale(36),
+    borderRadius: scale(18),
     backgroundColor: "#F9FAFB",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    marginRight: scale(14),
   },
-  menuText: { fontSize: 16, fontWeight: "500", color: "#374151" },
+  menuText: { fontSize: scale(16), fontWeight: "500", color: "#374151" },
   divider: {
     height: 1,
     backgroundColor: "#F3F4F6",
-    marginLeft: 66, // aligns with text starting position
+    marginLeft: scale(66), // aligns with text starting position
   },
 
   /* -- Logout -- */
   logoutBtn: {
-    marginHorizontal: 16,
-    marginTop: 8,
+    marginHorizontal: scale(16),
+    marginTop: scale(8),
     backgroundColor: "#FEF2F2",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: scale(16),
+    borderRadius: scale(16),
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#FEE2E2",
   },
-  logoutText: { color: "#E8294A", fontWeight: "700", fontSize: 16 },
+  logoutText: { color: "#E8294A", fontWeight: "700", fontSize: scale(16) },
 
   /* -- Version Box -- */
-  versionBox: { alignItems: "center", marginTop: 32 },
-  versionLabel: { color: "#9CA3AF", fontSize: 13, fontWeight: "500" },
+  versionBox: { alignItems: "center", marginTop: scale(32) },
+  versionLabel: { color: "#9CA3AF", fontSize: scale(13), fontWeight: "500" },
 
   /* -- Modal UI -- */
   modalOverlay: {
@@ -393,59 +392,57 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: "80%",
     backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: scale(24),
+    padding: scale(24),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: scale(4) },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowRadius: scale(12),
     elevation: 10,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 8,
+    marginBottom: scale(8),
   },
   modalSubtitle: {
     color: "#6B7280",
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 24,
+    fontSize: scale(15),
+    lineHeight: scale(22),
+    marginBottom: scale(24),
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 12,
+    gap: scale(12),
   },
   cancelBtn: { 
-    paddingVertical: 10, 
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: scale(10), 
+    paddingHorizontal: scale(20),
+    borderRadius: scale(12),
     backgroundColor: "#F3F4F6",
   },
-  cancelText: { color: "#4B5563", fontWeight: "600", fontSize: 15 },
+  cancelText: { color: "#4B5563", fontWeight: "600", fontSize: scale(15) },
   
   confirmBtn: { 
-    paddingVertical: 10, 
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: scale(10), 
+    paddingHorizontal: scale(20),
+    borderRadius: scale(12),
     backgroundColor: "#E8294A" 
   },
-  confirmText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  pointsEarnedBox: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  confirmText: { color: "#fff", fontWeight: "700", fontSize: scale(15) },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginRight: 8,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(4),
+    borderRadius: scale(8),
+    marginRight: scale(8),
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: "800",
     textTransform: "uppercase",
   },
 });
+
+export default ProfileScreen;

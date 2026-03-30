@@ -16,6 +16,7 @@ import { RootStackParamList } from "../navigation/RootStack";
 import { getCategories } from "../services/api/categories";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { scale } from "../utils/responsive";
 
 type GridNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList>,
@@ -76,19 +77,19 @@ const CategoryGrid = () => {
           <Text style={styles.name} numberOfLines={1}>{item.name || item.title || "Category"}</Text>
           <View style={styles.exploreBtn}>
             <Text style={styles.exploreText}>Shop Now</Text>
-            <Ionicons name="arrow-forward" size={12} color="#fff" />
+            <Ionicons name="arrow-forward" size={scale(12)} color="#fff" />
           </View>
         </View>
 
         <View style={styles.iconWrapper}>
-          <Ionicons name={item.iconName || "leaf"} size={14} color="#0A8754" />
+          <Ionicons name={item.iconName || "leaf"} size={scale(14)} color="#0A8754" />
         </View>
       </Pressable>
     );
   };
 
   if (loading) {
-    return <ActivityIndicator size="small" color="#0A8754" style={{ marginVertical: 30 }} />;
+    return <ActivityIndicator size="small" color="#0A8754" style={{ marginVertical: scale(30) }} />;
   }
 
   return (
@@ -99,7 +100,7 @@ const CategoryGrid = () => {
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, index) => (item.id || item._id || index).toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingHorizontal: 18, gap: 15 }}
+        contentContainerStyle={{ paddingHorizontal: scale(18), gap: scale(15) }}
       />
     </View>
   );
@@ -109,19 +110,19 @@ export default CategoryGrid;
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 5,
+    marginTop: scale(5),
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 20,
-    width: 140,
-    height: 185,
+    borderRadius: scale(20),
+    width: scale(140),
+    height: scale(185),
     overflow: "hidden",
     elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: scale(6) },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowRadius: scale(10),
     position: "relative",
   },
 
@@ -140,30 +141,30 @@ const styles = StyleSheet.create({
 
   textContainer: {
     position: "absolute",
-    bottom: 15,
-    left: 15,
-    right: 15,
+    bottom: scale(15),
+    left: scale(15),
+    right: scale(15),
   },
 
   name: {
     fontWeight: "900",
-    fontSize: 18,
+    fontSize: scale(18),
     color: "#fff",
     textShadowColor: "rgba(0,0,0,0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: scale(1) },
+    textShadowRadius: scale(4),
   },
 
   exploreBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 6,
-    gap: 4,
+    marginTop: scale(6),
+    gap: scale(4),
   },
 
   exploreText: {
     color: "#fff",
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 1,
@@ -171,10 +172,10 @@ const styles = StyleSheet.create({
 
   iconWrapper: {
     position: "absolute",
-    top: 12,
-    right: 12,
+    top: scale(12),
+    right: scale(12),
     backgroundColor: "rgba(255,255,255,0.9)",
-    padding: 8,
-    borderRadius: 14,
+    padding: scale(8),
+    borderRadius: scale(14),
   },
 });

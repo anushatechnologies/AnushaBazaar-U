@@ -32,6 +32,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootTabParamList } from "../navigation/BottomTabs";
 import { RootStackParamList } from "../navigation/RootStack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scale } from "../utils/responsive";
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "Home">,
@@ -272,14 +273,14 @@ const styles = StyleSheet.create({
   },
   stickyHeaderWrapper: {
     backgroundColor: "#FFF",
-    paddingTop: 8,
+    paddingTop: scale(8),
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
     elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.05,
-    shadowRadius: 5,
+    shadowRadius: scale(5),
   },
   floatingSearch: {
     position: "absolute",
@@ -291,17 +292,18 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginHorizontal: 18,
-    marginTop: 25,
-    marginBottom: 12,
+    marginHorizontal: scale(18),
+    marginTop: scale(25),
+    marginBottom: scale(12),
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "700",
     color: "#111",
   },
   viewAll: {
     color: "#0A8754",
     fontWeight: "600",
+    fontSize: scale(14),
   },
 });

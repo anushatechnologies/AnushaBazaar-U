@@ -5,7 +5,6 @@ import {
     StyleSheet,
     Pressable,
     Animated,
-    Dimensions,
     Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,21 +12,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useCart } from "../context/CartContext";
 import { LinearGradient } from "expo-linear-gradient";
-
-const { width } = Dimensions.get("window");
+import { scale, screenWidth } from "../utils/responsive";
 
 const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
     const navigation = useNavigation<any>();
     const { cart } = useCart();
     const insets = useSafeAreaInsets();
 
-    const slideAnim = useRef(new Animated.Value(150)).current;
+    const slideAnim = useRef(new Animated.Value(scale(150))).current;
     const pulseAnim = useRef(new Animated.Value(1)).current;
 
     // Screens that have bottom tab bar
     const tabScreens = ["Home", "Categories", "Trending", "Order Again"];
     const isTabScreen = currentRoute ? tabScreens.includes(currentRoute) : true;
-    const bottomOffset = isTabScreen ? 65 : 0; // 60 (tab bar) + 5 padding
+    const bottomOffset = isTabScreen ? scale(65) : 0; // 60 (tab bar) + 5 padding
 
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -46,7 +44,7 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
             }).start();
         } else {
             Animated.spring(slideAnim, {
-                toValue: 150,
+                toValue: scale(150),
                 tension: 50,
                 friction: 8,
                 useNativeDriver: true,
@@ -67,7 +65,7 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
             <Pressable
                 style={[
                     styles.cartContainer,
-                    { marginBottom: Math.max(insets.bottom, 15) + bottomOffset }
+                    { marginBottom: Math.max(insets.bottom, scale(15)) + bottomOffset }
                 ]}
                 onPress={() => navigation.navigate("Cart")}
             >
@@ -88,7 +86,7 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
                                         key={item.id} 
                                         style={[
                                             styles.thumbCircle, 
-                                            { marginLeft: idx === 0 ? 0 : -20, zIndex: 10 - idx }
+                                            { marginLeft: idx === 0 ? 0 : scale(-20), zIndex: 10 - idx }
                                         ]}
                                     >
                                         <Image source={source} style={styles.thumbImg} resizeMode="contain" />
@@ -104,7 +102,7 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
 
                     <View style={styles.right}>
                         <Text style={styles.viewCart}>View Cart</Text>
-                        <Ionicons name="caret-forward" size={12} color="#fff" />
+                        <Ionicons name="caret-forward" size={scale(12)} color="#fff" />
                     </View>
                 </LinearGradient>
             </Pressable>
@@ -124,17 +122,17 @@ const styles = StyleSheet.create({
         zIndex: 9999,
     },
     cartContainer: {
-        width: width * 0.94,
+        width: screenWidth * 0.94,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: scale(4) },
         shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowRadius: scale(8),
         elevation: 10,
     },
     cartGradient: {
-        height: 56,
-        paddingHorizontal: 16,
-        borderRadius: 12, // More rectangular like Blinkit/Zepto
+        height: scale(56),
+        paddingHorizontal: scale(16),
+        borderRadius: scale(12), // More rectangular like Blinkit/Zepto
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
@@ -147,12 +145,12 @@ const styles = StyleSheet.create({
     thumbStack: {
         flexDirection: "row",
         alignItems: "center",
-        marginRight: 12,
+        marginRight: scale(12),
     },
     thumbCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: scale(32),
+        height: scale(32),
+        borderRadius: scale(16),
         backgroundColor: "#fff",
         borderWidth: 1.5,
         borderColor: "#0C831F",
@@ -169,27 +167,27 @@ const styles = StyleSheet.create({
     },
     itemsCountText: {
         color: "#fff",
-        fontSize: 11,
+        fontSize: scale(11),
         fontWeight: "600",
         opacity: 0.9,
     },
     priceText: {
         color: "#fff",
         fontWeight: "800",
-        fontSize: 16,
+        fontSize: scale(16),
     },
     right: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "rgba(255,255,255,0.05)",
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        gap: 4,
+        paddingVertical: scale(8),
+        paddingHorizontal: scale(12),
+        borderRadius: scale(8),
+        gap: scale(4),
     },
     viewCart: {
         color: "#fff",
         fontWeight: "800",
-        fontSize: 13,
+        fontSize: scale(13),
     },
 });

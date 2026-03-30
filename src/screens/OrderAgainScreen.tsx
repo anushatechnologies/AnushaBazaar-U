@@ -19,15 +19,7 @@ import { getProducts, getTrendingProducts } from "../services/api/products";
 import { getOrders, getRecentProducts } from "../services/api/orders";
 import { useAuth } from "../context/AuthContext";
 import FloatingCart from "../components/FloatingCart";
-
-/* ─── Past order mock (replace with real order API when available) ─── */
-const MOCK_PAST_ORDERS = [
-  { id: "p1", name: "Amul Taaza Homogenised Toned Milk", unit: "1 L", price: 74, image: "https://m.media-amazon.com/images/I/61NlUoQz+DL._AC_UF1000,1000_QL80_.jpg" },
-  { id: "p2", name: "Harvest Gold Brown Bread", unit: "400 g", price: 45, image: null },
-  { id: "p3", name: "Farm Fresh Eggs (12 pc)", unit: "12 pcs", price: 90, image: null },
-  { id: "p4", name: "Fresh Tomatoes", unit: "1 kg", price: 35, image: null },
-  { id: "p5", name: "Head & Shoulders Anti Dandruff Shampoo", unit: "340 ml", price: 280, image: null },
-];
+import { scale } from "../utils/responsive";
 
 /* ─── Shared Add Button ──────────────────────────────────── */
 import { useCart } from "../context/CartContext";
@@ -54,7 +46,7 @@ const AddButton = ({ item }: { item: any }) => {
           <Text style={styles.addBtnText}>ADD</Text>
         </TouchableOpacity>
         {item.productVariants && item.productVariants.length > 1 && (
-          <Text style={{ fontSize: 9, color: "#888", marginTop: 2 }}>Options</Text>
+          <Text style={{ fontSize: scale(9), color: "#888", marginTop: scale(2) }}>Options</Text>
         )}
       </View>
     );
@@ -66,14 +58,14 @@ const AddButton = ({ item }: { item: any }) => {
         style={styles.qtyBtnBox}
         onPress={() => decreaseQty(item.id)}
       >
-        <Ionicons name="remove" size={16} color="#0A8754" />
+        <Ionicons name="remove" size={scale(16)} color="#0A8754" />
       </TouchableOpacity>
       <Text style={styles.qtyText}>{cartItem.quantity}</Text>
       <TouchableOpacity 
         style={styles.qtyBtnBox}
         onPress={() => increaseQty(item.id)}
       >
-        <Ionicons name="add" size={16} color="#0A8754" />
+        <Ionicons name="add" size={scale(16)} color="#0A8754" />
       </TouchableOpacity>
     </View>
   );
@@ -90,7 +82,7 @@ const ReorderCard = ({ item }: { item: any }) => {
         {imageUrl ? (
           <Image source={{ uri: imageUrl }} style={styles.cardImg} resizeMode="contain" />
         ) : (
-          <Ionicons name="cart-outline" size={36} color="#E5E7EB" />
+          <Ionicons name="cart-outline" size={scale(36)} color="#E5E7EB" />
         )}
       </View>
       <View style={styles.cardInfo}>
@@ -121,7 +113,7 @@ const TrendCard = ({ item, badge }: { item: any; badge?: string }) => {
         {imageUrl ? (
           <Image source={{ uri: imageUrl }} style={styles.cardImg} resizeMode="contain" />
         ) : (
-          <Ionicons name="image-outline" size={36} color="#E5E7EB" />
+          <Ionicons name="image-outline" size={scale(36)} color="#E5E7EB" />
         )}
         {badge && (
           <View style={[styles.badge, badge === "Trending" ? styles.badgeTrend : styles.badgeBest]}>
@@ -129,7 +121,7 @@ const TrendCard = ({ item, badge }: { item: any; badge?: string }) => {
           </View>
         )}
         {discount > 0 && (
-          <View style={[styles.discBadge, { top: badge ? 32 : 8, bottom: undefined }]}>
+          <View style={[styles.discBadge, { top: badge ? scale(32) : scale(8), bottom: undefined }]}>
             <Text style={styles.discText}>{discount}% OFF</Text>
           </View>
         )}
@@ -244,9 +236,9 @@ const OrderAgainScreen = () => {
   return (
     <View style={styles.root}>
       {/* ── Top bar ── */}
-      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, scale(16)) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={scale(24)} color="#1A1A1A" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.screenTitle}>Order Again</Text>
@@ -257,7 +249,7 @@ const OrderAgainScreen = () => {
       {/* ── Search + mic ── */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={scale(20)} color="#9CA3AF" style={{ marginRight: scale(8) }} />
           <TextInput
             ref={inputRef}
             style={styles.searchInput}
@@ -269,13 +261,13 @@ const OrderAgainScreen = () => {
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch("")}>
-              <Ionicons name="close-circle" size={20} color="#D1D5DB" />
+              <Ionicons name="close-circle" size={scale(20)} color="#D1D5DB" />
             </TouchableOpacity>
           )}
           <View style={styles.searchDivider} />
           <TouchableOpacity onPress={handleMic} style={styles.micBtn}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              <Ionicons name="mic-outline" size={20} color="#0A8754" />
+              <Ionicons name="mic-outline" size={scale(20)} color="#0A8754" />
             </Animated.View>
           </TouchableOpacity>
         </View>
@@ -287,7 +279,7 @@ const OrderAgainScreen = () => {
         renderItem={() => null}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={() => (
-          <View style={{ paddingBottom: 120 }}>
+          <View style={{ paddingBottom: scale(120) }}>
             {/* ══ Past Orders ══ */}
             <SectionHead title="Past Orders" />
             {filteredPast.length === 0 ? (
@@ -362,25 +354,25 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    gap: scale(16),
+    paddingHorizontal: scale(16),
+    paddingBottom: scale(16),
     backgroundColor: "#fff",
   },
   backBtn: {
-    width: 40, height: 40,
-    borderRadius: 20,
+    width: scale(40), height: scale(40),
+    borderRadius: scale(20),
     backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
   },
-  screenTitle: { fontSize: 20, fontWeight: "700", color: "#111827" },
-  screenSub: { fontSize: 13, color: "#6B7280", marginTop: 2 },
+  screenTitle: { fontSize: scale(20), fontWeight: "700", color: "#111827" },
+  screenSub: { fontSize: scale(13), color: "#6B7280", marginTop: scale(2) },
 
   /* Search */
   searchRow: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
@@ -391,55 +383,55 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 48,
+    borderRadius: scale(12),
+    paddingHorizontal: scale(12),
+    height: scale(48),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.03,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
     elevation: 2,
   },
-  searchInput: { flex: 1, fontSize: 15, color: "#111827" },
+  searchInput: { flex: 1, fontSize: scale(15), color: "#111827" },
   searchDivider: {
     width: 1,
-    height: 24,
+    height: scale(24),
     backgroundColor: "#E5E7EB",
-    marginHorizontal: 12,
+    marginHorizontal: scale(12),
   },
   micBtn: {
-    padding: 4,
+    padding: scale(4),
   },
 
   /* Section heads */
   sectionHead: {
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 12,
+    paddingHorizontal: scale(16),
+    paddingTop: scale(24),
+    paddingBottom: scale(12),
   },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  sectionLoader: { paddingVertical: 40, alignItems: "center" },
-  noDataText: { paddingHorizontal: 16, color: "#9CA3AF", fontSize: 14, marginBottom: 12 },
-  hPad: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+  sectionTitle: { fontSize: scale(18), fontWeight: "700", color: "#111827" },
+  sectionLoader: { paddingVertical: scale(40), alignItems: "center" },
+  noDataText: { paddingHorizontal: scale(16), color: "#9CA3AF", fontSize: scale(14), marginBottom: scale(12) },
+  hPad: { paddingHorizontal: scale(16), paddingBottom: scale(16), gap: scale(12) },
 
   /* Past order empty */
-  emptyPast: { paddingHorizontal: 16, paddingBottom: 16 },
-  emptyPastText: { color: "#9CA3AF", fontSize: 14 },
+  emptyPast: { paddingHorizontal: scale(16), paddingBottom: scale(16) },
+  emptyPastText: { color: "#9CA3AF", fontSize: scale(14) },
 
   /* ── Add Button ── */
   addBtn: {
     borderWidth: 1,
     borderColor: "#0A8754",
     backgroundColor: "#F2FCEE",
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
+    borderRadius: scale(6),
+    paddingVertical: scale(6),
+    paddingHorizontal: scale(16),
     alignItems: "center",
     justifyContent: "center",
   },
   addBtnText: {
     color: "#0A8754",
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "700",
   },
   qtyContainer: {
@@ -448,75 +440,75 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2FCEE",
     borderWidth: 1,
     borderColor: "#0A8754",
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    gap: 8,
+    borderRadius: scale(6),
+    paddingHorizontal: scale(6),
+    paddingVertical: scale(4),
+    gap: scale(8),
   },
   qtyBtnBox: {
-    padding: 2,
+    padding: scale(2),
   },
   qtyText: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "700",
     color: "#0A8754",
-    minWidth: 16,
+    minWidth: scale(16),
     textAlign: "center",
   },
 
   /* ── Shared Card Styles (150px width) ── */
   card: {
-    width: 150,
+    width: scale(150),
     backgroundColor: "#fff",
-    borderRadius: 12,
-    marginRight: 16,
+    borderRadius: scale(12),
+    marginRight: scale(16),
     borderWidth: 1,
     borderColor: "#E5E7EB",
     overflow: "hidden",
   },
   cardImgBox: {
-    height: 120, // Increased height
+    height: scale(120), // Increased height
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
     position: "relative",
-    padding: 4,
+    padding: scale(4),
   },
   cardImg: { width: "100%", height: "100%" },
   
   badge: {
     position: "absolute",
-    top: 8, left: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
+    top: scale(8), left: scale(8),
+    paddingHorizontal: scale(6),
+    paddingVertical: scale(3),
+    borderRadius: scale(4),
   },
   badgeTrend: { backgroundColor: "#FF6B00" },
   badgeBest: { backgroundColor: "#7B2FBE" },
-  badgeText: { color: "#fff", fontSize: 9, fontWeight: "700", textTransform: "uppercase" },
+  badgeText: { color: "#fff", fontSize: scale(9), fontWeight: "700", textTransform: "uppercase" },
   discBadge: {
     position: "absolute",
-    bottom: -10, left: 8,
+    bottom: scale(-10), left: scale(8),
     backgroundColor: "#E8294A",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
+    paddingHorizontal: scale(6),
+    paddingVertical: scale(3),
+    borderRadius: scale(4),
   },
-  discText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  discText: { color: "#fff", fontSize: scale(10), fontWeight: "700" },
 
   cardInfo: {
-    padding: 12,
+    padding: scale(12),
   },
-  cardName: { fontSize: 13, fontWeight: "600", color: "#111827", lineHeight: 18, height: 36 },
-  cardUnit: { fontSize: 11, color: "#6B7280", marginTop: 4 },
+  cardName: { fontSize: scale(13), fontWeight: "600", color: "#111827", lineHeight: scale(18), height: scale(36) },
+  cardUnit: { fontSize: scale(11), color: "#6B7280", marginTop: scale(4) },
   cardBottomRow: {
-    marginTop: 12,
+    marginTop: scale(12),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  cardPrice: { fontSize: 14, fontWeight: "700", color: "#111827" },
-  cardMrp: { fontSize: 11, color: "#9CA3AF", textDecorationLine: "line-through", marginTop: 2 },
+  cardPrice: { fontSize: scale(14), fontWeight: "700", color: "#111827" },
+  cardMrp: { fontSize: scale(11), color: "#9CA3AF", textDecorationLine: "line-through", marginTop: scale(2) },
 });

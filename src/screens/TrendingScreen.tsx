@@ -25,6 +25,7 @@ import FloatingCart from "../components/FloatingCart";
 import ProductFilterBar, { SortOption, PRICE_RANGES } from "../components/ProductFilterBar";
 import SkeletonCard from "../components/SkeletonCard";
 import { useTabBar } from "../context/TabBarContext";
+import { scale } from "../utils/responsive";
 
 /* ─── Main screen ────────────────────────────────────────── */
 const TrendingScreen = () => {
@@ -44,8 +45,8 @@ const TrendingScreen = () => {
 
   const handleScroll = (e: any) => {
     const currentY = e.nativeEvent.contentOffset.y;
-    if (currentY > lastScrollY.current + 5) onScrollUp();
-    else if (currentY < lastScrollY.current - 5) onScrollDown();
+    if (currentY > lastScrollY.current + scale(5)) onScrollUp();
+    else if (currentY < lastScrollY.current - scale(5)) onScrollDown();
     lastScrollY.current = currentY;
   };
 
@@ -131,9 +132,9 @@ const TrendingScreen = () => {
   const ListHeader = () => (
     <View>
       {/* ── Top bar ── */}
-      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 20) }]}>
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, scale(20)) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#111" />
+          <Ionicons name="arrow-back" size={scale(22)} color="#111" />
         </TouchableOpacity>
         <View>
           <Text style={styles.screenTitle}>Trending 🔥</Text>
@@ -144,7 +145,7 @@ const TrendingScreen = () => {
       {/* ── Search + mic ── */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={17} color="#888" style={{ marginRight: 6 }} />
+          <Ionicons name="search" size={scale(17)} color="#888" style={{ marginRight: scale(6) }} />
           <TextInput
             ref={inputRef}
             style={styles.searchInput}
@@ -156,13 +157,13 @@ const TrendingScreen = () => {
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch("")}>
-              <Ionicons name="close-circle" size={18} color="#bbb" />
+              <Ionicons name="close-circle" size={scale(18)} color="#bbb" />
             </TouchableOpacity>
           )}
           {/* Mic */}
           <TouchableOpacity onPress={handleMic} style={styles.micInner}>
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              <Ionicons name="mic-outline" size={17} color="#555" />
+              <Ionicons name="mic-outline" size={scale(17)} color="#555" />
             </Animated.View>
           </TouchableOpacity>
         </View>
@@ -180,7 +181,7 @@ const TrendingScreen = () => {
 
   const ListEmpty = () => (
     <View style={styles.empty}>
-      <Text style={{ fontSize: 44 }}>🔍</Text>
+      <Text style={{ fontSize: scale(44) }}>🔍</Text>
       <Text style={styles.emptyTitle}>No products found</Text>
       <Text style={styles.emptySub}>Try changing your filters</Text>
     </View>
@@ -239,36 +240,36 @@ export default TrendingScreen;
 /* ─── Styles ─────────────────────────────────────────────── */
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9FDFB" },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center", gap: 10 },
+  loader: { flex: 1, justifyContent: "center", alignItems: "center", gap: scale(10) },
   gridOverlay: { flex: 1, backgroundColor: "#F9FDFB" },
-  loaderText: { color: "#888", fontSize: 14 },
+  loaderText: { color: "#888", fontSize: scale(14) },
 
   /* Top bar */
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingBottom: 10,
+    gap: scale(12),
+    paddingHorizontal: scale(14),
+    paddingBottom: scale(10),
     backgroundColor: "#fff",
   },
   backBtn: {
-    width: 38, height: 38,
-    borderRadius: 12,
+    width: scale(38), height: scale(38),
+    borderRadius: scale(12),
     backgroundColor: "#F4F4F4",
     justifyContent: "center",
     alignItems: "center",
   },
-  screenTitle: { fontSize: 20, fontWeight: "800", color: "#111" },
-  screenSub: { fontSize: 12, color: "#888", marginTop: 1 },
+  screenTitle: { fontSize: scale(20), fontWeight: "800", color: "#111" },
+  screenSub: { fontSize: scale(12), color: "#888", marginTop: scale(1) },
 
   /* Search row */
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    gap: scale(10),
+    paddingHorizontal: scale(14),
+    paddingVertical: scale(10),
     backgroundColor: "#fff",
   },
   searchBox: {
@@ -276,22 +277,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F4F4F4",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: scale(12),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(10),
   },
-  searchInput: { flex: 1, fontSize: 14, color: "#222" },
+  searchInput: { flex: 1, fontSize: scale(14), color: "#222" },
   micInner: {
-    width: 30, height: 30,
-    borderRadius: 15,
+    width: scale(30), height: scale(30),
+    borderRadius: scale(15),
     backgroundColor: "#EAEAEA",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 6,
+    marginLeft: scale(6),
   },
   filterBtn: {
-    width: 44, height: 44,
-    borderRadius: 12,
+    width: scale(44), height: scale(44),
+    borderRadius: scale(12),
     backgroundColor: "#F0F0F0",
     justifyContent: "center",
     alignItems: "center",
@@ -299,66 +300,66 @@ const styles = StyleSheet.create({
   filterBtnActive: { backgroundColor: "#0A8754" },
 
   /* Chips */
-  chipsRow: { backgroundColor: "#fff", paddingHorizontal: 14, paddingBottom: 10 },
+  chipsRow: { backgroundColor: "#fff", paddingHorizontal: scale(14), paddingBottom: scale(10) },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: scale(5),
     backgroundColor: "#E6F5EE",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(5),
+    borderRadius: scale(20),
   },
-  chipText: { fontSize: 12, color: "#0A8754", fontWeight: "600" },
+  chipText: { fontSize: scale(12), color: "#0A8754", fontWeight: "600" },
 
   /* Product cards grid styles */
-  listPad: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 90 },
-  columnWrapper: { justifyContent: "space-between", marginBottom: 16 },
+  listPad: { paddingHorizontal: scale(16), paddingTop: scale(12), paddingBottom: scale(90) },
+  columnWrapper: { justifyContent: "space-between", marginBottom: scale(16) },
 
   /* Empty */
-  empty: { alignItems: "center", paddingTop: 60 },
-  emptyTitle: { fontSize: 17, fontWeight: "700", color: "#333", marginTop: 12 },
-  emptySub: { fontSize: 13, color: "#999", marginTop: 4 },
+  empty: { alignItems: "center", paddingTop: scale(60) },
+  emptyTitle: { fontSize: scale(17), fontWeight: "700", color: "#333", marginTop: scale(12) },
+  emptySub: { fontSize: scale(13), color: "#999", marginTop: scale(4) },
 
   /* Filter modal */
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   sheet: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    paddingTop: 12,
+    borderTopLeftRadius: scale(24),
+    borderTopRightRadius: scale(24),
+    paddingHorizontal: scale(20),
+    paddingBottom: scale(30),
+    paddingTop: scale(12),
     maxHeight: "80%",
   },
   sheetHandle: {
-    width: 40, height: 4,
-    borderRadius: 2,
+    width: scale(40), height: scale(4),
+    borderRadius: scale(2),
     backgroundColor: "#E0E0E0",
     alignSelf: "center",
-    marginBottom: 16,
+    marginBottom: scale(16),
   },
-  sheetTitle: { fontSize: 18, fontWeight: "800", color: "#111", marginBottom: 16 },
-  sheetSection: { fontSize: 13, fontWeight: "700", color: "#777", marginTop: 14, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 },
+  sheetTitle: { fontSize: scale(18), fontWeight: "800", color: "#111", marginBottom: scale(16) },
+  sheetSection: { fontSize: scale(13), fontWeight: "700", color: "#777", marginTop: scale(14), marginBottom: scale(6), textTransform: "uppercase", letterSpacing: scale(0.5) },
   optionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 4,
+    paddingVertical: scale(12),
+    paddingHorizontal: scale(14),
+    borderRadius: scale(12),
+    marginBottom: scale(4),
     backgroundColor: "#F8F8F8",
   },
   optionRowActive: { backgroundColor: "#E6F5EE" },
-  optionText: { fontSize: 14, color: "#444" },
+  optionText: { fontSize: scale(14), color: "#444" },
   optionTextActive: { color: "#0A8754", fontWeight: "700" },
   applyBtn: {
     backgroundColor: "#0A8754",
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: scale(14),
+    paddingVertical: scale(14),
     alignItems: "center",
-    marginTop: 20,
+    marginTop: scale(20),
   },
-  applyBtnText: { color: "#fff", fontSize: 15, fontWeight: "800" },
+  applyBtnText: { color: "#fff", fontSize: scale(15), fontWeight: "800" },
 });

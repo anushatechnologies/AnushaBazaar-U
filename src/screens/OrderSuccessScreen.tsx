@@ -1,10 +1,9 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Animated, ScrollView, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const { width } = Dimensions.get("window");
+import { scale } from "../utils/responsive";
 
 const OrderSuccessScreen = () => {
   const navigation = useNavigation<any>();
@@ -35,11 +34,11 @@ const OrderSuccessScreen = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scale(40) }}>
       <View style={styles.content}>
         <Animated.View style={[styles.successIconBox, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
           <View style={styles.whiteCircle}>
-            <Ionicons name="checkmark" size={60} color="#0A8754" />
+            <Ionicons name="checkmark" size={scale(60)} color="#0A8754" />
           </View>
         </Animated.View>
 
@@ -77,7 +76,7 @@ const OrderSuccessScreen = () => {
                   source={{ uri: item.productImage || item.image || item.imageUrl || "https://via.placeholder.com/150" }} 
                   style={styles.itemImg} 
                 />
-                <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flex: 1, marginLeft: scale(12) }}>
                   <Text style={styles.itemName} numberOfLines={1}>{item.productName || item.name || "Product"}</Text>
                   <Text style={styles.itemQty}>Qty: {item.quantity}</Text>
                 </View>
@@ -89,7 +88,7 @@ const OrderSuccessScreen = () => {
       </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, scale(20)) }]}>
         <TouchableOpacity 
           style={styles.trackBtn} 
           onPress={() => navigation.navigate("OrderTracking", { orderId })}
@@ -114,7 +113,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingHorizontal: 25,
+    paddingHorizontal: scale(25),
   },
   content: {
     flex: 1,
@@ -122,50 +121,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   successIconBox: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: scale(140),
+    height: scale(140),
+    borderRadius: scale(70),
     backgroundColor: "#F2FCEE",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: scale(40),
   },
   whiteCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(50),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: scale(10) },
     shadowOpacity: 0.15,
-    shadowRadius: 15,
+    shadowRadius: scale(15),
     elevation: 8,
   },
   textBox: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: scale(40),
   },
   title: {
-    fontSize: 24,
+    fontSize: scale(24),
     fontWeight: "900",
     color: "#111",
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: "#6B7280",
     textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 20,
+    lineHeight: scale(22),
+    paddingHorizontal: scale(20),
   },
   orderCard: {
     width: "100%",
     backgroundColor: "#F9FAFB",
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: scale(20),
+    padding: scale(20),
     borderWidth: 1,
     borderColor: "#F3F4F6",
   },
@@ -173,15 +172,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: scale(12),
   },
   detailLabel: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: "#6B7280",
     fontWeight: "600",
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: "#111827",
     fontWeight: "700",
   },
@@ -191,76 +190,77 @@ const styles = StyleSheet.create({
   },
   footer: {
     width: "100%",
+    paddingHorizontal: scale(25),
   },
   trackBtn: {
     backgroundColor: "#0A8754",
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingVertical: scale(18),
+    borderRadius: scale(16),
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: scale(12),
     shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: scale(8) },
     shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowRadius: scale(12),
     elevation: 6,
   },
   trackBtnText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "800",
   },
   continueBtn: {
     backgroundColor: "#fff",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: scale(16),
+    borderRadius: scale(16),
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
   continueBtnText: {
     color: "#4B5563",
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "700",
   },
   itemsBox: {
     width: "100%",
     backgroundColor: "#fff",
-    marginTop: 20,
-    borderRadius: 20,
-    padding: 20,
+    marginTop: scale(20),
+    borderRadius: scale(20),
+    padding: scale(20),
     borderWidth: 1,
     borderColor: "#F3F4F6",
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "800",
     color: "#111",
-    marginBottom: 15,
+    marginBottom: scale(15),
   },
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   itemImg: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(8),
     backgroundColor: "#F9FAFB",
   },
   itemName: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "700",
     color: "#333",
   },
   itemQty: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: "#999",
-    marginTop: 2,
+    marginTop: scale(2),
     fontWeight: "600",
   },
   itemPrice: {
-    fontSize: 14,
+    fontSize: scale(15),
     fontWeight: "800",
     color: "#111",
   },

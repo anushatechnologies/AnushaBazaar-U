@@ -9,6 +9,7 @@ import {
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { scale } from "../utils/responsive";
 
 /* ─── Types and Constants ─── */
 export type SortOption = "default" | "price_asc" | "price_desc" | "name_asc";
@@ -63,7 +64,7 @@ const ProductFilterBar = ({
         >
           <Ionicons
             name="options-outline"
-            size={18}
+            size={scale(18)}
             color={hasActiveFilters ? "#fff" : "#333"}
           />
           <Text style={[styles.filterBtnText, hasActiveFilters && { color: "#fff" }]}>
@@ -86,7 +87,7 @@ const ProductFilterBar = ({
               onPress={() => onSortChange("default")}
             >
               <Text style={styles.chipText}>{SORT_LABELS[activeSort]}</Text>
-              <Ionicons name="close-circle" size={14} color="#0A8754" />
+              <Ionicons name="close-circle" size={scale(14)} color="#0A8754" />
             </TouchableOpacity>
           )}
 
@@ -96,7 +97,7 @@ const ProductFilterBar = ({
               onPress={() => onPriceChange(PRICE_RANGES[0])}
             >
               <Text style={styles.chipText}>{activePriceRange.label}</Text>
-              <Ionicons name="close-circle" size={14} color="#0A8754" />
+              <Ionicons name="close-circle" size={scale(14)} color="#0A8754" />
             </TouchableOpacity>
           )}
 
@@ -125,7 +126,7 @@ const ProductFilterBar = ({
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>Sort & Filter</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#333" />
+              <Ionicons name="close" size={scale(24)} color="#333" />
             </TouchableOpacity>
           </View>
 
@@ -142,7 +143,7 @@ const ProductFilterBar = ({
                   {SORT_LABELS[key]}
                 </Text>
                 {activeSort === key && (
-                  <Ionicons name="checkmark-circle" size={20} color="#0A8754" />
+                  <Ionicons name="checkmark-circle" size={scale(20)} color="#0A8754" />
                 )}
               </TouchableOpacity>
             ))}
@@ -169,7 +170,7 @@ const ProductFilterBar = ({
                   {range.label}
                 </Text>
                 {activePriceRange.label === range.label && (
-                  <Ionicons name="checkmark-circle" size={20} color="#0A8754" />
+                  <Ionicons name="checkmark-circle" size={scale(20)} color="#0A8754" />
                 )}
               </TouchableOpacity>
             ))}
@@ -191,16 +192,16 @@ export default ProductFilterBar;
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 10,
+    paddingVertical: scale(10),
     backgroundColor: "transparent",
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: scale(16),
   },
   countText: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#666",
     fontWeight: "500",
   },
@@ -208,57 +209,57 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(14),
+    borderRadius: scale(20),
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    gap: 6,
+    gap: scale(6),
     elevation: 2,
     shadowColor: "#000",
     shadowOpacity: 0.05,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: scale(5),
+    shadowOffset: { width: 0, height: scale(2) },
   },
   filterBtnActive: {
     backgroundColor: "#0A8754",
     borderColor: "#0A8754",
   },
   filterBtnText: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "700",
     color: "#374151",
   },
   chipsRow: {
-    marginTop: 12,
+    marginTop: scale(12),
   },
   chipsContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: scale(16),
     alignItems: "center",
-    gap: 10,
-    paddingBottom: 4,
+    gap: scale(10),
+    paddingBottom: scale(4),
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#E8F5EE",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    gap: 6,
+    paddingVertical: scale(6),
+    paddingHorizontal: scale(12),
+    borderRadius: scale(20),
+    gap: scale(6),
     borderWidth: 1,
     borderColor: "#D1FAE5",
   },
   chipText: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: "#0A8754",
     fontWeight: "600",
   },
   clearAll: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: "#9CA3AF",
     fontWeight: "600",
-    marginLeft: 5,
+    marginLeft: scale(5),
   },
   
   /* Modal Styles */
@@ -272,49 +273,49 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    paddingTop: 12,
+    borderTopLeftRadius: scale(24),
+    borderTopRightRadius: scale(24),
+    paddingHorizontal: scale(20),
+    paddingBottom: scale(40),
+    paddingTop: scale(12),
     maxHeight: "85%",
   },
   sheetHandle: {
-    width: 40,
-    height: 4,
+    width: scale(40),
+    height: scale(4),
     backgroundColor: "#E5E7EB",
-    borderRadius: 2,
+    borderRadius: scale(2),
     alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   sheetHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   sheetTitle: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: "800",
     color: "#111827",
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "700",
     color: "#6B7280",
     textTransform: "uppercase",
-    letterSpacing: 1,
-    marginTop: 20,
-    marginBottom: 10,
+    letterSpacing: scale(1),
+    marginTop: scale(20),
+    marginBottom: scale(10),
   },
   optionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    marginBottom: 6,
+    paddingVertical: scale(14),
+    paddingHorizontal: scale(16),
+    borderRadius: scale(14),
+    marginBottom: scale(6),
     backgroundColor: "#F9FAFB",
   },
   optionRowActive: {
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
     borderColor: "#DCFCE7",
   },
   optionText: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: "#4B5563",
     fontWeight: "500",
   },
@@ -334,23 +335,23 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: "#F3F4F6",
-    marginVertical: 10,
+    marginVertical: scale(10),
   },
   applyBtn: {
     backgroundColor: "#0A8754",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: scale(16),
+    borderRadius: scale(16),
     alignItems: "center",
-    marginTop: 24,
+    marginTop: scale(24),
     elevation: 4,
     shadowColor: "#0A8754",
     shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: scale(10),
+    shadowOffset: { width: 0, height: scale(4) },
   },
   applyBtnText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "800",
   },
 });

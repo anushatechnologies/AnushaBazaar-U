@@ -4,15 +4,13 @@ import {
   View,
   FlatList,
   Image,
-  Dimensions,
   StyleSheet,
   Animated,
   Text,
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-
-const { width } = Dimensions.get("window");
+import { scale, screenWidth } from "../utils/responsive";
 
 const BannerCarousel = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -55,7 +53,7 @@ const BannerCarousel = () => {
 
   if (loading && banners.length === 0) {
     return (
-      <View style={[styles.bannerContainer, { height: 175, justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.bannerContainer, { height: scale(175), justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator color="#0A8754" />
       </View>
     );
@@ -63,8 +61,8 @@ const BannerCarousel = () => {
 
   if (banners.length === 0) {
     return (
-      <View style={[styles.bannerContainer, { height: 175, backgroundColor: "#E9F5F0", justifyContent: "center", alignItems: "center" }]}>
-        <Text style={{ marginTop: 8, color: "#0A8754", fontWeight: "700", fontSize: 16 }}>Exciting Offers Coming Soon!</Text>
+      <View style={[styles.bannerContainer, { height: scale(175), backgroundColor: "#E9F5F0", justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ marginTop: scale(8), color: "#0A8754", fontWeight: "700", fontSize: scale(16) }}>Exciting Offers Coming Soon!</Text>
       </View>
     );
   }
@@ -96,12 +94,12 @@ const BannerCarousel = () => {
       <View style={styles.pagination}>
         {banners.map((_, i) => {
           const dotWidth = scrollX.interpolate({
-            inputRange: [width * (i - 1), width * i, width * (i + 1)],
-            outputRange: [8, 22, 8],
+            inputRange: [screenWidth * (i - 1), screenWidth * i, screenWidth * (i + 1)],
+            outputRange: [scale(8), scale(22), scale(8)],
             extrapolate: "clamp",
           });
           const opacity = scrollX.interpolate({
-            inputRange: [width * (i - 1), width * i, width * (i + 1)],
+            inputRange: [screenWidth * (i - 1), screenWidth * i, screenWidth * (i + 1)],
             outputRange: [0.3, 1, 0.3],
             extrapolate: "clamp",
           });
@@ -122,24 +120,24 @@ export default BannerCarousel;
 
 const styles = StyleSheet.create({
   bannerContainer: {
-    width,
-    paddingHorizontal: 14,
+    width: screenWidth,
+    paddingHorizontal: scale(14),
   },
   image: {
     width: "100%",
-    height: 175,
-    borderRadius: 20,
+    height: scale(175),
+    borderRadius: scale(20),
   },
   pagination: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
-    gap: 4,
+    marginTop: scale(10),
+    gap: scale(4),
   },
   dot: {
-    height: 8,
-    borderRadius: 4,
+    height: scale(8),
+    borderRadius: scale(4),
     backgroundColor: "#0A8754",
   },
 });

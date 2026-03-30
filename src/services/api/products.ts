@@ -1,4 +1,5 @@
 import { API_CONFIG, fetchWithTimeout } from "@/config/api.config";
+import { normalizeImageUrl } from "@/utils/image";
 
 const API_BASE = API_CONFIG.ENDPOINTS.PRODUCTS;
 const CUSTOMER_BASE = API_CONFIG.ENDPOINTS.CUSTOMER;
@@ -44,9 +45,22 @@ const mapProducts = (json: any): Product[] => {
       mrp: v.mrp ?? v.price,
     }));
     const firstVariant = normalizedVariants[0];
+    const primaryImage =
+      normalizeImageUrl(
+        p.imageUrl ||
+          p.image ||
+          p.thumbnail ||
+          p.productImage ||
+          p.icon ||
+          (Array.isArray(p.imageUrls) ? p.imageUrls[0] : "")
+      ) || "";
+
     return {
       ...p,
       id: String(p.id || p._id),
+      image: primaryImage,
+      imageUrl: primaryImage,
+      thumbnail: normalizeImageUrl(p.thumbnail) || primaryImage,
       productVariants: normalizedVariants,
       variantId: firstVariant?.id,
       price: firstVariant ? firstVariant.sellingPrice : (p.minPrice || p.price || 0),

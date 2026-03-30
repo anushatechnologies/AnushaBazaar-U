@@ -22,6 +22,8 @@ import PriceRow from "../components/common/PriceRow";
 import FloatingCart from "../components/FloatingCart";
 import { Share } from "react-native";
 import { API_CONFIG } from "../config/api.config";
+import { scale } from "../utils/responsive";
+import { resolveImageSource } from "../utils/image";
 
 const ProductDetailScreen = ({ route }: any) => {
   const { product } = route.params;
@@ -65,9 +67,14 @@ const ProductDetailScreen = ({ route }: any) => {
     }
   };
 
-  const imageSource = product.imageUrl ? { uri: product.imageUrl } :
-    typeof product.image === "string" ? { uri: product.image } :
-      product.image;
+  const productImage =
+    product?.imageUrl || product?.image || product?.thumbnail || product?.icon || product?.imageUri;
+  const imageSource = resolveImageSource(productImage);
+  const [imageFailed, setImageFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setImageFailed(false);
+  }, [product?.id, productImage]);
 
   // Use variantId for matching cart items
   const activeVariantId = selectedVariant?.id || product.variantId;
@@ -149,12 +156,12 @@ const ProductDetailScreen = ({ route }: any) => {
   };
 
   const renderHeader = () => (
-    <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, 10) }]}>
+    <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, scale(10)) }]}>
       <Pressable
         style={styles.headerBtn}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="arrow-back" size={24} color="#111" />
+        <Ionicons name="arrow-back" size={scale(24)} color="#111" />
       </Pressable>
 
       <View style={styles.headerRight}>
@@ -164,7 +171,7 @@ const ProductDetailScreen = ({ route }: any) => {
         >
           <Ionicons 
             name={isWishlisted ? "heart" : "heart-outline"} 
-            size={22} 
+            size={scale(22)} 
             color={isWishlisted ? "#E8294A" : "#111"} 
           />
         </Pressable>
@@ -182,7 +189,7 @@ const ProductDetailScreen = ({ route }: any) => {
             }
           }}
         >
-          <Ionicons name="share-social-outline" size={22} color="#111" />
+          <Ionicons name="share-social-outline" size={scale(22)} color="#111" />
         </Pressable>
       </View>
     </View>
@@ -193,7 +200,14 @@ const ProductDetailScreen = ({ route }: any) => {
       {renderHeader()}
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.imageContainer}>
-          <Image source={imageSource} style={styles.image} />
+          {imageSource && !imageFailed ? (
+            <Image source={imageSource} style={styles.image} onError={() => setImageFailed(true)} />
+          ) : (
+            <View style={styles.imageFallback}>
+              <Ionicons name="image-outline" size={scale(44)} color="#CBD5E1" />
+              <Text style={styles.imageFallbackText}>Image unavailable</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.infoContainer}>
@@ -202,7 +216,7 @@ const ProductDetailScreen = ({ route }: any) => {
               <Text style={styles.brandText}>{product.brand || "Anusha Exclusive"}</Text>
             </View>
             <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={12} color="#fff" />
+              <Ionicons name="star" size={scale(12)} color="#fff" />
               <Text style={styles.ratingBadgeText}>{averageRating}</Text>
             </View>
           </View>
@@ -214,13 +228,13 @@ const ProductDetailScreen = ({ route }: any) => {
             <PriceRow 
               sellingPrice={displayPrice} 
               mrp={displayMrp} 
-              priceStyle={{ fontSize: 26, lineHeight: 30 }}
-              mrpStyle={{ fontSize: 15 }}
+              priceStyle={{ fontSize: scale(26), lineHeight: scale(30) }}
+              mrpStyle={{ fontSize: scale(15) }}
             />
 
             {hasDiscount && (
               <View style={styles.discountBadge}>
-                <Ionicons name="trending-down" size={14} color="#fff" />
+                <Ionicons name="trending-down" size={scale(14)} color="#fff" />
                 <Text style={styles.discountText}>
                   {Math.round(((displayMrp - displayPrice) / displayMrp) * 100)}% OFF
                 </Text>
@@ -288,7 +302,7 @@ const ProductDetailScreen = ({ route }: any) => {
                 <Pressable key={s} onPress={() => setRating(s)}>
                   <Ionicons
                     name={s <= rating ? "star" : "star-outline"}
-                    size={32}
+                    size={scale(32)}
                     color={s <= rating ? "#FFB800" : "#ccc"}
                   />
                 </Pressable>
@@ -296,9 +310,9 @@ const ProductDetailScreen = ({ route }: any) => {
             </View>
             <View style={styles.inputContainer}>
                <View style={styles.commentInputBox}>
-                 <Ionicons name="chatbubble-outline" size={20} color="#666" style={{ marginTop: 12, marginLeft: 12 }} />
-                 <View style={{ flex: 1, padding: 12 }}>
-                   <Text style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Your Review</Text>
+                 <Ionicons name="chatbubble-outline" size={scale(20)} color="#666" style={{ marginTop: scale(12), marginLeft: scale(12) }} />
+                 <View style={{ flex: 1, padding: scale(12) }}>
+                   <Text style={{ fontSize: scale(12), color: '#888', marginBottom: scale(4) }}>Your Review</Text>
                    <TextInput
                       style={styles.commentTextInput}
                       placeholder="Write your thoughts about this product..."
@@ -330,7 +344,7 @@ const ProductDetailScreen = ({ route }: any) => {
                     <View style={styles.reviewHeader}>
                       <View style={styles.reviewStars}>
                         {[1, 2, 3, 4, 5].map(s => (
-                          <Ionicons key={s} name="star" size={12} color={s <= r.rating ? "#FFB800" : "#E5E7EB"} />
+                          <Ionicons key={s} name="star" size={scale(12)} color={s <= r.rating ? "#FFB800" : "#E5E7EB"} />
                         ))}
                       </View>
                       <Text style={styles.reviewDate}>Verified User</Text>
@@ -347,16 +361,16 @@ const ProductDetailScreen = ({ route }: any) => {
         <View style={styles.relatedContainer}>
           <Text style={styles.relatedTitle}>Related Products</Text>
           {loadingRelated ? (
-            <ActivityIndicator color="#0A8754" style={{ marginVertical: 20 }} />
+            <ActivityIndicator color="#0A8754" style={{ marginVertical: scale(20) }} />
           ) : relatedProducts.length > 0 ? (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.relatedScroll}
-              contentContainerStyle={{ paddingRight: 20 }}
+              contentContainerStyle={{ paddingRight: scale(20) }}
             >
               {relatedProducts.map((item) => (
-                <View key={item.id} style={{ marginRight: 15, width: 160 }}>
+                <View key={item.id} style={{ marginRight: scale(15), width: scale(160) }}>
                   <ProductCard product={item} />
                 </View>
               ))}
@@ -383,26 +397,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
     zIndex: 100,
   },
   headerRight: {
     flexDirection: "row",
-    gap: 12,
+    gap: scale(12),
   },
   headerBtn: {
-    width: 44,
-    height: 44,
+    width: scale(44),
+    height: scale(44),
     backgroundColor: "#fff",
-    borderRadius: 22,
+    borderRadius: scale(22),
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
   },
 
   imageContainer: {
@@ -413,22 +427,35 @@ const styles = StyleSheet.create({
 
   image: {
     width: "100%",
-    height: 400,
+    height: scale(400),
     resizeMode: "contain",
+  },
+  imageFallback: {
+    width: "100%",
+    height: scale(300),
+    justifyContent: "center",
+    alignItems: "center",
+    gap: scale(8),
+    backgroundColor: "#F8FAFC",
+  },
+  imageFallbackText: {
+    color: "#94A3B8",
+    fontSize: scale(13),
+    fontWeight: "600",
   },
 
   relatedContainer: {
     backgroundColor: "#fff",
-    paddingVertical: 15,
-    paddingLeft: 20,
-    marginBottom: 50,
+    paddingVertical: scale(15),
+    paddingLeft: scale(20),
+    marginBottom: scale(50),
   },
 
   relatedTitle: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "700",
     color: "#333",
-    marginBottom: 10,
+    marginBottom: scale(10),
   },
 
   relatedScroll: {
@@ -436,11 +463,11 @@ const styles = StyleSheet.create({
   },
 
   relatedBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(10),
     backgroundColor: "#f2f2f2",
-    marginRight: 10,
+    marginRight: scale(10),
     overflow: "hidden",
   },
 
@@ -451,43 +478,43 @@ const styles = StyleSheet.create({
   },
   noRelated: {
     color: "#888",
-    fontSize: 13,
-    paddingVertical: 10,
+    fontSize: scale(13),
+    paddingVertical: scale(10),
   },
   infoContainer: {
     backgroundColor: "#fff",
-    marginTop: 10,
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    marginTop: scale(10),
+    padding: scale(20),
+    borderTopLeftRadius: scale(20),
+    borderTopRightRadius: scale(20),
   },
   name: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "800",
     color: "#111",
-    letterSpacing: -0.2,
-    marginBottom: 2,
+    letterSpacing: scale(-0.2),
+    marginBottom: scale(2),
   },
   reviewerCount: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: "#888",
-    marginBottom: 10,
+    marginBottom: scale(10),
   },
   badgeRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
+    gap: scale(8),
+    marginBottom: scale(12),
     alignItems: "center",
   },
   brandBadge: {
     backgroundColor: "#E6F5EE",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(5),
+    borderRadius: scale(8),
   },
   brandText: {
     color: "#0A8754",
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: "800",
     textTransform: "uppercase",
   },
@@ -495,74 +522,74 @@ const styles = StyleSheet.create({
     backgroundColor: "#0A8754",
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: scale(4),
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(4),
+    borderRadius: scale(6),
   },
   ratingBadgeText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "800",
   },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: scale(10),
   },
   discountBadge: {
     backgroundColor: "#E8294A",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(6),
+    borderRadius: scale(10),
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: scale(4),
     elevation: 2,
   },
   discountText: {
     color: "#fff",
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "900",
   },
   divider: {
     height: 1,
     backgroundColor: "#f2f2f2",
-    marginVertical: 20,
+    marginVertical: scale(20),
   },
   detailsGroup: {
-    marginTop: 20,
+    marginTop: scale(20),
   },
   detailsHeader: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "800",
     color: "#111",
-    marginBottom: 8,
+    marginBottom: scale(8),
   },
   description: {
     color: "#666",
-    lineHeight: 20,
-    fontSize: 13,
+    lineHeight: scale(20),
+    fontSize: scale(13),
   },
   variantSection: {
-    marginVertical: 10,
+    marginVertical: scale(10),
   },
   variantTitle: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "800",
     color: "#111",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   variantList: {
-    gap: 12,
+    gap: scale(12),
   },
   variantRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
+    padding: scale(12),
+    borderRadius: scale(12),
     borderWidth: 1,
     borderColor: "#eee",
     backgroundColor: "#fff",
@@ -571,91 +598,91 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   variantNameText: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "600",
     color: "#333",
   },
   variantPriceBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 4,
+    gap: scale(6),
+    marginTop: scale(4),
   },
   variantSellingPrice: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "800",
     color: "#111",
   },
   variantMrpText: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: "#888",
     textDecorationLine: "line-through",
   },
   variantAction: {
-    width: 80,
+    width: scale(80),
     alignItems: "flex-end",
   },
   variantAddButton: {
     backgroundColor: "#FFF",
     borderWidth: 1,
     borderColor: "#0C831F",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: scale(8),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(8),
   },
   variantAddText: {
     color: "#0C831F",
     fontWeight: "800",
-    fontSize: 12,
+    fontSize: scale(12),
   },
   ratingSection: {
-    marginTop: 10,
-    marginBottom: 40,
+    marginTop: scale(10),
+    marginBottom: scale(40),
   },
   starsRow: {
     flexDirection: "row",
-    gap: 8,
-    marginVertical: 12,
+    gap: scale(8),
+    marginVertical: scale(12),
   },
   inputContainer: {
-    marginTop: 5,
+    marginTop: scale(5),
   },
   commentInputBox: {
     flexDirection: 'row',
     backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    borderRadius: scale(12),
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   commentTextInput: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: "#374151",
-    minHeight: 60,
+    minHeight: scale(60),
     textAlignVertical: "top",
   },
   submitBtn: {
     backgroundColor: "#0A8754",
-    marginTop: 15,
-    paddingVertical: 14,
-    borderRadius: 10,
+    marginTop: scale(15),
+    paddingVertical: scale(14),
+    borderRadius: scale(10),
     alignItems: "center",
   },
   submitText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 15,
+    fontSize: scale(15),
   },
   reviewsList: {
-    marginTop: 30,
+    marginTop: scale(30),
   },
   reviewsTitle: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "800",
     color: "#111",
-    marginBottom: 15,
+    marginBottom: scale(15),
   },
   reviewItem: {
-    paddingVertical: 15,
+    paddingVertical: scale(15),
     borderBottomWidth: 1,
     borderBottomColor: "#f2f2f2",
   },
@@ -663,20 +690,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: scale(6),
   },
   reviewStars: {
     flexDirection: "row",
-    gap: 2,
+    gap: scale(2),
   },
   reviewDate: {
-    fontSize: 11,
+    fontSize: scale(11),
     color: "#888",
     fontWeight: "600",
   },
   reviewComment: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#444",
-    lineHeight: 18,
+    lineHeight: scale(18),
   },
 });

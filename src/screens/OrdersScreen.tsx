@@ -15,6 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { getOrders } from "../services/api/orders";
 import { useCart } from "../context/CartContext";
 import FloatingCart from "../components/FloatingCart";
+import { scale } from "../utils/responsive";
 
 const OrdersScreen = () => {
   const navigation = useNavigation<any>();
@@ -98,7 +99,7 @@ const OrdersScreen = () => {
                   {imgUrl ? (
                     <Image source={{ uri: imgUrl }} style={styles.productImg} resizeMode="contain" />
                   ) : (
-                    <Ionicons name="basket-outline" size={24} color="#D1D5DB" />
+                    <Ionicons name="basket-outline" size={scale(24)} color="#D1D5DB" />
                   )}
                 </View>
               );
@@ -133,7 +134,7 @@ const OrdersScreen = () => {
             >
               <View style={styles.trackDot} />
               <Text style={styles.trackText}>Track Order</Text>
-              <Ionicons name="chevron-forward" size={16} color="#0A8754" />
+              <Ionicons name="chevron-forward" size={scale(16)} color="#0A8754" />
             </TouchableOpacity>
           )}
         </View>
@@ -164,10 +165,10 @@ const OrdersScreen = () => {
       {/* Header Setup */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={scale(24)} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Orders</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: scale(40) }} />
       </View>
 
       {loading ? (
@@ -184,12 +185,12 @@ const OrdersScreen = () => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name={errorMsg ? "alert-circle-outline" : "receipt-outline"} size={48} color={errorMsg ? "#EF4444" : "#9CA3AF"} />
+                <Ionicons name={errorMsg ? "alert-circle-outline" : "receipt-outline"} size={scale(48)} color={errorMsg ? "#EF4444" : "#9CA3AF"} />
               </View>
               <Text style={styles.emptyTitle}>{errorMsg ? "Oops!" : "No Orders Yet"}</Text>
               <Text style={styles.emptySub}>{errorMsg || "You haven't placed any orders. Start browsing now!"}</Text>
               {errorMsg && (
-                <TouchableOpacity style={[styles.reorderBtn, { marginTop: 20 }]} onPress={fetchOrders}>
+                <TouchableOpacity style={[styles.reorderBtn, { marginTop: scale(20) }]} onPress={fetchOrders}>
                   <Text style={styles.reorderText}>Try Again</Text>
                 </TouchableOpacity>
               )}
@@ -213,37 +214,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
   backBtn: {
-    width: 40, height: 40,
-    borderRadius: 20,
+    width: scale(40), height: scale(40),
+    borderRadius: scale(20),
     backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "700",
     color: "#111827",
   },
   listContent: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: scale(16),
+    paddingBottom: scale(40),
   },
   orderCard: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: scale(16),
+    padding: scale(16),
+    marginBottom: scale(16),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.03,
-    shadowRadius: 6,
+    shadowRadius: scale(6),
     elevation: 2,
     borderWidth: 1,
     borderColor: "#F3F4F6",
@@ -252,52 +253,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: scale(16),
   },
   orderId: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "700",
     color: "#111827",
   },
   orderDate: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#6B7280",
-    marginTop: 4,
+    marginTop: scale(4),
     fontWeight: "500",
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(4),
+    borderRadius: scale(8),
   },
   statusText: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: "800",
     textTransform: "uppercase",
   },
   itemsSummary: {
-    paddingVertical: 14,
+    paddingVertical: scale(14),
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "800",
     color: "#9CA3AF",
     textTransform: "uppercase",
-    marginBottom: 10,
-    letterSpacing: 0.5,
+    marginBottom: scale(10),
+    letterSpacing: scale(0.5),
   },
   imagesRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   productImgBox: {
-    width: 48, height: 48,
-    borderRadius: 8,
+    width: scale(48), height: scale(48),
+    borderRadius: scale(8),
     backgroundColor: "#F9FAFB",
     borderWidth: 1,
     borderColor: "#F3F4F6",
-    marginRight: 8,
+    marginRight: scale(8),
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
@@ -306,14 +307,14 @@ const styles = StyleSheet.create({
     width: "80%", height: "80%",
   },
   moreImgBox: {
-    width: 48, height: 48,
-    borderRadius: 8,
+    width: scale(48), height: scale(48),
+    borderRadius: scale(8),
     backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
   },
   moreImgText: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "700",
     color: "#4B5563",
   },
@@ -324,32 +325,32 @@ const styles = StyleSheet.create({
   },
   itemsText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: scale(14),
     color: "#4B5563",
-    marginRight: 16,
-    lineHeight: 20,
+    marginRight: scale(16),
+    lineHeight: scale(20),
   },
   amountText: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "800",
     color: "#111827",
   },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 16,
+    marginTop: scale(16),
     alignItems: "center",
   },
   reorderBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: scale(20),
+    paddingVertical: scale(10),
+    borderRadius: scale(10),
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#F9FAFB",
   },
   reorderText: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "600",
     color: "#374151",
   },
@@ -357,46 +358,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#ECFDF5",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(10),
+    borderRadius: scale(10),
     borderWidth: 1,
     borderColor: "#D1FAE5"
   },
   trackDot: {
-    width: 6, height: 6,
-    borderRadius: 3,
+    width: scale(6), height: scale(6),
+    borderRadius: scale(3),
     backgroundColor: "#0A8754",
-    marginRight: 8,
+    marginRight: scale(8),
   },
   trackText: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "700",
     color: "#0A8754",
-    marginRight: 4,
+    marginRight: scale(4),
   },
   emptyContainer: {
-    marginTop: 80,
+    marginTop: scale(80),
     alignItems: "center",
   },
   emptyIconBox: {
-    width: 80, height: 80,
-    borderRadius: 40,
+    width: scale(80), height: scale(80),
+    borderRadius: scale(40),
     backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 8,
+    marginBottom: scale(8),
   },
   emptySub: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: "#6B7280",
     textAlign: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: scale(40),
   },
 });

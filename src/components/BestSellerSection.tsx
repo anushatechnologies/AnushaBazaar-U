@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { getBestSellerProducts } from "../services/api/products";
 import ProductCard from "./ProductCard";
+import { scale } from "../utils/responsive";
 
 const BestSellerSection = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -52,11 +53,11 @@ const BestSellerSection = () => {
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, index) => item.id?.toString() || index.toString()}
         renderItem={({ item }) => (
-          <View style={{ width: 150, marginRight: 14 }}>
+          <View style={{ width: scale(150), marginRight: scale(14) }}>
             <ProductCard product={item} />
           </View>
         )}
-        contentContainerStyle={{ paddingLeft: 16, paddingRight: 8 }}
+        contentContainerStyle={{ paddingLeft: scale(16), paddingRight: scale(8) }}
       />
     </View>
   );
@@ -66,10 +67,10 @@ export default BestSellerSection;
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 260,
+    minHeight: scale(260),
   },
   center: {
-    height: 150,
+    height: scale(150),
     justifyContent: "center",
     alignItems: "center",
   },

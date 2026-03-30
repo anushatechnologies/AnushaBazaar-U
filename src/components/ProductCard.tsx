@@ -12,6 +12,8 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { scale } from "../utils/responsive";
+import { resolveImageSource } from "../utils/image";
 import { useNavigation } from "@react-navigation/native";
 import { useCart, CartItem } from "../context/CartContext";
 import QuantitySelector from "./common/QuantitySelector";
@@ -19,6 +21,7 @@ import QuantitySelector from "./common/QuantitySelector";
 const ProductCard = ({ product }: any) => {
   const navigation = useNavigation<any>();
   const [isVariantModalVisible, setVariantModalVisible] = React.useState(false);
+  const [imageFailed, setImageFailed] = React.useState(false);
   
   const {
     cart,
@@ -48,12 +51,13 @@ const ProductCard = ({ product }: any) => {
     }
   };
 
-  const imageUrl = product?.image || product?.imageUrl || product?.icon || product?.imageUri;
-  const imageSource = typeof imageUrl === "string" && imageUrl.startsWith("http")
-    ? { uri: imageUrl }
-    : imageUrl && typeof imageUrl === "number"
-    ? imageUrl
-    : null;
+  const imageUrl =
+    product?.image || product?.imageUrl || product?.icon || product?.imageUri || product?.thumbnail;
+  const imageSource = resolveImageSource(imageUrl);
+
+  React.useEffect(() => {
+    setImageFailed(false);
+  }, [product?.id, imageUrl]);
 
   const sellingPrice = product?.price ?? product?.sellingPrice ?? 0;
   const mrp = product?.originalPrice ?? product?.mrp ?? (product?.productVariants?.[0]?.mrp) ?? sellingPrice;
@@ -62,8 +66,13 @@ const ProductCard = ({ product }: any) => {
   return (
     <View style={styles.card}>
       <Pressable onPress={() => navigation.navigate("ProductDetail", { product })} style={styles.imageContainer}>
-        {imageSource ? (
-          <Image source={imageSource} style={styles.image} resizeMode="contain" />
+        {imageSource && !imageFailed ? (
+          <Image
+            source={imageSource}
+            style={styles.image}
+            resizeMode="contain"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons name="image-outline" size={24} color="#ccc" />
@@ -218,22 +227,22 @@ export default ProductCard;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#F0F0F0",
-    padding: 6,
-    marginBottom: 8,
+    padding: scale(6),
+    marginBottom: scale(8),
   },
   imageContainer: {
     width: "100%",
     aspectRatio: 1,
-    borderRadius: 8,
+    borderRadius: scale(8),
     backgroundColor: "#fff", // White background like Zepto
     overflow: "hidden",
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
-    padding: 2,
+    padding: scale(2),
   },
   image: {
     width: "100%", // Full width
@@ -246,48 +255,48 @@ const styles = StyleSheet.create({
   },
   wishlistIcon: {
     position: "absolute",
-    right: 4,
-    top: 4,
+    right: scale(4),
+    top: scale(4),
     zIndex: 10,
     backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: scale(12),
+    padding: scale(4),
   },
   vegIconBox: {
     position: "absolute",
-    right: 4,
-    bottom: 4,
-    width: 12,
-    height: 12,
+    right: scale(4),
+    bottom: scale(4),
+    width: scale(12),
+    height: scale(12),
     borderWidth: 1,
     borderColor: "#0C831F",
-    borderRadius: 2,
+    borderRadius: scale(2),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
   },
   vegIconDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: scale(6),
+    height: scale(6),
+    borderRadius: scale(3),
     backgroundColor: "#0C831F",
   },
   detailsContainer: {
-    marginTop: 6,
+    marginTop: scale(6),
   },
   actionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    height: 38, 
-    marginBottom: 2,
+    height: scale(38), 
+    marginBottom: scale(2),
   },
   weightText: {
-    fontSize: 10,
+    fontSize: scale(10),
     color: "#444",
     fontWeight: "700",
     flex: 1,
-    paddingBottom: 4,
+    paddingBottom: scale(4),
   },
   addBtnWrapper: {
     alignItems: "flex-end",
@@ -299,30 +308,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFfff",
     borderWidth: 1,
     borderColor: "#0C831F",
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    minWidth: 46,
+    borderRadius: scale(6),
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(4),
+    minWidth: scale(46),
     alignItems: "center",
   },
   addText: {
     color: "#0C831F",
     fontWeight: "800",
-    fontSize: 10,
+    fontSize: scale(10),
     letterSpacing: 0.5,
   },
   optionsBadge: {
     position: "absolute",
-    bottom: -11,
+    bottom: scale(-11),
     backgroundColor: "#f0fdf4",
     borderWidth: 0.5,
     borderColor: "#bbf7d0",
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
+    borderRadius: scale(4),
+    paddingHorizontal: scale(4),
+    paddingVertical: scale(1),
   },
   optionsText: {
-    fontSize: 7,
+    fontSize: scale(7),
     color: "#0C831F",
     fontWeight: "600",
   },
@@ -333,63 +342,63 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
-    gap: 4,
+    marginTop: scale(2),
+    gap: scale(4),
   },
   sellingPrice: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "800",
     color: "#111",
   },
   mrpText: {
-    fontSize: 9,
+    fontSize: scale(9),
     color: "#888",
     textDecorationLine: "line-through",
   },
   discountText: {
-    fontSize: 9,
+    fontSize: scale(9),
     color: "#256fef",
     fontWeight: "800",
-    marginTop: 1,
+    marginTop: scale(1),
   },
   name: {
-    fontSize: 11,
+    fontSize: scale(11),
     fontWeight: "500",
     color: "#333",
-    marginTop: 4,
-    lineHeight: 14,
+    marginTop: scale(4),
+    lineHeight: scale(14),
   },
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    marginTop: scale(4),
   },
   ratingStars: {
-    fontSize: 8,
+    fontSize: scale(8),
     letterSpacing: -1,
   },
   ratingCount: {
-    fontSize: 8,
+    fontSize: scale(8),
     color: "#777",
   },
   timeRow: {
-    marginTop: 2,
+    marginTop: scale(2),
   },
   timeText: {
-    fontSize: 9,
+    fontSize: scale(9),
     color: "#555",
     fontWeight: "600",
   },
   footerPill: {
-    marginTop: 6,
+    marginTop: scale(6),
     backgroundColor: "#f8fdfa",
     alignSelf: "flex-start",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
+    paddingHorizontal: scale(6),
+    paddingVertical: scale(3),
+    borderRadius: scale(4),
   },
   footerPillText: {
-    fontSize: 9,
+    fontSize: scale(9),
     color: "#0C831F",
     fontWeight: "700",
   },
@@ -400,35 +409,35 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: scale(20),
+    borderTopRightRadius: scale(20),
     maxHeight: "60%",
   },
   modalInner: {
-    padding: 20,
+    padding: scale(20),
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: scale(15),
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "800",
     color: "#111",
   },
   closeModalBtn: {
-    padding: 4,
+    padding: scale(4),
   },
   modalScroll: {
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   variantRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: scale(14),
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
   },
@@ -436,43 +445,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   variantName: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "600",
     color: "#333",
-    marginBottom: 4,
+    marginBottom: scale(4),
   },
   variantPriceRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: scale(6),
   },
   variantSellingPrice: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "800",
     color: "#111",
   },
   variantMrp: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: "#888",
     textDecorationLine: "line-through",
   },
   variantAction: {
-    width: 80,
+    width: scale(80),
     alignItems: "flex-end",
   },
   variantAddBtn: {
     backgroundColor: "#ecfceb",
     borderWidth: 1,
     borderColor: "#0C831F",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: scale(8),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(8),
     alignItems: "center",
   },
   variantAddText: {
     color: "#0C831F",
     fontWeight: "800",
-    fontSize: 12,
+    fontSize: scale(12),
   },
   variantQuantityBox: {
     transform: [{ scale: 0.9 }],

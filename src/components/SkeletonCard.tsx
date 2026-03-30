@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
-import { View, StyleSheet, Animated, Dimensions } from "react-native";
+import { View, StyleSheet, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { scale, screenWidth } from "../utils/responsive";
 
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = (width - 48) / 2;
+const CARD_WIDTH = (screenWidth - scale(48)) / 2;
 
 const SkeletonCard = () => {
   const shimmerValue = useRef(new Animated.Value(0)).current;
@@ -96,9 +96,9 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 10,
-    marginBottom: 16,
+    borderRadius: scale(20),
+    padding: scale(10),
+    marginBottom: scale(16),
     borderWidth: 1,
     borderColor: "#F0F0F0",
     overflow: "hidden",
@@ -107,44 +107,44 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1,
     backgroundColor: "#F3F4F6",
-    borderRadius: 15,
+    borderRadius: scale(15),
     overflow: "hidden",
   },
   textLong: {
-    height: 14,
+    height: scale(14),
     width: "80%",
     backgroundColor: "#F3F4F6",
-    borderRadius: 7,
-    marginTop: 12,
+    borderRadius: scale(7),
+    marginTop: scale(12),
     overflow: "hidden",
   },
   textShort: {
-    height: 10,
+    height: scale(10),
     width: "50%",
     backgroundColor: "#F3F4F6",
-    borderRadius: 5,
-    marginTop: 8,
+    borderRadius: scale(5),
+    marginTop: scale(8),
     overflow: "hidden",
   },
   bottomRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 15,
-    marginBottom: 5,
+    marginTop: scale(15),
+    marginBottom: scale(5),
   },
   priceSec: {
-    height: 18,
-    width: 60,
+    height: scale(18),
+    width: scale(60),
     backgroundColor: "#F3F4F6",
-    borderRadius: 9,
+    borderRadius: scale(9),
     overflow: "hidden",
   },
   addBtn: {
-    height: 32,
-    width: 32,
+    height: scale(32),
+    width: scale(32),
     backgroundColor: "#F3F4F6",
-    borderRadius: 10,
+    borderRadius: scale(10),
     overflow: "hidden",
   },
   shimmer: {

@@ -15,7 +15,7 @@ export const API_CONFIG = {
     PRODUCTS: `${API_ROOT}/products`,
     CATEGORIES: `${API_ROOT}/categories`,
     SUBCATEGORIES: `${API_ROOT}/subcategories`,
-    AUTH: `${API_ROOT}/auth/app`,
+    AUTH: `${API_ROOT}/auth`,
     CART: `${API_ROOT}/cart`,
     ORDERS: `${API_ROOT}/orders`,
     ADDRESSES: `${API_ROOT}/addresses`,

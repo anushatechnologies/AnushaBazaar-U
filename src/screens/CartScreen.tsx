@@ -20,6 +20,7 @@ import { useCart } from "../context/CartContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import LoginPromptModal from "../components/LoginPromptModal";
+import { scale } from "../utils/responsive";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -58,15 +59,6 @@ const CartScreen = () => {
     }
   };
 
-  const handleApplyCouponCode = (code: string) => {
-    const result = applyCoupon(code);
-    if (result.success) {
-      Alert.alert("Success", result.message);
-    } else {
-      Alert.alert("Sorry", result.message);
-    }
-  };
-
   const renderCartItem = ({ item }: { item: any }) => (
     <View style={styles.cartCard}>
       <View style={styles.cardContent}>
@@ -89,7 +81,7 @@ const CartScreen = () => {
             onPress={() => decreaseQty(item.id)}
             activeOpacity={0.7}
           >
-            <Ionicons name={item.quantity > 1 ? "remove" : "trash-outline"} size={16} color="#0A8754" />
+            <Ionicons name={item.quantity > 1 ? "remove" : "trash-outline"} size={scale(16)} color="#0A8754" />
           </TouchableOpacity>
           <Text style={styles.qtyValue}>{item.quantity}</Text>
           <TouchableOpacity 
@@ -97,7 +89,7 @@ const CartScreen = () => {
             onPress={() => increaseQty(item.id)}
             activeOpacity={0.7}
           >
-            <Ionicons name="add" size={16} color="#0A8754" />
+            <Ionicons name="add" size={scale(16)} color="#0A8754" />
           </TouchableOpacity>
         </View>
       </View>
@@ -107,12 +99,12 @@ const CartScreen = () => {
   return (
     <View style={styles.root}>
       {/* --- HEADER --- */}
-      <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
+      <View style={[styles.navBar, { paddingTop: Math.max(insets.top, scale(10)) }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.roundBtn}
         >
-          <Ionicons name="chevron-back" size={22} color="#111" />
+          <Ionicons name="chevron-back" size={scale(22)} color="#111" />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Review Cart</Text>
         <TouchableOpacity 
@@ -124,7 +116,7 @@ const CartScreen = () => {
           }}
           disabled={cart.length === 0}
         >
-          <Ionicons name="trash-outline" size={20} color={cart.length > 0 ? "#EF4444" : "#ccc"} />
+          <Ionicons name="trash-outline" size={scale(20)} color={cart.length > 0 ? "#EF4444" : "#ccc"} />
         </TouchableOpacity>
       </View>
 
@@ -139,14 +131,14 @@ const CartScreen = () => {
               <Text style={styles.sectionHeader}>Your Items ({cart.length})</Text>
             }
             renderItem={renderCartItem}
-            ListFooterComponent={<View style={{ height: 350 }} />}
+            ListFooterComponent={<View style={{ height: scale(350) }} />}
           />
 
           {/* --- PREMIUM STICKY FOOTER --- */}
-          <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, scale(20)) }]}>
             {/* Coupon Bar */}
             <View style={styles.couponBar}>
-              <Ionicons name="ticket-outline" size={20} color="#0A8754" style={{ marginRight: 10 }} />
+              <Ionicons name="ticket-outline" size={scale(20)} color="#0A8754" style={{ marginRight: scale(10) }} />
               <TextInput
                 style={styles.couponInputBox}
                 placeholder="PROMO CODE"
@@ -197,7 +189,7 @@ const CartScreen = () => {
                 </View>
                 <View style={styles.checkoutBtnTextRow}>
                   <Text style={styles.checkoutMainText}>Checkout</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#fff" style={{ marginLeft: 6 }} />
+                  <Ionicons name="arrow-forward" size={scale(20)} color="#fff" style={{ marginLeft: scale(6) }} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -207,11 +199,11 @@ const CartScreen = () => {
         <View style={styles.emptyView}>
           <View style={styles.emptyIllustration}>
             <View style={styles.emptyCircle}>
-              <Ionicons name="cart" size={70} color="#0A8754" />
+              <Ionicons name="cart" size={scale(70)} color="#0A8754" />
             </View>
-            <View style={[styles.decorDot, { top: 10, right: 10, width: 12, height: 12, backgroundColor: "#FBBF24" }]} />
-            <View style={[styles.decorDot, { bottom: 20, left: -10, width: 8, height: 8, backgroundColor: "#3B82F6" }]} />
-            <View style={[styles.decorDot, { top: 40, left: -20, width: 6, height: 6, backgroundColor: "#F87171" }]} />
+            <View style={[styles.decorDot, { top: scale(10), right: scale(10), width: scale(12), height: scale(12), backgroundColor: "#FBBF24" }]} />
+            <View style={[styles.decorDot, { bottom: scale(20), left: scale(-10), width: scale(8), height: scale(8), backgroundColor: "#3B82F6" }]} />
+            <View style={[styles.decorDot, { top: scale(40), left: scale(-20), width: scale(6), height: scale(6), backgroundColor: "#F87171" }]} />
           </View>
           
           <Text style={styles.emptyHeading}>Your basket is feeling lonely</Text>
@@ -225,7 +217,7 @@ const CartScreen = () => {
             activeOpacity={0.8}
           >
             <Text style={styles.shopNowText}>Start Shopping</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+            <Ionicons name="arrow-forward" size={scale(18)} color="#fff" style={{ marginLeft: scale(8) }} />
           </TouchableOpacity>
         </View>
       )}
@@ -253,85 +245,85 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: scale(16),
+    paddingBottom: scale(12),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
   },
   roundBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
     backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
   },
   navTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "800",
     color: "#111",
-    letterSpacing: -0.5,
+    letterSpacing: scale(-0.5),
   },
   listContainer: {
-    paddingBottom: 40,
+    paddingBottom: scale(40),
   },
   sectionHeader: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "900",
     color: "#4B5563",
-    marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 12,
+    marginHorizontal: scale(16),
+    marginTop: scale(20),
+    marginBottom: scale(12),
     textTransform: "uppercase",
-    letterSpacing: 1.2,
+    letterSpacing: scale(1.2),
   },
   offersSection: {
     backgroundColor: "#fff",
-    paddingVertical: 15,
+    paddingVertical: scale(15),
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
   },
   offersRow: {
-    paddingLeft: 16,
-    paddingRight: 8,
-    gap: 12,
+    paddingLeft: scale(16),
+    paddingRight: scale(8),
+    gap: scale(12),
   },
   offerTab: {
     backgroundColor: "#F9FBFC",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingHorizontal: scale(14),
+    paddingVertical: scale(12),
+    borderRadius: scale(14),
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    borderLeftWidth: 4,
-    minWidth: 160,
+    gap: scale(10),
+    borderLeftWidth: scale(4),
+    minWidth: scale(160),
     borderWidth: 1,
     borderColor: "#F0F0F0",
   },
   tabCode: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "800",
     color: "#111",
   },
   tabSubText: {
-    fontSize: 11,
+    fontSize: scale(11),
     color: "#6B7280",
     fontWeight: "500",
   },
   cartCard: {
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 20,
-    padding: 12,
+    marginHorizontal: scale(16),
+    marginBottom: scale(12),
+    borderRadius: scale(20),
+    padding: scale(12),
     borderWidth: 1,
     borderColor: "#F0F0F0",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: scale(4) },
     shadowOpacity: 0.04,
-    shadowRadius: 10,
+    shadowRadius: scale(10),
     elevation: 3,
   },
   cardContent: {
@@ -339,58 +331,58 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   productImg: {
-    width: 76,
-    height: 76,
-    borderRadius: 14,
+    width: scale(76),
+    height: scale(76),
+    borderRadius: scale(14),
     backgroundColor: "#F9FBFC",
   },
   productInfo: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: scale(14),
   },
   productName: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "700",
     color: "#111",
   },
   variantTag: {
-    fontSize: 11,
+    fontSize: scale(11),
     color: "#6B7280",
     backgroundColor: "#F3F4F6",
     alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 4,
+    paddingHorizontal: scale(8),
+    paddingVertical: scale(2),
+    borderRadius: scale(6),
+    marginTop: scale(4),
   },
   itemPrice: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "800",
     color: "#0A8754",
-    marginTop: 6,
+    marginTop: scale(6),
   },
   qtyControl: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F0FDF4",
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: scale(12),
+    padding: scale(4),
     borderWidth: 1,
     borderColor: "#DCFCE7",
   },
   qtyAction: {
-    width: 32,
-    height: 32,
+    width: scale(32),
+    height: scale(32),
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: scale(8),
     backgroundColor: "#fff",
   },
   qtyValue: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "900",
     color: "#0A8754",
-    paddingHorizontal: 12,
+    paddingHorizontal: scale(12),
   },
   stickyFooter: {
     position: "absolute",
@@ -398,14 +390,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "rgba(255,255,255,0.98)",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    paddingHorizontal: scale(20),
+    paddingTop: scale(16),
+    borderTopLeftRadius: scale(28),
+    borderTopRightRadius: scale(28),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -12 },
+    shadowOffset: { width: 0, height: scale(-12) },
     shadowOpacity: 0.12,
-    shadowRadius: 24,
+    shadowRadius: scale(24),
     elevation: 20,
     borderWidth: 1,
     borderColor: "#F0F0F0",
@@ -414,137 +406,83 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F9FBFC",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    height: 54,
+    borderRadius: scale(16),
+    paddingHorizontal: scale(14),
+    height: scale(54),
     borderWidth: 1,
     borderColor: "#F0F0F0",
-    marginBottom: 14,
+    marginBottom: scale(14),
   },
   couponInputBox: {
     flex: 1,
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "800",
     color: "#111",
-    letterSpacing: 1,
+    letterSpacing: scale(1),
   },
   promoAction: {
-    paddingHorizontal: 10,
+    paddingHorizontal: scale(10),
   },
   promoActionText: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "900",
     color: "#0A8754",
     textTransform: "uppercase",
   },
-  pointsWrapper: {
-    marginBottom: 16,
-  },
-  pointsBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFBEB",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-    gap: 4,
-  },
-  pointsBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#D97706",
-    textTransform: "uppercase",
-  },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  pointsLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  customSwitch: {
-    width: 48,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: "#E5E7EB",
-    padding: 2,
-    justifyContent: "center",
-  },
-  customSwitchOn: {
-    backgroundColor: "#0A8754",
-  },
-  switchPointer: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  switchPointerOn: {
-    marginLeft: 22,
-  },
   summaryBox: {
-    marginTop: 4,
+    marginTop: scale(4),
   },
   billLine: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: scale(6),
   },
   billKey: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#6B7280",
     fontWeight: "500",
   },
   billValue: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#1F2937",
     fontWeight: "700",
   },
   primaryCheckoutBtn: {
     backgroundColor: "#0A8754",
-    height: 64,
-    borderRadius: 18,
+    height: scale(64),
+    borderRadius: scale(18),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginTop: 14,
+    paddingHorizontal: scale(20),
+    marginTop: scale(14),
     shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: scale(8) },
     shadowOpacity: 0.3,
-    shadowRadius: 16,
+    shadowRadius: scale(16),
     elevation: 8,
   },
   checkoutLabelStack: {
     justifyContent: "center",
   },
   checkoutPrice: {
-    fontSize: 19,
+    fontSize: scale(19),
     fontWeight: "900",
     color: "#fff",
   },
   checkoutSub: {
-    fontSize: 10,
+    fontSize: scale(10),
     color: "rgba(255,255,255,0.7)",
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: scale(0.5),
   },
   checkoutBtnTextRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   checkoutMainText: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "900",
     color: "#fff",
   },
@@ -552,17 +490,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: scale(40),
     backgroundColor: "#fff",
   },
   emptyIllustration: {
     position: "relative",
-    marginBottom: 30,
+    marginBottom: scale(30),
   },
   emptyCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: scale(150),
+    height: scale(150),
+    borderRadius: scale(75),
     backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
@@ -571,40 +509,40 @@ const styles = StyleSheet.create({
   },
   decorDot: {
     position: "absolute",
-    borderRadius: 10,
+    borderRadius: scale(10),
   },
   emptyHeading: {
-    fontSize: 24,
+    fontSize: scale(24),
     fontWeight: "900",
     color: "#111827",
-    marginBottom: 12,
+    marginBottom: scale(12),
     textAlign: "center",
-    letterSpacing: -0.5,
+    letterSpacing: scale(-0.5),
   },
   emptySubtext: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: "#6B7280",
     textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 40,
-    paddingHorizontal: 10,
+    lineHeight: scale(22),
+    marginBottom: scale(40),
+    paddingHorizontal: scale(10),
   },
   shopNowBtn: {
     backgroundColor: "#0A8754",
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 20,
+    paddingVertical: scale(18),
+    paddingHorizontal: scale(40),
+    borderRadius: scale(20),
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: scale(10) },
     shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowRadius: scale(20),
     elevation: 8,
   },
   shopNowText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "800",
   },
 });

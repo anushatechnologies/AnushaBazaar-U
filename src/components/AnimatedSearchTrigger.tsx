@@ -7,6 +7,7 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { scale } from "../utils/responsive";
 
 interface AnimatedSearchTriggerProps {
   onPress: () => void;
@@ -29,7 +30,7 @@ const AnimatedSearchTrigger = ({ onPress, onMicPress }: AnimatedSearchTriggerPro
   useEffect(() => {
     const timer = setInterval(() => {
       Animated.timing(scrollAnim, {
-        toValue: -20,
+        toValue: scale(-20),
         duration: 500,
         useNativeDriver: true,
       }).start(() => {
@@ -50,14 +51,14 @@ const AnimatedSearchTrigger = ({ onPress, onMicPress }: AnimatedSearchTriggerPro
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Ionicons name="search" size={17} color="#9CA3AF" style={styles.icon} />
+      <Ionicons name="search" size={scale(17)} color="#9CA3AF" style={styles.icon} />
       
       <View style={styles.textContainer}>
         <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
-          <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>
+          <Text style={[styles.placeholderText, { height: scale(20) }]} numberOfLines={1}>
             {current}
           </Text>
-          <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>
+          <Text style={[styles.placeholderText, { height: scale(20) }]} numberOfLines={1}>
             {next}
           </Text>
         </Animated.View>
@@ -65,7 +66,7 @@ const AnimatedSearchTrigger = ({ onPress, onMicPress }: AnimatedSearchTriggerPro
 
       <View style={styles.divider} />
       <TouchableOpacity onPress={onMicPress || onPress} activeOpacity={0.7}>
-        <Ionicons name="mic-outline" size={18} color="#EF4444" />
+        <Ionicons name="mic-outline" size={scale(18)} color="#EF4444" />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -78,38 +79,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F1F5F9",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 16,
-    marginBottom: 12,
+    borderRadius: scale(14),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
+    marginHorizontal: scale(16),
+    marginBottom: scale(12),
     borderWidth: 1,
     borderColor: "#E2E8F0",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: scale(1) },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowRadius: scale(2),
     elevation: 2,
   },
   icon: {
-    marginRight: 8,
+    marginRight: scale(8),
   },
   textContainer: {
     flex: 1,
-    height: 20, // fixed height to clip animation
+    height: scale(20), // fixed height to clip animation
     overflow: "hidden",
     justifyContent: "flex-start",
   },
   placeholderText: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: "#64748B",
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: scale(20),
   },
   divider: {
     width: 1,
-    height: 18,
+    height: scale(18),
     backgroundColor: "#CBD5E1",
-    marginHorizontal: 10,
+    marginHorizontal: scale(10),
   },
 });

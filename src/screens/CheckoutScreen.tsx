@@ -20,6 +20,7 @@ import { getAddresses, addAddress } from "../services/api/addresses";
 import { placeOrder as placeOrderAPI } from "../services/api/orders";
 import * as CartAPI from "../services/api/cart";
 import LoginPromptModal from "../components/LoginPromptModal";
+import { scale } from "../utils/responsive";
 
 const CheckoutScreen = ({ navigation }: any) => {
   const { cart, total, discount, appliedCoupon, clearCart, usePoints, pointsDiscount } = useCart();
@@ -248,14 +249,14 @@ const CheckoutScreen = ({ navigation }: any) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scale(100) }}>
         {/* Header with Back Navigation */}
         <View style={styles.header}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backBtnHeader}>
-            <Ionicons name="arrow-back" size={24} color="#111" />
+            <Ionicons name="arrow-back" size={scale(24)} color="#111" />
           </Pressable>
           <Text style={styles.title}>Final Step</Text>
-          <View style={{ width: 44 }} />
+          <View style={{ width: scale(44) }} />
         </View>
 
         {/* Delivery Address Section */}
@@ -263,7 +264,7 @@ const CheckoutScreen = ({ navigation }: any) => {
           <Text style={styles.sectionTitle}>Delivery Address</Text>
 
           {loadingAddresses ? (
-            <ActivityIndicator size="small" color="#0A8754" style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="small" color="#0A8754" style={{ marginVertical: scale(20) }} />
           ) : savedAddresses.length > 0 && !useManualAddress ? (
             <>
               {savedAddresses.map((addr: any) => {
@@ -275,17 +276,17 @@ const CheckoutScreen = ({ navigation }: any) => {
                     style={[
                       styles.paymentOption,
                       isSelected && styles.paymentOptionActive,
-                      { marginBottom: 10 },
+                      { marginBottom: scale(10) },
                     ]}
                     onPress={() => setSelectedAddressId(addr.id)}
                   >
                     <View style={styles.paymentLeft}>
                       <Ionicons
                         name={(addr.addressType || "home") === "home" ? "home-outline" : (addr.addressType || "") === "work" ? "briefcase-outline" : "location-outline"}
-                        size={20}
+                        size={scale(20)}
                         color={isSelected ? "#0A8754" : "#666"}
                       />
-                      <View style={{ marginLeft: 12, flex: 1 }}>
+                      <View style={{ marginLeft: scale(12), flex: 1 }}>
                         <Text style={[styles.paymentName, isSelected && styles.paymentNameActive]}>
                           {(addr.addressType || "Home").charAt(0).toUpperCase() + (addr.addressType || "Home").slice(1)}
                         </Text>
@@ -294,17 +295,17 @@ const CheckoutScreen = ({ navigation }: any) => {
                     </View>
                     <Ionicons
                       name={isSelected ? "radio-button-on" : "radio-button-off"}
-                      size={22}
+                      size={scale(22)}
                       color={isSelected ? "#0A8754" : "#ccc"}
                     />
                   </Pressable>
                 );
               })}
               <Pressable
-                style={{ alignSelf: "center", marginTop: 4 }}
+                style={{ alignSelf: "center", marginTop: scale(4) }}
                 onPress={() => setUseManualAddress(true)}
               >
-                <Text style={{ color: "#0A8754", fontWeight: "700", fontSize: 13 }}>+ Enter address manually</Text>
+                <Text style={{ color: "#0A8754", fontWeight: "700", fontSize: scale(13) }}>+ Enter address manually</Text>
               </Pressable>
             </>
           ) : (
@@ -316,7 +317,7 @@ const CheckoutScreen = ({ navigation }: any) => {
                   onPress={handleCurrentLocation}
                   disabled={locating}
                 >
-                  <Ionicons name="location" size={14} color="#0A8754" />
+                  <Ionicons name="location" size={scale(14)} color="#0A8754" />
                   <Text style={styles.locationBtnText}>
                     {locating ? "Locating..." : "Use Current Location"}
                   </Text>
@@ -401,10 +402,10 @@ const CheckoutScreen = ({ navigation }: any) => {
 
               {savedAddresses.length > 0 && (
                 <Pressable
-                  style={{ alignSelf: "center", marginTop: 4 }}
+                  style={{ alignSelf: "center", marginTop: scale(4) }}
                   onPress={() => setUseManualAddress(false)}
                 >
-                  <Text style={{ color: "#0A8754", fontWeight: "700", fontSize: 13 }}>← Use saved address</Text>
+                  <Text style={{ color: "#0A8754", fontWeight: "700", fontSize: scale(13) }}>← Use saved address</Text>
                 </Pressable>
               )}
             </>
@@ -422,21 +423,21 @@ const CheckoutScreen = ({ navigation }: any) => {
               onPress={() => setSelectedPayment("COD")}
             >
               <View style={styles.paymentLeft}>
-                <Ionicons name="cash-outline" size={20} color="#0A8754" />
-                <View style={{ marginLeft: 12 }}>
+                <Ionicons name="cash-outline" size={scale(20)} color="#0A8754" />
+                <View style={{ marginLeft: scale(12) }}>
                   <Text style={[styles.paymentName, styles.paymentNameActive]}>Cash on Delivery</Text>
                   <Text style={styles.paymentSub}>Pay at your doorstep</Text>
                 </View>
               </View>
               <Ionicons
                 name="radio-button-on"
-                size={22}
+                size={scale(22)}
                 color="#0A8754"
               />
             </Pressable>
             
             <View style={styles.infoAlert}>
-              <Ionicons name="information-circle-outline" size={16} color="#0A8754" />
+              <Ionicons name="information-circle-outline" size={scale(16)} color="#0A8754" />
               <Text style={styles.infoText}>Online payments are currently disabled</Text>
             </View>
           </View>
@@ -477,14 +478,6 @@ const CheckoutScreen = ({ navigation }: any) => {
               <Text style={[styles.priceValue, { color: "#0A8754" }]}>-₹{discount.toFixed(2)}</Text>
             </View>
           )}
-          {/* DISABLED: Reward coins hidden 
-          {usePoints && pointsDiscount > 0 && (
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Anusha Coins</Text>
-              <Text style={[styles.priceValue, { color: "#0A8754" }]}>-₹{pointsDiscount.toFixed(2)}</Text>
-            </View>
-          )} 
-          */}
 
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Delivery Charge</Text>
@@ -497,7 +490,7 @@ const CheckoutScreen = ({ navigation }: any) => {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, scale(20)) }]}>
         <Pressable
           style={styles.btn}
           onPress={placeOrder}
@@ -534,11 +527,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F7FB",
   },
   title: {
-    fontSize: 22,
+    fontSize: scale(22),
     fontWeight: "900",
     color: "#111",
     textAlign: "center",
-    letterSpacing: -0.5,
+    letterSpacing: scale(-0.5),
     paddingTop: 0,
     paddingBottom: 0,
     flex: 1,
@@ -547,88 +540,88 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(15),
   },
   backBtnHeader: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     elevation: 2,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: scale(2) },
+    shadowRadius: scale(4),
   },
   infoAlert: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#E9F7F1",
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 10,
-    gap: 8,
+    padding: scale(12),
+    borderRadius: scale(12),
+    marginTop: scale(10),
+    gap: scale(8),
   },
   infoText: {
     color: "#0A8754",
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "600",
   },
   sectionContainer: {
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+    marginHorizontal: scale(16),
+    borderRadius: scale(20),
+    padding: scale(20),
+    marginBottom: scale(16),
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: scale(4) },
+    shadowRadius: scale(10),
   },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   locationBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#E9F7F1",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    gap: 4,
+    paddingVertical: scale(6),
+    paddingHorizontal: scale(10),
+    borderRadius: scale(8),
+    gap: scale(4),
   },
   locationBtnText: {
     color: "#0A8754",
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "700",
   },
   inputGrid: {
     flexDirection: "row",
-    gap: 12,
+    gap: scale(12),
   },
   inputBox: {
-    marginBottom: 16,
+    marginBottom: scale(16),
   },
   label: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "700",
     color: "#888",
-    marginBottom: 6,
+    marginBottom: scale(6),
     textTransform: "uppercase",
   },
   input: {
     backgroundColor: "#F4F7F6",
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 14,
+    borderRadius: scale(12),
+    paddingHorizontal: scale(15),
+    paddingVertical: scale(12),
+    fontSize: scale(14),
     color: "#333",
     fontWeight: "600",
     borderWidth: 1,
@@ -636,17 +629,17 @@ const styles = StyleSheet.create({
   },
   typeRow: {
     flexDirection: "row",
-    gap: 10,
-    marginTop: 8,
+    gap: scale(10),
+    marginTop: scale(8),
   },
   typeChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: scale(6),
     backgroundColor: "#F4F7F6",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(16),
+    borderRadius: scale(12),
     borderWidth: 1,
     borderColor: "#EAEAEA",
   },
@@ -655,7 +648,7 @@ const styles = StyleSheet.create({
     borderColor: "#0A8754",
   },
   typeText: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "700",
     color: "#666",
   },
@@ -663,23 +656,23 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "800",
     color: "#111",
-    marginBottom: 15,
+    marginBottom: scale(15),
   },
   paymentOptionsStack: {
-    marginTop: 5,
+    marginTop: scale(5),
   },
   paymentOption: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 14,
-    borderRadius: 14,
+    padding: scale(14),
+    borderRadius: scale(14),
     borderWidth: 1,
     borderColor: "#F0F0F0",
-    marginBottom: 10,
+    marginBottom: scale(10),
     backgroundColor: "#FCFCFC",
   },
   paymentOptionActive: {
@@ -691,7 +684,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   paymentName: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "700",
     color: "#444",
   },
@@ -699,105 +692,105 @@ const styles = StyleSheet.create({
     color: "#111",
   },
   paymentSub: {
-    fontSize: 11,
+    fontSize: scale(11),
     color: "#888",
-    marginTop: 1,
+    marginTop: scale(1),
     fontWeight: "500",
   },
   summaryContainer: {
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+    marginHorizontal: scale(16),
+    borderRadius: scale(20),
+    padding: scale(20),
+    marginBottom: scale(16),
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: scale(4) },
+    shadowRadius: scale(10),
   },
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: scale(16),
   },
   itemImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(12),
     backgroundColor: "#f9f9f9",
   },
   itemDetails: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: scale(14),
   },
   itemName: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "700",
     color: "#333",
   },
   itemQty: {
-    fontSize: 12,
+    fontSize: scale(12),
     color: "#999",
-    marginTop: 2,
+    marginTop: scale(2),
     fontWeight: "600",
   },
   itemPrice: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "800",
     color: "#111",
   },
   paymentCard: {
     backgroundColor: "#fff",
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    marginHorizontal: scale(16),
+    borderRadius: scale(20),
+    padding: scale(20),
+    marginBottom: scale(20),
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: scale(4) },
+    shadowRadius: scale(10),
   },
   paymentTitle: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "800",
     color: "#111",
-    marginBottom: 15,
+    marginBottom: scale(15),
   },
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   priceLabel: {
     color: "#777",
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "600",
   },
   priceValue: {
     fontWeight: "700",
     color: "#333",
-    fontSize: 14,
+    fontSize: scale(14),
   },
   freeText: {
     color: "#0A8754",
     fontWeight: "800",
-    fontSize: 13,
+    fontSize: scale(13),
   },
   grandTotalRow: {
-    marginTop: 8,
-    paddingTop: 16,
+    marginTop: scale(8),
+    paddingTop: scale(16),
     borderTopWidth: 1.5,
     borderTopColor: "#F4F7F6",
   },
   grandTotalLabel: {
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "900",
     color: "#111",
   },
   grandTotalValue: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: "900",
     color: "#0A8754",
   },
@@ -807,30 +800,30 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "#fff",
-    padding: 20,
-    paddingTop: 15,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    padding: scale(20),
+    paddingTop: scale(15),
+    borderTopLeftRadius: scale(24),
+    borderTopRightRadius: scale(24),
     elevation: 25,
     shadowColor: "#000",
     shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: -6 },
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: scale(-6) },
+    shadowRadius: scale(12),
   },
   btn: {
     backgroundColor: "#0A8754",
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingVertical: scale(18),
+    borderRadius: scale(16),
     alignItems: "center",
     shadowColor: "#0A8754",
     shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: scale(6) },
+    shadowRadius: scale(10),
   },
   btnText: {
     color: "#fff",
     fontWeight: "800",
-    fontSize: 17,
-    letterSpacing: 0.5,
+    fontSize: scale(17),
+    letterSpacing: scale(0.5),
   },
 });

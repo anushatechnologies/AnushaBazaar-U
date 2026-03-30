@@ -16,6 +16,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import auth from "@react-native-firebase/auth";
+import { scale } from "../utils/responsive";
 
 const SignupScreen = () => {
   const navigation = useNavigation<any>();
@@ -31,22 +32,34 @@ const SignupScreen = () => {
   const isValidPhone = /^[6-9]\d{9}$/.test(phone);
 
   const handleSignup = async () => {
+    if (loading) return;
+
+    const normalizedPhone = phone.replace(/\D/g, "").slice(0, 10);
+
     if (!name.trim()) {
       Alert.alert("Required", "Please enter your name");
       return;
     }
-    if (!isValidPhone) {
+    if (!/^[6-9]\d{9}$/.test(normalizedPhone)) {
       Alert.alert("Invalid Number", "Please enter a valid 10-digit mobile number");
       return;
     }
 
     setLoading(true);
     try {
-      const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
+      if (auth().currentUser) {
+        try {
+          await auth().signOut();
+        } catch (signOutError) {
+          console.log("Firebase sign out before OTP request failed:", signOutError);
+        }
+      }
+
+      const confirmation = await auth().signInWithPhoneNumber(`+91${normalizedPhone}`);
       setLoading(false);
       
       navigation.navigate("Otp", {
-        phone,
+        phone: normalizedPhone,
         verificationId: confirmation.verificationId,
         signupData: {
           name: name.trim(),
@@ -73,13 +86,13 @@ const SignupScreen = () => {
         <View style={styles.bgCircle1} />
         <View style={styles.bgCircle2} />
 
-        <View style={[styles.backBtnContainer, { top: insets.top + 10 }]}>
+        <View style={[styles.backBtnContainer, { top: insets.top + scale(10) }]}>
           <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={scale(24)} color="#1E293B" />
           </Pressable>
         </View>
 
-        <View style={[styles.content, { paddingTop: insets.top + 80 }]}>
+        <View style={[styles.content, { paddingTop: insets.top + scale(80) }]}>
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Image
@@ -114,7 +127,7 @@ const SignupScreen = () => {
               keyboardType="number-pad"
               maxLength={10}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(value) => setPhone(value.replace(/\D/g, "").slice(0, 10))}
               style={styles.input}
             />
 
@@ -152,63 +165,63 @@ const styles = StyleSheet.create({
   },
   bgCircle1: {
     position: "absolute",
-    top: -100,
-    right: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
+    top: scale(-100),
+    right: scale(-100),
+    width: scale(300),
+    height: scale(300),
+    borderRadius: scale(150),
     backgroundColor: "#E2F2E9",
     opacity: 0.6,
   },
   bgCircle2: {
     position: "absolute",
-    top: 200,
-    left: -150,
-    width: 400,
-    height: 400,
-    borderRadius: 200,
+    top: scale(200),
+    left: scale(-150),
+    width: scale(400),
+    height: scale(400),
+    borderRadius: scale(200),
     backgroundColor: "#FEF9C3",
     opacity: 0.4,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingBottom: 40,
+    paddingHorizontal: scale(28),
+    paddingBottom: scale(40),
   },
   backBtnContainer: {
     position: "absolute",
-    left: 20,
+    left: scale(20),
     zIndex: 100,
   },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowRadius: scale(10),
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: scale(40),
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(24),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: scale(16),
     elevation: 8,
     shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: scale(10) },
     shadowOpacity: 0.1,
-    shadowRadius: 20,
+    shadowRadius: scale(20),
     overflow: "hidden",
   },
   logo: {
@@ -216,51 +229,51 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   brandName: {
-    fontSize: 28,
+    fontSize: scale(28),
     fontWeight: "900",
     color: "#0F172A",
-    letterSpacing: -1,
+    letterSpacing: scale(-1),
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 32,
-    padding: 30,
+    borderRadius: scale(32),
+    padding: scale(30),
     elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: scale(10) },
     shadowOpacity: 0.05,
-    shadowRadius: 30,
+    shadowRadius: scale(30),
   },
   cardTitle: {
-    fontSize: 22,
+    fontSize: scale(22),
     fontWeight: "800",
     color: "#1E293B",
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   input: {
     backgroundColor: "#F8FAFC",
-    borderRadius: 18,
+    borderRadius: scale(18),
     borderWidth: 1.5,
     borderColor: "#F1F5F9",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
+    paddingVertical: scale(14),
+    paddingHorizontal: scale(16),
+    fontSize: scale(16),
     fontWeight: "600",
     color: "#1E293B",
-    marginBottom: 16,
+    marginBottom: scale(16),
   },
   primaryButton: {
     backgroundColor: "#0A8754",
-    height: 64,
-    borderRadius: 20,
+    height: scale(64),
+    borderRadius: scale(20),
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
+    marginTop: scale(8),
     elevation: 8,
     shadowColor: "#0A8754",
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: scale(8) },
     shadowOpacity: 0.25,
-    shadowRadius: 15,
+    shadowRadius: scale(15),
   },
   buttonPressed: {
     transform: [{ scale: 0.98 }],
@@ -273,7 +286,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontSize: 17,
+    fontSize: scale(17),
     fontWeight: "800",
   },
 });

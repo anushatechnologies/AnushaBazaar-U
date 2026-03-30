@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import * as AddressAPI from "../services/api/addresses";
 import * as Location from "expo-location";
+import { scale } from "../utils/responsive";
 
 const SavedAddressScreen = () => {
   const insets = useSafeAreaInsets();
@@ -88,7 +89,7 @@ const SavedAddressScreen = () => {
           <View style={styles.tagWrap}>
             <Ionicons 
               name={tag === "HOME" ? "home" : tag === "WORK" ? "briefcase" : "location"} 
-              size={16} 
+              size={scale(16)} 
               color={item.isDefault ? "#0A8754" : "#4B5563"} 
             />
             <Text style={[styles.tagText, item.isDefault && { color: "#0A8754" }]}>
@@ -96,14 +97,14 @@ const SavedAddressScreen = () => {
             </Text>
           </View>
           <TouchableOpacity onPress={() => handleDeleteAddress(item.id)}>
-            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            <Ionicons name="trash-outline" size={scale(20)} color="#EF4444" />
           </TouchableOpacity>
         </View>
 
         <Text style={styles.addressText}>{fullAddress}</Text>
 
         <View style={styles.actionRow}>
-          <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flexDirection: "row", gap: scale(10) }}>
             <TouchableOpacity 
               style={styles.editBtn}
               onPress={() => {
@@ -131,7 +132,7 @@ const SavedAddressScreen = () => {
           </View>
           {item.isDefault && (
             <View style={styles.defaultBadge}>
-              <Ionicons name="checkmark-circle" size={14} color="#0A8754" />
+              <Ionicons name="checkmark-circle" size={scale(14)} color="#0A8754" />
               <Text style={styles.defaultText}>Default</Text>
             </View>
           )}
@@ -257,23 +258,23 @@ const SavedAddressScreen = () => {
       {/* Header Setup */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#111827" />
+          <Ionicons name="arrow-back" size={scale(24)} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Saved Addresses</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: scale(40) }} />
       </View>
 
       <FlatList
         data={addresses}
         keyExtractor={(item) => item.id}
         renderItem={renderAddress}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        contentContainerStyle={{ padding: scale(16), paddingBottom: scale(100) }}
         showsVerticalScrollIndicator={false}
       />
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, scale(20)) }]}>
         <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addBtn}>
-          <Ionicons name="add" size={22} color="#fff" />
+          <Ionicons name="add" size={scale(22)} color="#fff" />
           <Text style={styles.addBtnText}>Add New Address</Text>
         </TouchableOpacity>
       </View>
@@ -290,16 +291,16 @@ const SavedAddressScreen = () => {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           {/* Modal Header */}
-          <View style={[styles.modalHeader, { marginTop: Platform.OS === "android" ? insets.top : 20 }]}>
+          <View style={[styles.modalHeader, { marginTop: Platform.OS === "android" ? insets.top : scale(20) }]}>
              <Text style={styles.modalTitle}>{editingAddressId ? "Edit Address" : "Add New Address"}</Text>
              <TouchableOpacity style={styles.closeBtn} onPress={() => { setModalVisible(false); resetForm(); }}>
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons name="close" size={scale(24)} color="#6B7280" />
              </TouchableOpacity>
           </View>
 
           <ScrollView 
             style={styles.modalBody}
-            contentContainerStyle={{ paddingBottom: 40 }}
+            contentContainerStyle={{ paddingBottom: scale(40) }}
             showsVerticalScrollIndicator={false}
           >
              {/* Use Current Location Button */}
@@ -311,7 +312,7 @@ const SavedAddressScreen = () => {
                {isLocating ? (
                  <ActivityIndicator size="small" color="#0A8754" />
                ) : (
-                 <Ionicons name="locate" size={20} color="#0A8754" />
+                 <Ionicons name="locate" size={scale(20)} color="#0A8754" />
                )}
                <Text style={styles.locationBtnText}>
                  {isLocating ? "Fetching location..." : "Use Current Location"}
@@ -327,7 +328,7 @@ const SavedAddressScreen = () => {
                    style={[styles.tagOption, newTag === "home" && styles.tagOptionActive]}
                    onPress={() => setNewTag("home")}
                 >
-                   <Ionicons name="home" size={16} color={newTag === "home" ? "#0A8754" : "#6B7280"} />
+                   <Ionicons name="home" size={scale(16)} color={newTag === "home" ? "#0A8754" : "#6B7280"} />
                    <Text style={[styles.tagOptionText, newTag === "home" && styles.tagOptionTextActive]}>Home</Text>
                 </TouchableOpacity>
 
@@ -335,7 +336,7 @@ const SavedAddressScreen = () => {
                    style={[styles.tagOption, newTag === "work" && styles.tagOptionActive]}
                    onPress={() => setNewTag("work")}
                 >
-                   <Ionicons name="briefcase" size={16} color={newTag === "work" ? "#0A8754" : "#6B7280"} />
+                   <Ionicons name="briefcase" size={scale(16)} color={newTag === "work" ? "#0A8754" : "#6B7280"} />
                    <Text style={[styles.tagOptionText, newTag === "work" && styles.tagOptionTextActive]}>Work</Text>
                 </TouchableOpacity>
 
@@ -343,7 +344,7 @@ const SavedAddressScreen = () => {
                    style={[styles.tagOption, newTag === "other" && styles.tagOptionActive]}
                    onPress={() => setNewTag("other")}
                 >
-                   <Ionicons name="location" size={16} color={newTag === "other" ? "#0A8754" : "#6B7280"} />
+                   <Ionicons name="location" size={scale(16)} color={newTag === "other" ? "#0A8754" : "#6B7280"} />
                    <Text style={[styles.tagOptionText, newTag === "other" && styles.tagOptionTextActive]}>Other</Text>
                 </TouchableOpacity>
              </View>
@@ -418,7 +419,7 @@ const SavedAddressScreen = () => {
           </ScrollView>
 
           {/* Modal Footer (Save Btn) */}
-          <View style={[styles.modalFooter, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={[styles.modalFooter, { paddingBottom: Math.max(insets.bottom, scale(20)) }]}>
              <TouchableOpacity style={[styles.saveBtn, isSaving && { opacity: 0.6 }]} onPress={handleSaveBtn} disabled={isSaving}>
                 {isSaving ? (
                   <ActivityIndicator color="#fff" />
@@ -447,21 +448,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
   backBtn: {
-    width: 40, height: 40,
-    borderRadius: 20,
+    width: scale(40), height: scale(40),
+    borderRadius: scale(20),
     backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "700",
     color: "#111827",
   },
@@ -469,13 +470,13 @@ const styles = StyleSheet.create({
   /* Card */
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: scale(16),
+    padding: scale(16),
+    marginBottom: scale(16),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.03,
-    shadowRadius: 6,
+    shadowRadius: scale(6),
     elevation: 2,
     borderWidth: 1,
     borderColor: "#F3F4F6",
@@ -488,36 +489,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: scale(12),
   },
   tagWrap: {
     flexDirection: "row",
     alignItems: "center",
   },
   tagText: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "700",
-    marginLeft: 6,
-    letterSpacing: 0.5,
+    marginLeft: scale(6),
+    letterSpacing: scale(0.5),
     color: "#4B5563",
   },
   nameText: {
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 6,
+    marginBottom: scale(6),
   },
   addressText: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: "#6B7280",
-    lineHeight: 22,
-    marginBottom: 10,
+    lineHeight: scale(22),
+    marginBottom: scale(10),
   },
   phoneText: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#4B5563",
     fontWeight: "500",
-    marginBottom: 16,
+    marginBottom: scale(16),
   },
   
   actionRow: {
@@ -526,17 +527,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderTopWidth: 1,
     borderTopColor: "#F3F4F6",
-    paddingTop: 14,
+    paddingTop: scale(14),
   },
   editBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: scale(20),
+    paddingVertical: scale(8),
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
   editBtnText: {
-    fontSize: 13,
+    fontSize: scale(13),
     fontWeight: "600",
     color: "#374151",
   },
@@ -544,15 +545,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#ECFDF5",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: scale(10),
+    paddingVertical: scale(4),
+    borderRadius: scale(8),
   },
   defaultText: {
-    fontSize: 12,
+    fontSize: scale(12),
     fontWeight: "700",
     color: "#0A8754",
-    marginLeft: 4,
+    marginLeft: scale(4),
   },
 
   /* Footer */
@@ -560,29 +561,29 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0, left: 0, right: 0,
     backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: scale(16),
+    paddingTop: scale(16),
     borderTopWidth: 1,
     borderTopColor: "#F3F4F6",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
+    shadowOffset: { width: 0, height: scale(-4) },
     shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowRadius: scale(10),
     elevation: 10,
   },
   addBtn: {
     flexDirection: "row",
     backgroundColor: "#0A8754",
-    paddingVertical: 16,
-    borderRadius: 14,
+    paddingVertical: scale(16),
+    borderRadius: scale(14),
     justifyContent: "center",
     alignItems: "center",
   },
   addBtnText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "700",
-    marginLeft: 8,
+    marginLeft: scale(8),
   },
 
   /* --- MODAL STYLES --- */
@@ -590,24 +591,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: scale(20),
+    paddingBottom: scale(20),
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: scale(20),
     fontWeight: "800",
     color: "#111827",
   },
   closeBtn: {
-    padding: 4,
+    padding: scale(4),
     backgroundColor: "#F3F4F6",
-    borderRadius: 16,
+    borderRadius: scale(16),
   },
   modalBody: {
     flex: 1,
-    padding: 20,
+    padding: scale(20),
   },
   /* Specific Button styling for Location */
   locationBtn: {
@@ -617,33 +618,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#ECFDF5",
     borderWidth: 1,
     borderColor: "#D1FAE5",
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginBottom: 20,
+    borderRadius: scale(12),
+    paddingVertical: scale(14),
+    marginBottom: scale(20),
   },
   locationBtnText: {
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "700",
     color: "#0A8754",
-    marginLeft: 8,
+    marginLeft: scale(8),
   },
   formBorderDivider: {
     height: 1,
     backgroundColor: "#F3F4F6",
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
 
   tagsContainer: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
+    gap: scale(12),
+    marginBottom: scale(24),
   },
   tagOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(10),
+    borderRadius: scale(10),
     borderWidth: 1,
     borderColor: "#E5E7EB",
     backgroundColor: "#fff",
@@ -653,52 +654,52 @@ const styles = StyleSheet.create({
     backgroundColor: "#F2FCEE",
   },
   tagOptionText: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "600",
     color: "#6B7280",
-    marginLeft: 6,
+    marginLeft: scale(6),
   },
   tagOptionTextActive: {
     color: "#0A8754",
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   label: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "700",
     color: "#374151",
-    marginBottom: 8,
+    marginBottom: scale(8),
   },
   input: {
     backgroundColor: "#F9FAFB",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
+    borderRadius: scale(12),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(14),
+    fontSize: scale(15),
     color: "#111827",
   },
   textArea: {
-    height: 100,
+    height: scale(100),
   },
   modalFooter: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: scale(20),
+    paddingTop: scale(16),
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#F3F4F6",
   },
   saveBtn: {
     backgroundColor: "#0A8754",
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: scale(14),
+    paddingVertical: scale(16),
     alignItems: "center",
   },
   saveBtnText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "700",
   },
 });

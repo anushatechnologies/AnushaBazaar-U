@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native";
 import { searchProducts } from "../services/api/products";
+import { scale } from "../utils/responsive";
 
 interface SearchBarProps {
   onSearch?: (text: string) => void;
@@ -52,7 +53,7 @@ const SearchBar = ({
   useEffect(() => {
     const timer = setInterval(() => {
       Animated.timing(scrollAnim, {
-        toValue: -20,
+        toValue: scale(-20),
         duration: 500,
         useNativeDriver: true,
       }).start(() => {
@@ -125,14 +126,14 @@ const SearchBar = ({
   return (
     <View style={styles.wrapper}>
       <View style={styles.container}>
-        <Ionicons name="search" size={18} color="#888" style={styles.searchIcon} />
+        <Ionicons name="search" size={scale(18)} color="#888" style={styles.searchIcon} />
 
         <View style={styles.inputWrapper}>
           {displayText.length === 0 && (
             <View style={styles.placeholderContainer}>
               <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
-                <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>{current}</Text>
-                <Text style={[styles.placeholderText, { height: 20 }]} numberOfLines={1}>{next}</Text>
+                <Text style={[styles.placeholderText, { height: scale(20) }]} numberOfLines={1}>{current}</Text>
+                <Text style={[styles.placeholderText, { height: scale(20) }]} numberOfLines={1}>{next}</Text>
               </Animated.View>
             </View>
           )}
@@ -149,14 +150,14 @@ const SearchBar = ({
         </View>
 
         {loading ? (
-          <ActivityIndicator size="small" color="#0A8754" style={{ marginRight: 8 }} />
+          <ActivityIndicator size="small" color="#0A8754" style={{ marginRight: scale(8) }} />
         ) : displayText.length > 0 && (
           <TouchableOpacity
             onPress={() => handleTextChange("")}
             activeOpacity={0.7}
             style={styles.clearBtn}
           >
-            <Ionicons name="close-circle" size={18} color="#bbb" />
+            <Ionicons name="close-circle" size={scale(18)} color="#bbb" />
           </TouchableOpacity>
         )}
 
@@ -164,7 +165,7 @@ const SearchBar = ({
           <Animated.View
             style={[styles.micBtn, { transform: [{ scale: scaleAnim }] }]}
           >
-            <Ionicons name="mic-outline" size={18} color="#555" />
+            <Ionicons name="mic-outline" size={scale(18)} color="#555" />
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -176,65 +177,65 @@ export default SearchBar;
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(12),
     backgroundColor: "#FFFFFF",
   },
   container: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F1F5F9",
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: scale(24),
+    paddingHorizontal: scale(16),
+    paddingVertical: scale(10),
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: scale(10),
     color: "#64748B",
   },
   inputWrapper: {
     flex: 1,
-    height: 38,
+    height: scale(38),
     justifyContent: "center",
   },
   placeholderContainer: {
     position: "absolute",
     left: 0,
     right: 0,
-    height: 20,
+    height: scale(20),
     overflow: "hidden",
     justifyContent: "flex-start",
   },
   placeholderText: {
-    fontSize: 15,
+    fontSize: scale(15),
     color: "#94A3B8",
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: scale(20),
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: scale(15),
     color: "#1E293B",
     fontWeight: "500",
     backgroundColor: "transparent",
   },
   clearBtn: {
-    marginRight: 4,
+    marginRight: scale(4),
   },
   micBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
+    marginLeft: scale(8),
     elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
   },
 });

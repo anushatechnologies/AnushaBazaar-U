@@ -20,6 +20,7 @@ import ProductCard from "../components/ProductCard";
 import { getSubcategoriesByCategory } from "../services/api/subcategories";
 import { filterProducts } from "../services/api/products";
 import FloatingCart from "../components/FloatingCart";
+import { scale } from "../utils/responsive";
 
 const CategoryProductsScreen = ({ route }: any) => {
   const navigation = useNavigation<any>();
@@ -139,7 +140,7 @@ const CategoryProductsScreen = ({ route }: any) => {
     };
 
     return (
-      <View style={{ width: "31%", marginBottom: 12 }}>
+      <View style={{ width: "48%", marginBottom: scale(12) }}>
         <ProductCard product={mappedProduct} />
       </View>
     );
@@ -148,18 +149,18 @@ const CategoryProductsScreen = ({ route }: any) => {
   return (
     <View style={{ flex: 1, backgroundColor: "#f9fdfb" }}>
       {/* ─── Custom TopBar with Inline Search ─── */}
-      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 12) }]}>
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, scale(12)) }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#111" />
+          <Ionicons name="arrow-back" size={scale(24)} color="#111" />
         </TouchableOpacity>
 
         {isSearching ? (
           <View style={styles.searchInputBox}>
-            <Ionicons name="search" size={18} color="#9CA3AF" />
+            <Ionicons name="search" size={scale(18)} color="#9CA3AF" />
             <TextInput
               ref={searchInputRef}
               style={styles.searchInput}
@@ -172,7 +173,7 @@ const CategoryProductsScreen = ({ route }: any) => {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={18} color="#D1D5DB" />
+                <Ionicons name="close-circle" size={scale(18)} color="#D1D5DB" />
               </TouchableOpacity>
             )}
           </View>
@@ -183,7 +184,7 @@ const CategoryProductsScreen = ({ route }: any) => {
         )}
 
         <TouchableOpacity onPress={toggleSearch} style={styles.searchIconBtn} activeOpacity={0.7}>
-          <Ionicons name={isSearching ? "close" : "search-outline"} size={22} color="#111" />
+          <Ionicons name={isSearching ? "close" : "search-outline"} size={scale(22)} color="#111" />
         </TouchableOpacity>
       </View>
 
@@ -199,7 +200,7 @@ const CategoryProductsScreen = ({ route }: any) => {
         {/* LEFT SIDEBAR */}
         <View style={styles.sidebar}>
           {loadingSubcategories ? (
-            <ActivityIndicator size="small" color="#0A8754" style={{ marginTop: 20 }} />
+            <ActivityIndicator size="small" color="#0A8754" style={{ marginTop: scale(20) }} />
           ) : (
             <FlatList
               data={subcategories}
@@ -220,7 +221,7 @@ const CategoryProductsScreen = ({ route }: any) => {
                   >
                     {item.id === "all" ? (
                       <View style={styles.allIconContainer}>
-                        <Ionicons name="grid-outline" size={20} color={isSelected ? "#0A8754" : "#555"} />
+                        <Ionicons name="grid-outline" size={scale(20)} color={isSelected ? "#0A8754" : "#555"} />
                       </View>
                     ) : imageUrl ? (
                       <Image
@@ -228,7 +229,7 @@ const CategoryProductsScreen = ({ route }: any) => {
                         style={styles.icon}
                       />
                     ) : (
-                      <View style={[styles.icon, { backgroundColor: "#e9f7f1", borderRadius: 20 }]} />
+                      <View style={[styles.icon, { backgroundColor: "#e9f7f1", borderRadius: scale(20) }]} />
                     )}
 
                     <Text
@@ -251,19 +252,19 @@ const CategoryProductsScreen = ({ route }: any) => {
               data={[1, 2, 3, 4, 5, 6]}
               numColumns={2}
               renderItem={() => <SkeletonCard />}
-              contentContainerStyle={{ padding: 10 }}
+              contentContainerStyle={{ padding: scale(10) }}
               columnWrapperStyle={{ justifyContent: "space-between" }}
             />
           ) : displayed.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={50} color="#ccc" />
+              <Ionicons name="search-outline" size={scale(50)} color="#ccc" />
               <Text style={styles.emptyText}>
                 {searchQuery.trim()
                   ? `No products found for "${searchQuery}"`
                   : "No products match filters."}
               </Text>
               <TouchableOpacity onPress={() => { handleSort("default"); handlePrice(PRICE_RANGES[0]); setSearchQuery(""); }}>
-                <Text style={{ color: "#0A8754", fontWeight: "700", marginTop: 10 }}>Clear Filters</Text>
+                <Text style={{ color: "#0A8754", fontWeight: "700", marginTop: scale(10) }}>Clear Filters</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -272,7 +273,7 @@ const CategoryProductsScreen = ({ route }: any) => {
               numColumns={2}
               keyExtractor={(item, index) => (item.id || item._id || index).toString()}
               renderItem={renderProductItem}
-              contentContainerStyle={{ padding: 10, paddingBottom: 100 }}
+              contentContainerStyle={{ padding: scale(10), paddingBottom: scale(100) }}
               showsVerticalScrollIndicator={false}
               columnWrapperStyle={{ justifyContent: "space-between" }}
             />
@@ -291,52 +292,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingHorizontal: scale(12),
+    paddingBottom: scale(14),
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
     elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowRadius: scale(10),
   },
   backBtn: {
-    padding: 4,
-    marginRight: 10,
+    padding: scale(4),
+    marginRight: scale(10),
   },
   topBarTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: scale(18),
     fontWeight: "700",
     color: "#111",
-    letterSpacing: -0.5,
+    letterSpacing: scale(-0.5),
   },
   searchInputBox: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
+    borderRadius: scale(12),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(8),
+    gap: scale(8),
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: scale(15),
     fontWeight: "500",
     color: "#111827",
     padding: 0,
   },
   searchIconBtn: {
-    width: 40,
-    height: 40,
+    width: scale(40),
+    height: scale(40),
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 20,
+    borderRadius: scale(20),
     backgroundColor: "#F9FAFB",
-    marginLeft: 8,
+    marginLeft: scale(8),
   },
 
   container: {
@@ -345,7 +346,7 @@ const styles = StyleSheet.create({
   },
 
   sidebar: {
-    width: 85,
+    width: scale(85),
     backgroundColor: "#fff",
     borderRightWidth: 1,
     borderRightColor: "#eee",
@@ -353,36 +354,36 @@ const styles = StyleSheet.create({
 
   sideItem: {
     alignItems: "center",
-    padding: 12,
+    padding: scale(12),
     borderBottomWidth: 1,
     borderBottomColor: "#f5f5f5",
   },
 
   active: {
-    borderLeftWidth: 4,
+    borderLeftWidth: scale(4),
     borderLeftColor: "#0A8754",
     backgroundColor: "#f1faf5",
   },
 
   icon: {
-    width: 40,
-    height: 40,
+    width: scale(40),
+    height: scale(40),
     resizeMode: "contain",
-    marginBottom: 6,
+    marginBottom: scale(6),
   },
 
   allIconContainer: {
-    width: 40,
-    height: 40,
+    width: scale(40),
+    height: scale(40),
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: scale(6),
     backgroundColor: "#f5f5f5",
-    borderRadius: 20,
+    borderRadius: scale(20),
   },
 
   text: {
-    fontSize: 10,
+    fontSize: scale(10),
     textAlign: "center",
     color: "#555",
   },
@@ -396,14 +397,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 50,
+    paddingTop: scale(50),
   },
 
   emptyText: {
-    marginTop: 10,
+    marginTop: scale(10),
     color: "#888",
-    fontSize: 16,
+    fontSize: scale(16),
     textAlign: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: scale(20),
   }
 });

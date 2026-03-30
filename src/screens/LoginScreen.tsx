@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { checkPhoneExists } from "../services/api/auth";
 import auth from "@react-native-firebase/auth";
+import { scale } from "../utils/responsive";
 
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
@@ -29,6 +30,10 @@ const LoginScreen = () => {
   const isValidPhone = /^[6-9]\d{9}$/.test(phone);
 
   const sendOtp = async () => {
+    if (loading) return;
+
+    const normalizedPhone = phone.replace(/\D/g, "").slice(0, 10);
+
     if (!isValidPhone) {
       Alert.alert("Invalid Number", "Please enter a valid 10-digit mobile number");
       return;
@@ -38,20 +43,28 @@ const LoginScreen = () => {
 
     try {
       // ✅ Check user exists
-      const checkResponse = await checkPhoneExists(`+91${phone}`);
+      const checkResponse = await checkPhoneExists(normalizedPhone);
 
       if (!checkResponse.exists) {
         setLoading(false);
-        navigation.navigate("Signup", { phone });
+        navigation.navigate("Signup", { phone: normalizedPhone });
         return;
       }
 
+      if (auth().currentUser) {
+        try {
+          await auth().signOut();
+        } catch (signOutError) {
+          console.log("Firebase sign out before OTP request failed:", signOutError);
+        }
+      }
+
       // Send OTP via Native Firebase
-      const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
+      const confirmation = await auth().signInWithPhoneNumber(`+91${normalizedPhone}`);
       
       setLoading(false);
       navigation.navigate("Otp", {
-        phone,
+        phone: normalizedPhone,
         verificationId: confirmation.verificationId,
       });
 
@@ -81,13 +94,13 @@ const LoginScreen = () => {
         <View style={styles.bgCircle2} />
 
         {/* Back Button */}
-        <View style={[styles.backBtnContainer, { top: insets.top + 10 }]}>
+        <View style={[styles.backBtnContainer, { top: insets.top + scale(10) }]}>
           <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            <Ionicons name="arrow-back" size={scale(24)} color="#1E293B" />
           </Pressable>
         </View>
 
-        <View style={[styles.content, { paddingTop: insets.top + 100 }]}>
+        <View style={[styles.content, { paddingTop: insets.top + scale(100) }]}>
           
           {/* Header */}
           <View style={styles.header}>
@@ -117,7 +130,7 @@ const LoginScreen = () => {
               keyboardType="number-pad"
               maxLength={10}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(value) => setPhone(value.replace(/\D/g, "").slice(0, 10))}
               style={styles.input}
             />
 
@@ -135,7 +148,7 @@ const LoginScreen = () => {
               ) : (
                 <>
                   <Text style={styles.buttonText}>Get OTP</Text>
-                  <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  <Ionicons name="arrow-forward" size={scale(20)} color="#fff" />
                 </>
               )}
             </Pressable>
@@ -167,38 +180,38 @@ const styles = StyleSheet.create({
   },
   bgCircle1: {
     position: "absolute",
-    top: -100,
-    right: -100,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
+    top: scale(-100),
+    right: scale(-100),
+    width: scale(300),
+    height: scale(300),
+    borderRadius: scale(150),
     backgroundColor: "#E2F2E9",
     opacity: 0.6,
   },
   bgCircle2: {
     position: "absolute",
-    top: 200,
-    left: -150,
-    width: 400,
-    height: 400,
-    borderRadius: 200,
+    top: scale(200),
+    left: scale(-150),
+    width: scale(400),
+    height: scale(400),
+    borderRadius: scale(200),
     backgroundColor: "#FEF9C3",
     opacity: 0.4,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingBottom: 40,
+    paddingHorizontal: scale(28),
+    paddingBottom: scale(40),
   },
   backBtnContainer: {
     position: "absolute",
-    left: 20,
+    left: scale(20),
     zIndex: 100,
   },
   backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: scale(44),
+    height: scale(44),
+    borderRadius: scale(22),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
@@ -206,16 +219,16 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: scale(40),
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 30,
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(30),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: scale(20),
     overflow: "hidden",
   },
   logo: {
@@ -223,66 +236,66 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   brandName: {
-    fontSize: 30,
+    fontSize: scale(30),
     fontWeight: "900",
     color: "#0F172A",
   },
   brandTagline: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: "#64748B",
-    marginTop: 5,
+    marginTop: scale(5),
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 30,
-    padding: 25,
+    borderRadius: scale(30),
+    padding: scale(25),
   },
   cardTitle: {
-    fontSize: 22,
+    fontSize: scale(22),
     fontWeight: "800",
-    marginBottom: 5,
+    marginBottom: scale(5),
   },
   cardSubtitle: {
-    fontSize: 13,
+    fontSize: scale(13),
     color: "#64748B",
-    marginBottom: 20,
+    marginBottom: scale(20),
   },
   input: {
     backgroundColor: "#F8FAFC",
-    borderRadius: 15,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 20,
+    borderRadius: scale(15),
+    padding: scale(14),
+    fontSize: scale(16),
+    marginBottom: scale(20),
   },
   primaryButton: {
     backgroundColor: "#0A8754",
-    height: 60,
-    borderRadius: 18,
+    height: scale(60),
+    borderRadius: scale(18),
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
+    gap: scale(10),
   },
   buttonDisabled: {
     backgroundColor: "#94a3b8",
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: scale(16),
     fontWeight: "800",
   },
   signupRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: scale(20),
   },
   signupText: {
-    fontSize: 14,
+    fontSize: scale(14),
     color: "#64748B",
   },
   signupLink: {
-    fontSize: 14,
+    fontSize: scale(14),
     fontWeight: "800",
     color: "#0A8754",
   },
