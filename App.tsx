@@ -108,10 +108,10 @@ export default function App() {
     // Request all permissions on app launch
     requestAllPermissions();
 
-    // Show splash animation for 2 seconds
+    // Show splash animation for 3.5 seconds so grocery items orbit fully
     const timer = setTimeout(() => {
       setAppIsReady(true);
-    }, 2000);
+    }, 3500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -120,7 +120,7 @@ export default function App() {
       <AppLoader
         fullScreen
         title="Anusha Bazaar"
-        subtitle="Fresh groceries, fruits, and daily essentials are getting ready for you."
+        subtitle="Fresh groceries, rice, fruits & daily essentials – handpicked just for you."
       />
     );
   }

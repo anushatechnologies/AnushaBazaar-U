@@ -184,12 +184,22 @@ const ProductCard = ({ product }: any) => {
           <View style={styles.vegIconDot} />
         </View>
       </Pressable>
-
       <View style={styles.detailsContainer}>
+        <Text style={styles.name} numberOfLines={2}>
+          {product?.name || "Product Name"}
+        </Text>
+        
+        <Text style={styles.weightText} numberOfLines={1}>
+          {packLabel || "1 Unit"}
+        </Text>
+
         <View style={styles.actionRow}>
-          <Text style={styles.weightText} numberOfLines={1}>
-            {product?.name || "Product Name"}
-          </Text>
+          <View style={styles.priceContainer}>
+            <Text style={styles.sellingPrice}>{"\u20B9"}{sellingPrice}</Text>
+            {mrp > sellingPrice && (
+              <Text style={styles.mrpText}>{"\u20B9"}{mrp}</Text>
+            )}
+          </View>
 
           <View style={styles.addBtnWrapper}>
             {!cartItem ? (
@@ -232,31 +242,6 @@ const ProductCard = ({ product }: any) => {
             )}
           </View>
         </View>
-
-        <View style={styles.priceContainer}>
-          <View style={styles.priceRow}>
-            <Text style={styles.sellingPrice}>{"\u20B9"}{sellingPrice}</Text>
-            {mrp > sellingPrice && (
-              <Text style={styles.mrpText}>{"\u20B9"}{mrp}</Text>
-            )}
-          </View>
-          
-          {packLabel ? (
-            <View style={styles.qtyBadge}>
-              <Text style={styles.qtyBadgeText}>{packLabel}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        <Pressable
-          style={styles.footerPill}
-          onPress={openCategoryProducts}
-          disabled={!categoryId && !categoryName}
-        >
-          <Text style={styles.footerPillText}>
-            All {categoryLabel} {" >"}
-          </Text>
-        </Pressable>
       </View>
 
       <Modal
@@ -469,16 +454,14 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
-    height: scale(38),
-    marginBottom: scale(2),
+    alignItems: "center",
+    marginTop: scale(10),
   },
   weightText: {
-    fontSize: scale(10),
-    color: "#444",
-    fontWeight: "700",
-    flex: 1,
-    paddingBottom: scale(4),
+    fontSize: scale(11),
+    color: "#6b7280",
+    fontWeight: "600",
+    marginTop: scale(4),
   },
   addBtnWrapper: {
     alignItems: "flex-end",
@@ -542,10 +525,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   priceContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: "auto",
+    flexDirection: "column",
+    justifyContent: "center",
   },
   priceRow: {
     flexDirection: "row",
@@ -555,20 +536,21 @@ const styles = StyleSheet.create({
   sellingPrice: {
     fontSize: scale(14),
     fontWeight: "900",
-    color: "#111",
+    color: "#0e8749", // Highlight price with app's green color
   },
   mrpText: {
-    fontSize: scale(9),
+    fontSize: scale(11),
     color: "#888",
     textDecorationLine: "line-through",
     fontWeight: "500",
+    marginTop: scale(1),
   },
   name: {
-    fontSize: scale(11),
-    fontWeight: "600",
+    fontSize: scale(12),
+    fontWeight: "700",
     color: "#1a1a1a",
-    marginTop: scale(4),
-    lineHeight: scale(14),
+    lineHeight: scale(16),
+    height: scale(32), // Ensure consistent height for 2 lines
   },
   qtyBadge: {
     backgroundColor: "#F0F3F0",

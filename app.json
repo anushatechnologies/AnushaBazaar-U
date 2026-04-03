@@ -22,7 +22,10 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "RECORD_AUDIO",
-        "READ_PHONE_STATE"
+        "READ_PHONE_STATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
       "config": {
         "googleMaps": {
@@ -37,7 +40,8 @@
       "bundleIdentifier": "com.anusha.deliveryapp",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app uses microphone for voice search",
-        "NSSpeechRecognitionUsageDescription": "This app uses speech recognition for voice search"
+        "NSSpeechRecognitionUsageDescription": "This app uses speech recognition for voice search",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
