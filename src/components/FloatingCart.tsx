@@ -28,8 +28,6 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
 
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const previewItem = cart.find((item) => item.imageUrl || item.image) || cart[0];
-    const previewImageSource = resolveImageSource(previewItem?.imageUrl || previewItem?.image);
 
     useEffect(() => {
         if (totalItems > 0 && currentRoute !== "Cart" && currentRoute !== "Checkout") {
@@ -69,21 +67,53 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
                 <View style={styles.cartGradient}>
                     <View style={styles.left}>
                         <View style={styles.thumbnailWrap}>
-                            {previewImageSource ? (
-                                <Image
-                                    source={previewImageSource as any}
-                                    style={styles.thumbnail}
-                                    resizeMode="cover"
-                                />
-                            ) : (
-                                <View style={styles.thumbnailFallback}>
-                                    <Ionicons name="cart" size={scale(16)} color="#0C831F" />
+                            {cart.slice(0, 5).map((item, index) => {
+                                const imageSource = resolveImageSource(item?.imageUrl || item?.image);
+                                return (
+                                    <View 
+                                        key={item.id || index} 
+                                        style={[
+                                            styles.overlapImageWrap, 
+                                            { 
+                                                zIndex: 10 - index, 
+                                                marginLeft: index === 0 ? 0 : scale(-15) 
+                                            }
+                                        ]}
+                                    >
+                                        {imageSource ? (
+                                            <Image
+                                                source={imageSource as any}
+                                                style={styles.overlapImage}
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <View style={styles.thumbnailFallback}>
+                                                <Ionicons name="basket-outline" size={scale(16)} color="#0A8754" />
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
+                            
+                            {cart.length > 5 && (
+                                <View style={[
+                                    styles.overlapImageWrap, 
+                                    styles.plusWrap, 
+                                    { zIndex: 0, marginLeft: scale(-15) }
+                                ]}>
+                                    <Text style={styles.plusText}>+{totalItems - 5}</Text>
                                 </View>
                             )}
 
-                            <View style={styles.countBadge}>
-                                <Text style={styles.countBadgeText}>{totalItems}</Text>
-                            </View>
+                            {cart.length <= 5 && totalItems > cart.length && (
+                                <View style={[
+                                    styles.overlapImageWrap, 
+                                    styles.plusWrap, 
+                                    { zIndex: 0, marginLeft: scale(-15) }
+                                ]}>
+                                    <Text style={styles.plusText}>+{totalItems - cart.length}</Text>
+                                </View>
+                            )}
                         </View>
 
                         <View style={styles.textColumn}>
@@ -143,41 +173,40 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     thumbnailWrap: {
+        flexDirection: "row",
+        alignItems: "center",
         position: "relative",
         marginRight: scale(10),
     },
-    thumbnail: {
+    overlapImageWrap: {
         width: scale(38),
         height: scale(38),
         borderRadius: scale(12),
         backgroundColor: "#fff",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: scale(2),
+        borderColor: "#0C831F",
+        overflow: "hidden",
+    },
+    overlapImage: {
+        width: "100%",
+        height: "100%",
     },
     thumbnailFallback: {
-        width: scale(38),
-        height: scale(38),
-        borderRadius: scale(12),
+        width: "100%",
+        height: "100%",
         backgroundColor: "#fff",
         justifyContent: "center",
         alignItems: "center",
     },
-    countBadge: {
-        position: "absolute",
-        right: scale(-4),
-        bottom: scale(-4),
-        minWidth: scale(18),
-        height: scale(18),
-        paddingHorizontal: scale(4),
-        borderRadius: scale(9),
-        backgroundColor: "#fff",
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#DCFCE7",
+    plusWrap: {
+        backgroundColor: "#DCFCE7",
     },
-    countBadgeText: {
+    plusText: {
         color: "#0C831F",
         fontWeight: "900",
-        fontSize: scale(9),
+        fontSize: scale(11),
     },
     priceText: {
         color: "#fff",
