@@ -166,33 +166,63 @@ const mapServerCartItem = (item: any): CartItem => {
         item?.productVariant?.image
     ) || "";
 
-  // The server cart item typically sends:
-  //   unitPrice = the per-unit SELLING price (what customer pays)
-  //   sellingPrice = variant's selling price  
-  //   price = could be MRP or selling price depending on backend
-  //   productVariant.sellingPrice = variant's selling price
-  //   productVariant.price / productVariant.mrp = MRP
-  //
-  // Priority: unitPrice > variant.sellingPrice > item.sellingPrice > product.sellingPrice > price
+  // ── Normalize variant pricing (same logic as mapProducts in products.ts) ──
+  // Backend model: variant.price = MRP, variant.discountPrice = selling price after discount
+  const variant = item?.productVariant;
+  const product = item?.product;
+
+  const vMrp = pickValidPrice(variant?.mrp, variant?.price);
+  const vDiscountPrice = variant?.discountPrice;
+  const vHasValidDiscount =
+    vDiscountPrice != null && Number(vDiscountPrice) > 0;
+  // Mirror mapProducts: sellingPrice ?? (hasValidDiscount ? discountPrice : mrp)
+  const vNormalizedSelling = pickValidPrice(
+    variant?.sellingPrice,
+    vHasValidDiscount ? vDiscountPrice : undefined,
+    vMrp
+  );
+
+  // ── Normalize product pricing (same logic) ──
+  const pMrp = pickValidPrice(product?.mrp, product?.price);
+  const pDiscountPrice = product?.discountPrice;
+  const pHasValidDiscount =
+    pDiscountPrice != null && Number(pDiscountPrice) > 0;
+  const pNormalizedSelling = pickValidPrice(
+    product?.sellingPrice,
+    pHasValidDiscount ? pDiscountPrice : undefined,
+    pMrp
+  );
+
+  // ── Resolve selling price ──
+  // Prioritize the normalized variant/product selling price (consistent with
+  // how product cards compute their price via mapProducts).  Server-level
+  // unitPrice / price are lower priority because they can be the raw
+  // discountPrice value from the backend, which may differ from the correctly
+  // normalized selling price.
   const resolvedPrice = pickValidPrice(
+    vNormalizedSelling,
+    pNormalizedSelling,
     item?.unitPrice,
-    item?.productVariant?.sellingPrice,
     item?.sellingPrice,
-    item?.product?.sellingPrice,
-    item?.price,
-    item?.productVariant?.price,
-    item?.product?.price
+    item?.price
   );
 
+  // ── Resolve MRP ──
   const resolvedMrp = pickValidPrice(
-    item?.productVariant?.mrp,
-    item?.product?.mrp,
-    item?.productVariant?.price,
-    item?.product?.price,
-    item?.mrp
+    vMrp,
+    pMrp,
+    item?.mrp,
+    variant?.price,
+    product?.price
   );
 
-  console.log(`[mapServerCartItem] ${item?.productName || item?.name}: unitPrice=${item?.unitPrice}, sellingPrice=${item?.sellingPrice}, variant.sellingPrice=${item?.productVariant?.sellingPrice}, price=${item?.price} → resolved=${resolvedPrice}, mrp=${resolvedMrp}`);
+  console.log(
+    `[mapServerCartItem] ${item?.productName || item?.name}: ` +
+      `unitPrice=${item?.unitPrice}, sellingPrice=${item?.sellingPrice}, ` +
+      `variant.sellingPrice=${variant?.sellingPrice}, variant.discountPrice=${vDiscountPrice}, ` +
+      `variant.price=${variant?.price}, price=${item?.price} ` +
+      `→ resolved=${resolvedPrice}, mrp=${resolvedMrp}`
+  );
 
   return {
     id: String(item?.variantId || item?.productId || item?.id),
