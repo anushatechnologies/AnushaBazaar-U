@@ -3,7 +3,7 @@
     "name": "AnushaBazaar",
     "slug": "AnushaBazaar",
     "scheme": "anushabazaar",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "orientation": "portrait",
     "icon": "./assets/company-logo.png",
     "userInterfaceStyle": "light",
@@ -13,7 +13,7 @@
       "backgroundColor": "#121212"
     },
     "android": {
-      "versionCode": 30,
+      "versionCode": 31,
       "adaptiveIcon": {
         "foregroundImage": "./assets/company-logo.png",
         "backgroundColor": "#ffffff"

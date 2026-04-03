@@ -61,29 +61,21 @@ export const addCartItem = async (
 };
 
 /**
- * PUT /api/cart/update-quantity – update item quantity
- * Body: { customerId, productVariationId, quantity }
+ * PUT /api/cart/items/{itemId}?quantity=X – update item quantity
  */
 export const updateCartItemQty = async (
   token: string,
-  productVariationId: number | string,
+  itemId: number | string,
   quantity: number,
-  customerId?: number | string
+  _customerId?: number | string
 ) => {
   try {
-    const body: any = {
-      productVariationId: Number(productVariationId),
-      quantity,
-    };
-    if (customerId) body.customerId = Number(customerId);
-
-    const response = await fetchWithTimeout(`${API_BASE}/update-quantity`, {
+    const response = await fetchWithTimeout(`${API_BASE}/items/${itemId}?quantity=${quantity}`, {
       method: "PUT",
       headers: authHeaders(token),
-      body: JSON.stringify(body),
     });
     if (!response.ok) {
-      console.error(`[updateCartItemQty] FAILED ${response.status}: ${API_BASE}/update-quantity`);
+      console.error(`[updateCartItemQty] FAILED ${response.status}: ${API_BASE}/items/${itemId}`);
       throw new Error(`HTTP ${response.status}`);
     }
     return await response.json();
@@ -94,18 +86,15 @@ export const updateCartItemQty = async (
 };
 
 /**
- * DELETE /api/cart/remove?customerId=X&productVariationId=Y – remove single item
+ * DELETE /api/cart/items/{itemId} – remove single item
  */
 export const removeCartItem = async (
   token: string,
-  productVariationId: number | string,
-  customerId?: number | string
+  itemId: number | string,
+  _customerId?: number | string
 ) => {
   try {
-    let url = `${API_BASE}/remove?productVariationId=${productVariationId}`;
-    if (customerId) url += `&customerId=${customerId}`;
-
-    const response = await fetchWithTimeout(url, {
+    const response = await fetchWithTimeout(`${API_BASE}/items/${itemId}`, {
       method: "DELETE",
       headers: authHeaders(token),
     });

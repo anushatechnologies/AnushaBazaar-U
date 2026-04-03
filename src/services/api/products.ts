@@ -80,12 +80,23 @@ const mapProducts = (json: any): Product[] => {
   const list = items.content ? items.content : items;
   return (Array.isArray(list) ? list : []).map((p: any) => {
     const variants = p.variants || p.productVariants || [];
-    const normalizedVariants: Variant[] = variants.map((v: any) => ({
-      ...v,
-      variantName: v.name || v.variantName,
-      sellingPrice: v.sellingPrice ?? (v.price - (v.discountPrice || 0)),
-      mrp: v.mrp ?? v.price,
-    }));
+    const normalizedVariants: Variant[] = variants.map((v: any) => {
+      // Backend data model:
+      //   price = MRP (full retail price)
+      //   discountPrice = actual selling price after discount (NOT a discount amount)
+      //   discountPrice of null, 0, or negative = no discount, sell at MRP
+      const vMrp = v.mrp ?? v.price ?? 0;
+      const hasValidDiscount = v.discountPrice != null && v.discountPrice > 0;
+      const vSellingPrice = v.sellingPrice ?? (hasValidDiscount ? v.discountPrice : vMrp);
+
+      return {
+        ...v,
+        variantName: v.name || v.variantName,
+        sellingPrice: vSellingPrice,
+        mrp: vMrp,
+        discountPrice: v.discountPrice,
+      };
+    });
     const firstVariant = normalizedVariants[0];
     const primaryImage =
       normalizeImageUrl(
@@ -97,6 +108,12 @@ const mapProducts = (json: any): Product[] => {
           (Array.isArray(p.imageUrls) ? p.imageUrls[0] : "")
       ) || "";
 
+    // Derive product-level pricing from the first variant
+    const productSellingPrice = firstVariant
+      ? firstVariant.sellingPrice
+      : (p.minPrice && p.minPrice > 0 ? p.minPrice : p.price || 0);
+    const productMrp = firstVariant ? firstVariant.mrp : (p.price || 0);
+
     return {
       ...p,
       id: String(p.id || p._id),
@@ -105,7 +122,9 @@ const mapProducts = (json: any): Product[] => {
       thumbnail: normalizeImageUrl(p.thumbnail) || primaryImage,
       productVariants: normalizedVariants,
       variantId: firstVariant?.id,
-      price: firstVariant ? firstVariant.sellingPrice : (p.minPrice || p.price || 0),
+      price: productSellingPrice,
+      originalPrice: productMrp > productSellingPrice ? productMrp : undefined,
+      mrp: productMrp,
     };
   });
 };
@@ -243,22 +262,31 @@ export const getProductsBySubcategory = async (subCategoryId: string | number): 
 
 /* ================= RATINGS & WISHLIST ================= */
 
-export const submitProductRating = async (data: {
-  customerId: number | string;
-  productId: number | string;
+export const submitProductRating = async (jwtToken: string | null, data: {
+  customerId?: number;
+  productId: string | number;
   rating: number;
   comment: string;
-}): Promise<boolean> => {
+}): Promise<{ ok: boolean; status: number; message?: string }> => {
   try {
+    const headers: any = { "Content-Type": "application/json" };
+    if (jwtToken) headers["Authorization"] = `Bearer ${jwtToken}`;
+
     const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/rating`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(data),
     });
-    return response.ok;
+    
+    if (response.ok) {
+      return { ok: true, status: response.status };
+    }
+    
+    const errorBody = await response.json().catch(() => ({}));
+    return { ok: false, status: response.status, message: errorBody.message };
   } catch (error) {
     console.error("Error submitting rating:", error);
-    return false;
+    return { ok: false, status: 500, message: "Network error" };
   }
 };
 
@@ -274,12 +302,15 @@ export const getProductRatings = async (productId: string | number): Promise<any
   }
 };
 
-export const addToWishlistApi = async (customerId: number | string, productId: number | string): Promise<boolean> => {
+export const addToWishlistApi = async (jwtToken: string | null, productId: number | string, customerId?: number | string): Promise<boolean> => {
   try {
+    const headers: any = { "Content-Type": "application/json" };
+    if (jwtToken) headers["Authorization"] = `Bearer ${jwtToken}`;
+
     const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customerId, productId }),
+      headers,
+      body: JSON.stringify({ customerId: Number(customerId), productId: Number(productId) }),
     });
     return response.ok;
   } catch (error) {
@@ -288,9 +319,48 @@ export const addToWishlistApi = async (customerId: number | string, productId: n
   }
 };
 
-export const getWishlistApi = async (customerId: number | string): Promise<Product[]> => {
+export const removeFromWishlistApi = async (jwtToken: string | null, productId: number | string, customerId?: number | string): Promise<boolean> => {
   try {
-    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist/${customerId}`);
+    const headers: any = { "Content-Type": "application/json" };
+    if (jwtToken) headers["Authorization"] = `Bearer ${jwtToken}`;
+
+    const url = `${CUSTOMER_BASE}/products/wishlist?productId=${productId}${customerId ? `&customerId=${customerId}` : ""}`;
+    const response = await fetchWithTimeout(url, {
+      method: "DELETE",
+      headers,
+    });
+    return response.status === 204 || response.ok;
+  } catch (error) {
+    console.error("Error removing from wishlist:", error);
+    return false;
+  }
+};
+
+export const mergeWishlistApi = async (jwtToken: string | null, productIds: (number | string)[]): Promise<boolean> => {
+  try {
+    const headers: any = { "Content-Type": "application/json" };
+    if (jwtToken) headers["Authorization"] = `Bearer ${jwtToken}`;
+
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist/merge`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ productIds: productIds.map(id => Number(id)) }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error merging wishlist:", error);
+    return false;
+  }
+};
+
+export const getWishlistApi = async (jwtToken: string | null, customerId: number | string): Promise<Product[]> => {
+  try {
+    const headers: any = {};
+    if (jwtToken) headers["Authorization"] = `Bearer ${jwtToken}`;
+
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist/${customerId}`, {
+      headers
+    });
     if (!response.ok) return [];
     const json = await response.json();
     return mapProducts(json);

@@ -166,6 +166,12 @@ const ProductCard = ({ product }: any) => {
           </View>
         )}
 
+        {discount > 0 && (
+          <View style={styles.imageDiscountBadge}>
+            <Text style={styles.imageDiscountText}>{discount}% OFF</Text>
+          </View>
+        )}
+
         <Pressable style={styles.wishlistIcon} onPress={toggleWishlist}>
           <Ionicons
             name={wishItem ? "heart" : "heart-outline"}
@@ -182,7 +188,7 @@ const ProductCard = ({ product }: any) => {
       <View style={styles.detailsContainer}>
         <View style={styles.actionRow}>
           <Text style={styles.weightText} numberOfLines={1}>
-            {packLabel}
+            {product?.name || "Product Name"}
           </Text>
 
           <View style={styles.addBtnWrapper}>
@@ -227,29 +233,20 @@ const ProductCard = ({ product }: any) => {
           </View>
         </View>
 
-        <View style={styles.priceRow}>
-          <Text style={styles.sellingPrice}>{"\u20B9"}{sellingPrice}</Text>
-          {mrp > sellingPrice && (
-            <Text style={styles.mrpText}>{"\u20B9"}{mrp}</Text>
-          )}
+        <View style={styles.priceContainer}>
+          <View style={styles.priceRow}>
+            <Text style={styles.sellingPrice}>{"\u20B9"}{sellingPrice}</Text>
+            {mrp > sellingPrice && (
+              <Text style={styles.mrpText}>{"\u20B9"}{mrp}</Text>
+            )}
+          </View>
+          
+          {packLabel ? (
+            <View style={styles.qtyBadge}>
+              <Text style={styles.qtyBadgeText}>{packLabel}</Text>
+            </View>
+          ) : null}
         </View>
-
-        {discount > 0 && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountBadgeText}>{discount}% OFF</Text>
-          </View>
-        )}
-
-        <Text numberOfLines={2} style={styles.name}>
-          {product?.name || "Product Name"}
-        </Text>
-
-        {packLabel ? (
-          <View style={styles.qtyBadge}>
-            <Ionicons name="cube-outline" size={scale(10)} color="#0C831F" />
-            <Text style={styles.qtyBadgeText}>{packLabel}</Text>
-          </View>
-        ) : null}
 
         <Pressable
           style={styles.footerPill}
@@ -524,81 +521,86 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.8 }],
     transformOrigin: "right bottom",
   },
+  imageDiscountBadge: {
+    position: "absolute",
+    top: scale(4),
+    left: scale(4),
+    backgroundColor: "#2e7d32",
+    paddingHorizontal: scale(5),
+    paddingVertical: scale(2),
+    borderRadius: scale(4),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 2,
+  },
+  imageDiscountText: {
+    color: "#fff",
+    fontSize: scale(9),
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  priceContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: "auto",
+  },
   priceRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: scale(2),
     gap: scale(4),
   },
   sellingPrice: {
-    fontSize: scale(12),
-    fontWeight: "800",
+    fontSize: scale(14),
+    fontWeight: "900",
     color: "#111",
   },
   mrpText: {
     fontSize: scale(9),
     color: "#888",
     textDecorationLine: "line-through",
-  },
-  discountBadge: {
-    backgroundColor: "#EFF6FF",
-    alignSelf: "flex-start",
-    paddingHorizontal: scale(4),
-    paddingVertical: scale(2),
-    borderRadius: scale(4),
-    marginTop: scale(2),
-    marginBottom: scale(2),
-  },
-  discountBadgeText: {
-    fontSize: scale(9),
-    color: "#256fef",
-    fontWeight: "800",
+    fontWeight: "500",
   },
   name: {
     fontSize: scale(11),
-    fontWeight: "500",
-    color: "#333",
+    fontWeight: "600",
+    color: "#1a1a1a",
     marginTop: scale(4),
     lineHeight: scale(14),
   },
   qtyBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: scale(3),
-    marginTop: scale(4),
-    backgroundColor: "#f0fdf4",
+    backgroundColor: "#F0F3F0",
+    paddingHorizontal: scale(5),
+    paddingVertical: scale(2),
+    borderRadius: scale(4),
+  },
+  qtyBadgeText: {
+    fontSize: scale(9),
+    color: "#666",
+    fontWeight: "600",
+  },
+  footerPill: {
+    marginTop: scale(6),
+    backgroundColor: "#f1f1f1",
     alignSelf: "flex-start",
     paddingHorizontal: scale(6),
     paddingVertical: scale(2),
     borderRadius: scale(4),
-    borderWidth: 0.5,
-    borderColor: "#bbf7d0",
-  },
-  qtyBadgeText: {
-    fontSize: scale(9),
-    color: "#0C831F",
-    fontWeight: "700",
-  },
-  footerPill: {
-    marginTop: scale(6),
-    backgroundColor: "#f8fdfa",
-    alignSelf: "flex-start",
-    paddingHorizontal: scale(6),
-    paddingVertical: scale(3),
-    borderRadius: scale(4),
   },
   footerPillText: {
-    fontSize: scale(9),
-    color: "#0C831F",
-    fontWeight: "700",
+    fontSize: scale(8),
+    color: "#888",
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(10, 20, 15, 0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: scale(24),
     borderTopRightRadius: scale(24),
     maxHeight: "85%",

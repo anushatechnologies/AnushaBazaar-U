@@ -343,12 +343,12 @@ export const CartProvider = ({ children }: any) => {
     if (!jwtToken) return;
 
     try {
-      const serverWishlist = await getWishlistApi(jwtToken, user?.customerId);
+      const serverWishlist = await getWishlistApi(jwtToken, user?.customerId as string | number);
       setWishlist(serverWishlist.map(buildWishlistProduct));
     } catch (error) {
       console.log("Wishlist refresh error:", error);
     }
-  }, [jwtToken]);
+  }, [jwtToken, user?.customerId]);
 
   const mergeGuestData = useCallback(
     async (token: string) => {
