@@ -121,7 +121,7 @@ const OrdersScreen = () => {
               const source = resolveImageSource(imgUrl, { width: 100, height: 100 });
               return (
                 <View key={idx} style={styles.productImgBox}>
-                  {imgUrl ? (
+                  {source ? (
                     <Image source={source as any} style={styles.productImg} resizeMode="contain" />
                   ) : (
                     <Ionicons name="basket-outline" size={scale(24)} color="#D1D5DB" />
