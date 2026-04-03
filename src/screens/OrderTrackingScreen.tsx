@@ -14,6 +14,7 @@ import {
     Modal,
     TextInput,
     KeyboardAvoidingView,
+    Image,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -23,6 +24,7 @@ import * as Location from "expo-location";
 import { useAuth } from "../context/AuthContext";
 import { getOrderById, cancelOrder } from "../services/api/orders";
 import AppLoader from "../components/AppLoader";
+import { resolveImageSource } from "../utils/image";
 import { scale } from "../utils/responsive";
 
 const { height } = Dimensions.get("window");
@@ -311,11 +313,11 @@ const OrderTrackingScreen = () => {
                     </TouchableOpacity>
                 )}
 
-                {!loadingLocation && (
+                {!loadingLocation && !["delivered", "cancelled", "pending", "confirmed"].includes(orderStatus) && (
                     <View style={styles.etaPill}>
                         <View style={styles.pulsingDot} />
                         <Text style={styles.etaText}>
-                            {etaMinutes > 0 ? `Your rider is ~${etaMinutes} min away` : "Rider has arrived! 🎉"}
+                            {etaMinutes > 0 ? `Your rider is ~${etaMinutes} min away` : "Arriving shortly!"}
                         </Text>
                     </View>
                 )}
@@ -450,16 +452,27 @@ const OrderTrackingScreen = () => {
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View style={styles.detailsSection}>
                                 <Text style={styles.sectionHeading}>Items</Text>
-                                {orderItems.map((item: any, idx: number) => (
-                                    <View key={idx} style={styles.orderItemRow}>
-                                        <View style={styles.itemQuantityBadge}><Text style={styles.itemQuantityText}>{item.quantity}x</Text></View>
-                                        <View style={{ flex: 1, marginLeft: 12 }}>
-                                            <Text style={styles.itemNameText}>{item.productName || item.name || "Product"}</Text>
-                                            <Text style={styles.itemVariantText}>{item.variantName || ""}</Text>
+                                {orderItems.map((item: any, idx: number) => {
+                                    const imgUrl = item.productImage || item.image || item.imageUrl || item.thumb || item.product?.image || item.product?.imageUrl || item.product?.icon;
+                                    const imgSource = resolveImageSource(imgUrl, { width: 40, height: 40 });
+                                    return (
+                                        <View key={idx} style={styles.orderItemRow}>
+                                            <View style={styles.itemImgBox}>
+                                                {imgSource ? (
+                                                    <Image source={imgSource as any} style={styles.itemImg} resizeMode="contain" />
+                                                ) : (
+                                                    <Ionicons name="basket-outline" size={20} color="#ccc" />
+                                                )}
+                                            </View>
+                                            <View style={styles.itemQuantityBadge}><Text style={styles.itemQuantityText}>{item.quantity}x</Text></View>
+                                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                                <Text style={styles.itemNameText}>{item.productName || item.name || item.product?.name || item.product?.productName || "Product"}</Text>
+                                                <Text style={styles.itemVariantText}>{item.variantName || item.variant?.name || ""}</Text>
+                                            </View>
+                                            <Text style={styles.itemPriceText}>₹{((item.unitPrice || item.price || item.productVariant?.price || item.productVariant?.sellingPrice || 0) * item.quantity).toFixed(2)}</Text>
                                         </View>
-                                        <Text style={styles.itemPriceText}>₹{((item.unitPrice || item.price || 0) * item.quantity).toFixed(2)}</Text>
-                                    </View>
-                                ))}
+                                    );
+                                })}
                             </View>
                             <View style={styles.detailsSection}>
                                 <Text style={styles.sectionHeading}>Delivery Address</Text>
@@ -467,21 +480,21 @@ const OrderTrackingScreen = () => {
                                     <Ionicons name="location" size={18} color="#6B7280" />
                                     <Text style={styles.addressValueText}>
                                         {(() => {
-                                            const addr = orderData?.address;
-                                            if (!addr) return "Delivery Address";
+                                            const addr = orderData?.address || orderData?.deliveryAddress || orderData?.shippingAddress;
+                                            if (!addr) return "Delivery Address unavailable";
                                             if (typeof addr === "string") return addr;
-                                            return [addr.addressLine1, addr.addressLine2, addr.landmark, addr.city, addr.postalCode].filter(Boolean).join(", ");
+                                            return [addr.addressLine1 || addr.street, addr.addressLine2, addr.landmark, addr.city, addr.postalCode || addr.pincode].filter(Boolean).join(", ") || "Delivery Address";
                                         })()}
                                     </Text>
                                 </View>
                             </View>
                             <View style={[styles.detailsSection, { borderBottomWidth: 0 }]}>
                                 <Text style={styles.sectionHeading}>Payment Summary</Text>
-                                <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Item Total</Text><Text style={styles.pricingValue}>₹{(orderData?.totalAmount || 0).toFixed(2)}</Text></View>
+                                <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Item Total</Text><Text style={styles.pricingValue}>₹{(orderData?.grandTotal || orderData?.totalAmount || orderData?.totalPrice || orderData?.amount || 0).toFixed(2)}</Text></View>
                                 <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Delivery Fee</Text><Text style={[styles.pricingValue, { color: "#0A8754" }]}>FREE</Text></View>
                                 <View style={[styles.pricingRow, { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
                                     <Text style={[styles.pricingLabel, { fontWeight: "800", color: "#111" }]}>Total Paid</Text>
-                                    <Text style={[styles.pricingValue, { fontWeight: "800", color: "#111", fontSize: 18 }]}>₹{(orderData?.totalAmount || 0).toFixed(2)}</Text>
+                                    <Text style={[styles.pricingValue, { fontWeight: "800", color: "#111", fontSize: 18 }]}>₹{(orderData?.grandTotal || orderData?.totalAmount || orderData?.totalPrice || orderData?.amount || 0).toFixed(2)}</Text>
                                 </View>
                             </View>
                         </ScrollView>
@@ -576,6 +589,8 @@ const styles = StyleSheet.create({
     pricingValue: { fontSize: scale(14), fontWeight: "600", color: "#111827" },
     closeDetailsBtn: { backgroundColor: "#F3F4F6", paddingVertical: scale(14), borderRadius: scale(12), alignItems: "center", marginTop: scale(10) },
     closeDetailsBtnText: { fontSize: scale(16), fontWeight: "700", color: "#4B5563" },
+    itemImgBox: { width: scale(40), height: scale(40), borderRadius: scale(8), backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center", marginRight: scale(10), overflow: "hidden" },
+    itemImg: { width: "100%", height: "100%" },
 });
 
 export default OrderTrackingScreen;
