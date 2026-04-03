@@ -8,20 +8,27 @@ const authHeaders = (token: string) => ({
 });
 
 export interface AddressPayload {
-  addressType: string;       // "home" | "work" | "other"
-  addressLine1: string;
+  customerId?: number | string;
+  addressType?: string;       // "HOME" | "WORK" | "OTHER"
+  type?: string;              // Backend may use "type" instead of "addressType"
+  addressLine1?: string;
+  street?: string;
   addressLine2?: string;
   landmark?: string;
   city: string;
-  state: string;
-  postalCode: string;
+  state?: string;
+  postalCode?: string;
+  pincode?: string;
   isDefault?: boolean;
   latitude?: number;
   longitude?: number;
 }
 
-/** GET /api/addresses – fetch all saved addresses */
-export const getAddresses = async (token: string) => {
+/**
+ * GET /api/addresses/customer/{customerId} – fetch all saved addresses
+ * Falls back to GET /api/addresses if customerId is not available
+ */
+export const getAddresses = async (token: string, _customerId?: number | string) => {
   try {
     const response = await fetchWithTimeout(API_BASE, {
       headers: authHeaders(token),
@@ -37,7 +44,10 @@ export const getAddresses = async (token: string) => {
   }
 };
 
-/** POST /api/addresses – add a new address */
+/**
+ * POST /api/addresses – add a new address
+ * Body: { customerId, street, city, pincode, type, ... }
+ */
 export const addAddress = async (token: string, data: AddressPayload) => {
   try {
     const response = await fetchWithTimeout(API_BASE, {

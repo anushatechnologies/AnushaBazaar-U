@@ -10,19 +10,45 @@ import {
   Modal,
   TouchableWithoutFeedback,
   ScrollView,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from "@react-navigation/native";
+
 import { scale } from "../utils/responsive";
 import { resolveImageSource } from "../utils/image";
-import { useNavigation } from "@react-navigation/native";
-import { useCart, CartItem } from "../context/CartContext";
+import { getProductPackLabel } from "../utils/product";
+import { useCart } from "../context/CartContext";
 import QuantitySelector from "./common/QuantitySelector";
+
+const PRODUCT_IMAGE_SIZE = 512;
 
 const ProductCard = ({ product }: any) => {
   const navigation = useNavigation<any>();
+  const route = useRoute();
   const [isVariantModalVisible, setVariantModalVisible] = React.useState(false);
   const [imageFailed, setImageFailed] = React.useState(false);
-  
+  const slideAnim = React.useRef(new Animated.Value(0)).current;
+
+  const openVariantModal = () => {
+    setVariantModalVisible(true);
+    Animated.spring(slideAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      damping: 20,
+      mass: 0.8,
+      stiffness: 150,
+    }).start();
+  };
+
+  const closeVariantModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => setVariantModalVisible(false));
+  };
+
   const {
     cart,
     wishlist,
@@ -33,39 +59,100 @@ const ProductCard = ({ product }: any) => {
     removeFromWishlist,
   } = useCart();
 
-  const cartLookupId = product?.productVariants?.[0]?.id 
-    ? String(product.productVariants[0].id) 
+  const cartLookupId = product?.productVariants?.[0]?.id
+    ? String(product.productVariants[0].id)
     : String(product?.id || "");
 
   const cartItem = cart?.find(
-    (i: any) => i.id === cartLookupId || String(i.variantId) === cartLookupId
+    (item: any) => item.id === cartLookupId || String(item.variantId) === cartLookupId
   );
 
-  const wishItem = wishlist?.find((i: any) => i.id === product?.id);
+  const wishItem = wishlist?.find((item: any) => String(item.id) === String(product?.id));
 
   const toggleWishlist = () => {
     if (wishItem) {
-      removeFromWishlist(product.id);
-    } else {
-      addToWishlist(product);
+      removeFromWishlist(String(product.id));
+      return;
     }
+
+    addToWishlist(product);
   };
 
   const imageUrl =
-    product?.image || product?.imageUrl || product?.icon || product?.imageUri || product?.thumbnail;
-  const imageSource = resolveImageSource(imageUrl);
+    product?.image ||
+    product?.imageUrl ||
+    product?.icon ||
+    product?.imageUri ||
+    product?.thumbnail;
+  const imageSource = resolveImageSource(imageUrl, {
+    width: PRODUCT_IMAGE_SIZE,
+    height: PRODUCT_IMAGE_SIZE,
+  });
 
   React.useEffect(() => {
     setImageFailed(false);
   }, [product?.id, imageUrl]);
 
-  const sellingPrice = product?.price ?? product?.sellingPrice ?? 0;
-  const mrp = product?.originalPrice ?? product?.mrp ?? (product?.productVariants?.[0]?.mrp) ?? sellingPrice;
-  const discount = mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+  const sellingPrice = 
+    (product?.productVariants?.[0]?.sellingPrice > 0 ? product.productVariants[0].sellingPrice : null) ?? 
+    (product?.sellingPrice > 0 ? product.sellingPrice : null) ?? 
+    (product?.price > 0 ? product.price : 0);
+
+  const mrp =
+    (product?.originalPrice > 0 ? product.originalPrice : null) ??
+    (product?.mrp > 0 ? product.mrp : null) ??
+    (product?.productVariants?.[0]?.mrp > 0 ? product.productVariants[0].mrp : null) ??
+    sellingPrice;
+
+  const discount =
+    mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+  const packLabel = getProductPackLabel(product, product?.productVariants?.[0])
+    || product?.productVariants?.[0]?.variantName
+    || product?.unit
+    || '';
+  const categoryId =
+    product?.categoryId ||
+    product?.category_id ||
+    product?.category?.id ||
+    product?.category?._id;
+  const categoryName =
+    product?.categoryName ||
+    product?.category?.name ||
+    product?.category?.title ||
+    product?.subCategoryName ||
+    product?.subCategory?.name;
+  const categoryLabel =
+    categoryName ||
+    "items";
+
+  const openProductDetail = React.useCallback(() => {
+    if (route.name === "ProductDetail") {
+      navigation.push("ProductDetail", { product });
+      return;
+    }
+
+    navigation.navigate("ProductDetail", { product });
+  }, [navigation, product, route.name]);
+
+  const openCategoryProducts = React.useCallback(() => {
+    if (categoryId) {
+      navigation.navigate("CategoryProducts", {
+        category: {
+          id: categoryId,
+          name: categoryName || "Category",
+        },
+      });
+      return;
+    }
+
+    if (categoryName) {
+      navigation.navigate("SearchResults", { query: categoryName });
+    }
+  }, [categoryId, categoryName, navigation]);
 
   return (
     <View style={styles.card}>
-      <Pressable onPress={() => navigation.navigate("ProductDetail", { product })} style={styles.imageContainer}>
+      <Pressable onPress={openProductDetail} style={styles.imageContainer}>
         {imageSource && !imageFailed ? (
           <Image
             source={imageSource}
@@ -78,9 +165,13 @@ const ProductCard = ({ product }: any) => {
             <Ionicons name="image-outline" size={24} color="#ccc" />
           </View>
         )}
-        
+
         <Pressable style={styles.wishlistIcon} onPress={toggleWishlist}>
-          <Ionicons name={wishItem ? "heart" : "heart-outline"} size={14} color={wishItem ? "#E82A4B" : "#A0A0A0"} />
+          <Ionicons
+            name={wishItem ? "heart" : "heart-outline"}
+            size={14}
+            color={wishItem ? "#E82A4B" : "#A0A0A0"}
+          />
         </Pressable>
 
         <View style={styles.vegIconBox}>
@@ -89,12 +180,11 @@ const ProductCard = ({ product }: any) => {
       </Pressable>
 
       <View style={styles.detailsContainer}>
-        
         <View style={styles.actionRow}>
           <Text style={styles.weightText} numberOfLines={1}>
-            {product?.unit || product?.weight || product?.volume || "1 pc"}
+            {packLabel}
           </Text>
-          
+
           <View style={styles.addBtnWrapper}>
             {!cartItem ? (
               <View style={styles.addButtonVessel}>
@@ -102,12 +192,16 @@ const ProductCard = ({ product }: any) => {
                   style={styles.addBtn}
                   onPress={() => {
                     if (product?.productVariants && product.productVariants.length > 1) {
-                      setVariantModalVisible(true);
-                    } else {
-                      addToCart(product);
-                      if (Platform.OS === "android") {
-                        ToastAndroid.show(`${product?.name?.split(' ').slice(0, 2).join(' ')} added`, ToastAndroid.SHORT);
-                      }
+                      openVariantModal();
+                      return;
+                    }
+
+                    addToCart(product);
+                    if (Platform.OS === "android") {
+                      ToastAndroid.show(
+                        `${product?.name?.split(" ").slice(0, 2).join(" ")} added`,
+                        ToastAndroid.SHORT
+                      );
                     }
                   }}
                 >
@@ -115,7 +209,9 @@ const ProductCard = ({ product }: any) => {
                 </Pressable>
                 {product?.productVariants && product.productVariants.length > 1 && (
                   <View style={styles.optionsBadge}>
-                    <Text style={styles.optionsText}>{product.productVariants.length} options</Text>
+                    <Text style={styles.optionsText}>
+                      {product.productVariants.length} options
+                    </Text>
                   </View>
                 )}
               </View>
@@ -132,60 +228,146 @@ const ProductCard = ({ product }: any) => {
         </View>
 
         <View style={styles.priceRow}>
-          <Text style={styles.sellingPrice}>₹{sellingPrice}</Text>
+          <Text style={styles.sellingPrice}>{"\u20B9"}{sellingPrice}</Text>
           {mrp > sellingPrice && (
-            <Text style={styles.mrpText}>₹{mrp}</Text>
+            <Text style={styles.mrpText}>{"\u20B9"}{mrp}</Text>
           )}
         </View>
-        
+
         {discount > 0 && (
-          <Text style={styles.discountText}>{discount}% OFF on MRP</Text>
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountBadgeText}>{discount}% OFF</Text>
+          </View>
         )}
 
-        <Text numberOfLines={2} style={styles.name}>{product?.name || "Product Name"}</Text>
+        <Text numberOfLines={2} style={styles.name}>
+          {product?.name || "Product Name"}
+        </Text>
 
-        <View style={styles.footerPill}>
-          <Text style={styles.footerPillText}>All {product?.categoryName || "items"} ▶</Text>
-        </View>
+        {packLabel ? (
+          <View style={styles.qtyBadge}>
+            <Ionicons name="cube-outline" size={scale(10)} color="#0C831F" />
+            <Text style={styles.qtyBadgeText}>{packLabel}</Text>
+          </View>
+        ) : null}
 
+        <Pressable
+          style={styles.footerPill}
+          onPress={openCategoryProducts}
+          disabled={!categoryId && !categoryName}
+        >
+          <Text style={styles.footerPillText}>
+            All {categoryLabel} {" >"}
+          </Text>
+        </Pressable>
       </View>
 
       <Modal
         visible={isVariantModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setVariantModalVisible(false)}
+        transparent
+        animationType="none"
+        onRequestClose={closeVariantModal}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
-          onPress={() => setVariantModalVisible(false)}
+        <Animated.View
+          style={[
+            styles.modalOverlay,
+            {
+              opacity: slideAnim,
+            },
+          ]}
         >
-          <View style={styles.modalContent}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeVariantModal} />
+          
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              {
+                transform: [
+                  {
+                    translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [600, 0],
+                    }),
+                  },
+                ],
+              }
+            ]}
+          >
             <TouchableWithoutFeedback>
               <View style={styles.modalInner}>
+                {/* Pull Bar */}
+                <View style={styles.pullBar} />
+
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Variant</Text>
-                  <Pressable onPress={() => setVariantModalVisible(false)} style={styles.closeModalBtn}>
-                    <Ionicons name="close" size={24} color="#333" />
+                  <View>
+                    <Text style={styles.modalTitle}>Choose Variant</Text>
+                    <Text style={styles.modalSubtitle}>{product?.name}</Text>
+                  </View>
+                  <Pressable
+                    onPress={closeVariantModal}
+                    style={styles.closeModalBtn}
+                  >
+                    <Ionicons name="close-circle" size={28} color="#D1D5DB" />
                   </Pressable>
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
-                  {product?.productVariants?.map((variant: any) => {
-                    const variantCartItem = cart?.find((i: any) => String(i.variantId) === String(variant.id));
-                    
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.modalScroll}
+                >
+                  {product?.productVariants?.map((variant: any, idx: number) => {
+                    const variantCartItem = cart?.find(
+                      (item: any) => String(item.variantId) === String(variant.id)
+                    );
+
+                    const vSellingPrice = variant.sellingPrice;
+                    const vMrp = variant.mrp > 0 ? variant.mrp : variant.originalPrice;
+                    const vDiscount = (vMrp > vSellingPrice) ? Math.round(((vMrp - vSellingPrice) / vMrp) * 100) : 0;
+
                     return (
-                      <View key={variant.id} style={styles.variantRow}>
+                      <View key={variant.id} style={[styles.variantRow, variantCartItem && styles.variantRowSelected]}>
+                        <View style={styles.variantImageWrapper}>
+                          <Image
+                            source={
+                              resolveImageSource(
+                                variant.image ||
+                                  variant.imageUrl ||
+                                  product.imageUrl ||
+                                  product.imageUri ||
+                                  product.image,
+                                {
+                                  width: PRODUCT_IMAGE_SIZE,
+                                  height: PRODUCT_IMAGE_SIZE,
+                                }
+                              ) as any
+                            }
+                            style={styles.variantImage}
+                            resizeMode="contain"
+                          />
+                          {vDiscount > 0 && (
+                            <View style={styles.variantDiscountBadge}>
+                              <Text style={styles.variantDiscountText}>{vDiscount}% OFF</Text>
+                            </View>
+                          )}
+                        </View>
+                        
                         <View style={styles.variantDetails}>
-                          <Text style={styles.variantName}>{variant.variantName}</Text>
+                          <Text style={styles.variantName} numberOfLines={2}>
+                            {variant.variantName}
+                          </Text>
+                          {(getProductPackLabel(variant) || variant.unit) ? (
+                            <Text style={styles.variantQtyLabel}>{getProductPackLabel(variant) || variant.unit}</Text>
+                          ) : null}
                           <View style={styles.variantPriceRow}>
-                            <Text style={styles.variantSellingPrice}>₹{variant.sellingPrice}</Text>
-                            {variant.mrp > variant.sellingPrice && (
-                              <Text style={styles.variantMrp}>₹{variant.mrp}</Text>
+                            <Text style={styles.variantSellingPrice}>
+                              {"\u20B9"}{vSellingPrice}
+                            </Text>
+                            {vMrp > vSellingPrice && (
+                              <Text style={styles.variantMrp}>{"\u20B9"}{vMrp}</Text>
                             )}
                           </View>
                         </View>
-                        
+
                         <View style={styles.variantAction}>
                           {!variantCartItem ? (
                             <Pressable
@@ -193,7 +375,10 @@ const ProductCard = ({ product }: any) => {
                               onPress={() => {
                                 addToCart(product, variant);
                                 if (Platform.OS === "android") {
-                                  ToastAndroid.show(`${variant.variantName} added`, ToastAndroid.SHORT);
+                                  ToastAndroid.show(
+                                    `${variant.variantName} added`,
+                                    ToastAndroid.SHORT
+                                  );
                                 }
                               }}
                             >
@@ -215,8 +400,8 @@ const ProductCard = ({ product }: any) => {
                 </ScrollView>
               </View>
             </TouchableWithoutFeedback>
-          </View>
-        </Pressable>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -237,7 +422,7 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1,
     borderRadius: scale(8),
-    backgroundColor: "#fff", // White background like Zepto
+    backgroundColor: "#fff",
     overflow: "hidden",
     position: "relative",
     justifyContent: "center",
@@ -245,8 +430,8 @@ const styles = StyleSheet.create({
     padding: scale(2),
   },
   image: {
-    width: "100%", // Full width
-    height: "100%", // Full height
+    width: "100%",
+    height: "100%",
   },
   imagePlaceholder: {
     flex: 1,
@@ -288,7 +473,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    height: scale(38), 
+    height: scale(38),
     marginBottom: scale(2),
   },
   weightText: {
@@ -305,7 +490,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addBtn: {
-    backgroundColor: "#FFFfff",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#0C831F",
     borderRadius: scale(6),
@@ -355,11 +540,19 @@ const styles = StyleSheet.create({
     color: "#888",
     textDecorationLine: "line-through",
   },
-  discountText: {
+  discountBadge: {
+    backgroundColor: "#EFF6FF",
+    alignSelf: "flex-start",
+    paddingHorizontal: scale(4),
+    paddingVertical: scale(2),
+    borderRadius: scale(4),
+    marginTop: scale(2),
+    marginBottom: scale(2),
+  },
+  discountBadgeText: {
     fontSize: scale(9),
     color: "#256fef",
     fontWeight: "800",
-    marginTop: scale(1),
   },
   name: {
     fontSize: scale(11),
@@ -368,26 +561,23 @@ const styles = StyleSheet.create({
     marginTop: scale(4),
     lineHeight: scale(14),
   },
-  ratingRow: {
+  qtyBadge: {
     flexDirection: "row",
     alignItems: "center",
+    gap: scale(3),
     marginTop: scale(4),
+    backgroundColor: "#f0fdf4",
+    alignSelf: "flex-start",
+    paddingHorizontal: scale(6),
+    paddingVertical: scale(2),
+    borderRadius: scale(4),
+    borderWidth: 0.5,
+    borderColor: "#bbf7d0",
   },
-  ratingStars: {
-    fontSize: scale(8),
-    letterSpacing: -1,
-  },
-  ratingCount: {
-    fontSize: scale(8),
-    color: "#777",
-  },
-  timeRow: {
-    marginTop: scale(2),
-  },
-  timeText: {
+  qtyBadgeText: {
     fontSize: scale(9),
-    color: "#555",
-    fontWeight: "600",
+    color: "#0C831F",
+    fontWeight: "700",
   },
   footerPill: {
     marginTop: scale(6),
@@ -404,50 +594,120 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(10, 20, 15, 0.6)",
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: scale(20),
-    borderTopRightRadius: scale(20),
-    maxHeight: "60%",
+    backgroundColor: "#F9FAFB",
+    borderTopLeftRadius: scale(24),
+    borderTopRightRadius: scale(24),
+    maxHeight: "85%",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: -2 },
+    shadowRadius: 10,
+  },
+  pullBar: {
+    width: scale(40),
+    height: scale(5),
+    backgroundColor: "#D1D5DB",
+    borderRadius: scale(3),
+    alignSelf: "center",
+    marginBottom: scale(16),
   },
   modalInner: {
     padding: scale(20),
+    paddingTop: scale(12),
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: scale(15),
+    marginBottom: scale(20),
   },
   modalTitle: {
     fontSize: scale(18),
     fontWeight: "800",
-    color: "#111",
+    color: "#111827",
+  },
+  modalSubtitle: {
+    fontSize: scale(12),
+    color: "#6B7280",
+    marginTop: scale(2),
+    maxWidth: scale(250),
   },
   closeModalBtn: {
     padding: scale(4),
+    marginTop: scale(-10),
   },
   modalScroll: {
-    marginBottom: scale(20),
+    paddingBottom: scale(40),
   },
   variantRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: scale(14),
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    backgroundColor: "#FFFFFF",
+    borderRadius: scale(16),
+    padding: scale(12),
+    marginBottom: scale(12),
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.02,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+  },
+  variantRowSelected: {
+    borderColor: "#0A8754",
+    backgroundColor: "#F0FDF4",
+  },
+  variantImageWrapper: {
+    position: "relative",
+    width: scale(64),
+    height: scale(64),
+    borderRadius: scale(12),
+    backgroundColor: "#F9FAFB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: scale(12),
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  variantImage: {
+    width: "80%",
+    height: "80%",
+  },
+  variantDiscountBadge: {
+    position: "absolute",
+    top: scale(-6),
+    left: scale(4),
+    backgroundColor: "#256fef",
+    paddingHorizontal: scale(4),
+    paddingVertical: scale(2),
+    borderRadius: scale(4),
+  },
+  variantDiscountText: {
+    color: "#FFFFFF",
+    fontSize: scale(8),
+    fontWeight: "800",
   },
   variantDetails: {
     flex: 1,
+    justifyContent: "center",
   },
   variantName: {
-    fontSize: scale(14),
+    fontSize: scale(13),
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: scale(2),
+  },
+  variantQtyLabel: {
+    fontSize: scale(11),
+    color: "#6B7280",
     fontWeight: "600",
-    color: "#333",
     marginBottom: scale(4),
   },
   variantPriceRow: {
@@ -456,13 +716,13 @@ const styles = StyleSheet.create({
     gap: scale(6),
   },
   variantSellingPrice: {
-    fontSize: scale(14),
+    fontSize: scale(15),
     fontWeight: "800",
-    color: "#111",
+    color: "#111827",
   },
   variantMrp: {
-    fontSize: scale(12),
-    color: "#888",
+    fontSize: scale(11),
+    color: "#9CA3AF",
     textDecorationLine: "line-through",
   },
   variantAction: {
@@ -470,21 +730,25 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   variantAddBtn: {
-    backgroundColor: "#ecfceb",
+    backgroundColor: "#F0FDF4",
     borderWidth: 1,
-    borderColor: "#0C831F",
+    borderColor: "#0A8754",
     borderRadius: scale(8),
-    paddingHorizontal: scale(16),
+    paddingHorizontal: scale(20),
     paddingVertical: scale(8),
     alignItems: "center",
+    shadowColor: "#0A8754",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 1,
   },
   variantAddText: {
-    color: "#0C831F",
+    color: "#0A8754",
     fontWeight: "800",
     fontSize: scale(12),
   },
   variantQuantityBox: {
-    transform: [{ scale: 0.9 }],
-    transformOrigin: "right center",
+    transform: [{ scale: 1 }],
   },
 });

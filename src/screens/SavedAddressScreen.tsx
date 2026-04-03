@@ -51,7 +51,7 @@ const SavedAddressScreen = () => {
     }
     setIsLoading(true);
     try {
-      const data = await AddressAPI.getAddresses(jwtToken);
+      const data = await AddressAPI.getAddresses(jwtToken, user?.customerId);
       setAddresses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading addresses:", error);
@@ -144,7 +144,21 @@ const SavedAddressScreen = () => {
   const handleSetDefault = async (id: number | string) => {
     if (!jwtToken) return;
     try {
-      const success = await AddressAPI.updateAddress(jwtToken, id, { isDefault: true });
+      const existingAddress = addresses.find(a => a.id === id);
+      if (!existingAddress) return;
+
+      const payload = {
+        addressType: existingAddress.addressType || "Home",
+        addressLine1: existingAddress.addressLine1 || "",
+        addressLine2: existingAddress.addressLine2 || "",
+        landmark: existingAddress.landmark || "",
+        city: existingAddress.city || "",
+        state: existingAddress.state || "",
+        postalCode: existingAddress.postalCode || "",
+        isDefault: true,
+      };
+
+      const success = await AddressAPI.updateAddress(jwtToken, id, payload);
       if (success) {
         fetchAddresses();
       } else {
@@ -209,8 +223,13 @@ const SavedAddressScreen = () => {
   };
 
   const handleSaveBtn = async () => {
-    if (!newAddressLine1.trim() || !newCity.trim()) {
-      Alert.alert("Missing Details", "Please fill at least address and city.");
+    if (!newAddressLine1.trim() || !newCity.trim() || !newState.trim() || !newPostalCode.trim()) {
+      Alert.alert("Missing Details", "Please fill all required fields: Address, City, State, and Pincode.");
+      return;
+    }
+
+    if (newPostalCode.trim().length < 6) {
+      Alert.alert("Invalid Pincode", "Please enter a valid 6-digit postal code.");
       return;
     }
 
@@ -221,7 +240,7 @@ const SavedAddressScreen = () => {
     setIsSaving(true);
     try {
       const payload = {
-        addressType: newTag,
+        addressType: newTag.toUpperCase(),
         addressLine1: newAddressLine1.trim(),
         addressLine2: newAddressLine2.trim(),
         landmark: newLandmark.trim(),
@@ -394,7 +413,7 @@ const SavedAddressScreen = () => {
              </View>
 
              <View style={styles.formGroup}>
-               <Text style={styles.label}>State</Text>
+               <Text style={styles.label}>State *</Text>
                <TextInput 
                  style={styles.input} 
                  placeholder="State" 
@@ -405,7 +424,7 @@ const SavedAddressScreen = () => {
              </View>
 
              <View style={styles.formGroup}>
-               <Text style={styles.label}>Postal Code</Text>
+               <Text style={styles.label}>Postal Code *</Text>
                <TextInput 
                  style={styles.input} 
                  placeholder="Pincode" 

@@ -97,10 +97,16 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
 
 /* ─── Navigator ─── */
 const BottomTabs = () => {
+  const { onScrollDown } = useTabBar();
+
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
+      screenListeners={{
+        // Reset tab bar to visible every time ANY tab gains focus
+        focus: () => onScrollDown(),
+      }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Categories" component={CategoriesScreen} />

@@ -12,6 +12,9 @@ import {
 } from "react-native";
 import { scale, screenWidth } from "../utils/responsive";
 
+const BANNER_WIDTH = screenWidth - scale(28); // 14 padding on each side
+const BANNER_HEIGHT = BANNER_WIDTH / 2; // 2:1 Aspect Ratio (e.g., 1080x540)
+
 const BannerCarousel = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +56,7 @@ const BannerCarousel = () => {
 
   if (loading && banners.length === 0) {
     return (
-      <View style={[styles.bannerContainer, { height: scale(175), justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.bannerContainer, { height: BANNER_HEIGHT, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator color="#0A8754" />
       </View>
     );
@@ -61,7 +64,7 @@ const BannerCarousel = () => {
 
   if (banners.length === 0) {
     return (
-      <View style={[styles.bannerContainer, { height: scale(175), backgroundColor: "#E9F5F0", justifyContent: "center", alignItems: "center" }]}>
+      <View style={[styles.bannerContainer, { height: BANNER_HEIGHT, backgroundColor: "#E9F5F0", justifyContent: "center", alignItems: "center" }]}>
         <Text style={{ marginTop: scale(8), color: "#0A8754", fontWeight: "700", fontSize: scale(16) }}>Exciting Offers Coming Soon!</Text>
       </View>
     );
@@ -125,8 +128,8 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: scale(175),
-    borderRadius: scale(20),
+    height: BANNER_HEIGHT,
+    borderRadius: scale(16),
   },
   pagination: {
     flexDirection: "row",

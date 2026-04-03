@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
-import { getProfile } from "../services/api/profile";
+import { getWalletBalance } from "../services/api/wallet";
 
 export type WalletContextType = {
     balance: number;
@@ -20,7 +20,7 @@ const BALANCE_KEY = "@wallet_balance";
 const POINTS_KEY = "@wallet_points";
 
 export const WalletProvider = ({ children }: any) => {
-    const { jwtToken } = useAuth();
+    const { jwtToken, user } = useAuth();
     const [balance, setBalance] = useState(0); // Wallet disabled - no balance
     const [points, setPoints] = useState(120); // Default points
     const [loading, setLoading] = useState(true);
@@ -32,13 +32,11 @@ export const WalletProvider = ({ children }: any) => {
     const fetchLiveBalance = async () => {
         if (!jwtToken) return;
         try {
-            const profile = await getProfile(jwtToken);
-            if (profile) {
-                // If backend returns wallet info, use it. Otherwise, rely on local state.
-                const liveBalance = profile.walletBalance ?? profile.balance ?? profile.wallet;
-                if (liveBalance !== undefined && liveBalance !== null) {
-                    setBalance(Number(liveBalance));
-                    saveData(Number(liveBalance), points);
+            if (user?.customerId) {
+                const liveBalance = await getWalletBalance(jwtToken, user.customerId);
+                if (liveBalance && liveBalance.balance !== undefined) {
+                    setBalance(Number(liveBalance.balance));
+                    saveData(Number(liveBalance.balance), points);
                 }
             }
         } catch (error) {

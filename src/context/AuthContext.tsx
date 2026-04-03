@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import auth from "@react-native-firebase/auth";
+import * as SecureStore from "expo-secure-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type UserType = {
@@ -24,12 +25,30 @@ export const AuthProvider = ({ children }: any) => {
   const [jwtToken, setJwtToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load from AsyncStorage explicitly on mount
+  // Load from SecureStore explicitly on mount
   useEffect(() => {
     const checkPersistentSession = async () => {
       try {
-        const storedUser = await AsyncStorage.getItem("@Anusha:UserProfile");
-        const storedToken = await AsyncStorage.getItem("@Anusha:jwtToken");
+        const storedUser = await SecureStore.getItemAsync("Anusha_UserProfile");
+        const storedToken = await SecureStore.getItemAsync("Anusha_jwtToken");
+        
+        // Backwards compatibility migration from AsyncStorage
+        if (!storedUser || !storedToken) {
+          const oldUser = await AsyncStorage.getItem("@Anusha:UserProfile");
+          const oldToken = await AsyncStorage.getItem("@Anusha:jwtToken");
+          
+          if (oldUser && oldToken) {
+            await SecureStore.setItemAsync("Anusha_UserProfile", oldUser);
+            await SecureStore.setItemAsync("Anusha_jwtToken", oldToken);
+            setUser(JSON.parse(oldUser));
+            setJwtToken(oldToken);
+            
+            await AsyncStorage.removeItem("@Anusha:UserProfile");
+            await AsyncStorage.removeItem("@Anusha:jwtToken");
+            return;
+          }
+        }
+        
         if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
@@ -37,7 +56,7 @@ export const AuthProvider = ({ children }: any) => {
           setJwtToken(storedToken);
         }
       } catch (error) {
-        console.log("AsyncStorage error reading session:", error);
+        console.log("SecureStore error reading session:", error);
       } finally {
         setLoading(false);
       }
@@ -49,11 +68,10 @@ export const AuthProvider = ({ children }: any) => {
     const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
         // We defer to whatever was passed through `login()` since Firebase doesn't always have `displayName`,
-        // but if they re-open the app, AsyncStorage handles the main state load above.
+        // but if they re-open the app, SecureStore handles the main state load above.
         // We only use this listener to keep Firebase tokens alive.
       } else {
         // Only explicitly set user to null if Firebase says we are signed out
-        // AND we want to sync the states.
       }
     });
 
@@ -62,8 +80,8 @@ export const AuthProvider = ({ children }: any) => {
 
   const login = async (userData: UserType, token: string) => {
     try {
-      await AsyncStorage.setItem("@Anusha:UserProfile", JSON.stringify(userData));
-      await AsyncStorage.setItem("@Anusha:jwtToken", token);
+      await SecureStore.setItemAsync("Anusha_UserProfile", JSON.stringify(userData));
+      await SecureStore.setItemAsync("Anusha_jwtToken", token);
       setUser(userData);
       setJwtToken(token);
     } catch(e) {
@@ -74,8 +92,8 @@ export const AuthProvider = ({ children }: any) => {
   const logout = async () => {
     try {
       await auth().signOut();
-      await AsyncStorage.removeItem("@Anusha:UserProfile");
-      await AsyncStorage.removeItem("@Anusha:jwtToken");
+      await SecureStore.deleteItemAsync("Anusha_UserProfile");
+      await SecureStore.deleteItemAsync("Anusha_jwtToken");
     } catch (error) {
       console.log("Logout error:", error);
     }

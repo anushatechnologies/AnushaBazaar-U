@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,12 +13,13 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getProducts, getTrendingProducts } from "../services/api/products";
 import { getOrders, getRecentProducts } from "../services/api/orders";
 import { useAuth } from "../context/AuthContext";
 import FloatingCart from "../components/FloatingCart";
+import { useTabBar } from "../context/TabBarContext";
 import { scale } from "../utils/responsive";
 
 /* ─── Shared Add Button ──────────────────────────────────── */
@@ -27,7 +28,14 @@ import { useCart } from "../context/CartContext";
 const AddButton = ({ item }: { item: any }) => {
   const navigation = useNavigation<any>();
   const { cart, addToCart, increaseQty, decreaseQty } = useCart();
-  const cartItem = cart.find((i) => i.id === item.id);
+  
+  const cartLookupId = item?.productVariants?.[0]?.id
+    ? String(item.productVariants[0].id)
+    : String(item?.variantId || item?.id || "");
+
+  const cartItem = cart.find(
+    (i) => i.id === cartLookupId || String(i.variantId) === cartLookupId
+  );
 
   if (!cartItem) {
     return (
@@ -56,14 +64,14 @@ const AddButton = ({ item }: { item: any }) => {
     <View style={styles.qtyContainer}>
       <TouchableOpacity 
         style={styles.qtyBtnBox}
-        onPress={() => decreaseQty(item.id)}
+        onPress={() => decreaseQty(cartItem.id)}
       >
         <Ionicons name="remove" size={scale(16)} color="#0A8754" />
       </TouchableOpacity>
       <Text style={styles.qtyText}>{cartItem.quantity}</Text>
       <TouchableOpacity 
         style={styles.qtyBtnBox}
-        onPress={() => increaseQty(item.id)}
+        onPress={() => increaseQty(cartItem.id)}
       >
         <Ionicons name="add" size={scale(16)} color="#0A8754" />
       </TouchableOpacity>
@@ -74,7 +82,8 @@ const AddButton = ({ item }: { item: any }) => {
 /* ─── Re-order horizontal card ──────────────────────────── */
 const ReorderCard = ({ item }: { item: any }) => {
   const imageUrl = item.image || item.imageUrl || item.image_url || item.thumbnail || item.productImage || item.product_image || item.thumb;
-  const price = item.price ?? item.sellingPrice ?? 0;
+  const price = item.sellingPrice ?? item.price ?? 0;
+  const mrp = item.mrp ?? item.originalPrice ?? price;
 
   return (
     <View style={styles.card}>
@@ -103,8 +112,8 @@ const ReorderCard = ({ item }: { item: any }) => {
 /* ─── Trending / bestseller vertical card ───────────────── */
 const TrendCard = ({ item, badge }: { item: any; badge?: string }) => {
   const imageUrl = item.image || item.imageUrl || item.image_url || item.thumbnail || item.productImage || item.product_image || item.thumb;
-  const price = item.price ?? item.sellingPrice ?? 0;
-  const mrp = item.mrp ?? item.originalPrice ?? 0;
+  const price = item.sellingPrice ?? item.price ?? 0;
+  const mrp = item.mrp ?? item.originalPrice ?? price;
   const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
   return (
@@ -163,6 +172,23 @@ const OrderAgainScreen = () => {
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const lastScrollY = useRef(0);
+  const { onScrollUp, onScrollDown } = useTabBar();
+
+  // Reset tab bar to visible every time this screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      lastScrollY.current = 0;
+      onScrollDown();
+    }, [onScrollDown])
+  );
+
+  const handleScroll = (e: any) => {
+    const currentY = e.nativeEvent.contentOffset.y;
+    if (currentY > 10 && currentY > lastScrollY.current + 5) onScrollUp();
+    else if (currentY < lastScrollY.current - 5 || currentY <= 0) onScrollDown();
+    lastScrollY.current = currentY;
+  };
 
   useEffect(() => { 
     loadRecommendations(); 
@@ -184,7 +210,9 @@ const OrderAgainScreen = () => {
         // If the API returns variants, use the first one or a default
         variantId: p.variants?.[0]?.id || p.variantId || p.id,
         name: p.name || p.productName || "Product",
-        price: p.variants?.[0]?.price || p.price || 0,
+        price: p.variants?.[0]?.sellingPrice || p.sellingPrice || p.variants?.[0]?.price || p.price || 0,
+        sellingPrice: p.variants?.[0]?.sellingPrice || p.sellingPrice || undefined,
+        mrp: p.variants?.[0]?.mrp || p.mrp || undefined,
         unit: p.variants?.[0]?.unitName || p.unit || "",
         image: p.imageUrl || p.image || "https://via.placeholder.com/150"
       }));
@@ -278,6 +306,8 @@ const OrderAgainScreen = () => {
         keyExtractor={item => item.key}
         renderItem={() => null}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListHeaderComponent={() => (
           <View style={{ paddingBottom: scale(120) }}>
             {/* ══ Past Orders ══ */}

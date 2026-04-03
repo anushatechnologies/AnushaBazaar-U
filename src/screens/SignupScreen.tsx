@@ -47,15 +47,12 @@ const SignupScreen = () => {
 
     setLoading(true);
     try {
-      if (auth().currentUser) {
-        try {
-          await auth().signOut();
-        } catch (signOutError) {
-          console.log("Firebase sign out before OTP request failed:", signOutError);
-        }
-      }
+      // NOTE: Do NOT call auth().signOut() here!\n      // For new phone numbers, Firebase needs the Play Integrity/SafetyNet \n      // verification token intact. Calling signOut() destroys it and \n      // causes SMS delivery to silently fail for unregistered numbers.
 
+      console.log("[Signup] Sending OTP to +91" + normalizedPhone);
       const confirmation = await auth().signInWithPhoneNumber(`+91${normalizedPhone}`);
+      console.log("[Signup] OTP sent, verificationId:", confirmation.verificationId ? "received" : "missing");
+      
       setLoading(false);
       
       navigation.navigate("Otp", {
@@ -63,12 +60,28 @@ const SignupScreen = () => {
         verificationId: confirmation.verificationId,
         signupData: {
           name: name.trim(),
-          email: email.trim(),
+          email: email.trim() || undefined,
         },
       });
     } catch (error: any) {
       setLoading(false);
-      Alert.alert("Error", error?.message || "Something went wrong");
+      console.error("[Signup] OTP error:", error?.code, error?.message);
+
+      let errorMessage = "Could not send OTP. Please try again.";
+
+      if (error?.code === "auth/too-many-requests") {
+        errorMessage = "Too many attempts. Please wait a few minutes and try again.";
+      } else if (error?.code === "auth/invalid-phone-number") {
+        errorMessage = "The phone number format is invalid. Please check and try again.";
+      } else if (error?.code === "auth/quota-exceeded") {
+        errorMessage = "SMS quota exceeded. Please try again later.";
+      } else if (error?.code === "auth/network-request-failed") {
+        errorMessage = "Network error. Please check your internet connection.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert("Error", errorMessage);
     }
   };
 
@@ -122,14 +135,20 @@ const SignupScreen = () => {
               style={styles.input}
             />
 
-            <TextInput
-              placeholder="Phone Number"
-              keyboardType="number-pad"
-              maxLength={10}
-              value={phone}
-              onChangeText={(value) => setPhone(value.replace(/\D/g, "").slice(0, 10))}
-              style={styles.input}
-            />
+            <View style={styles.phoneInputContainer}>
+              <View style={styles.countryCodeContainer}>
+                <Text style={styles.countryCodeText}>+91</Text>
+              </View>
+              <TextInput
+                placeholder="Phone Number"
+                placeholderTextColor="#94a3b8"
+                keyboardType="number-pad"
+                maxLength={10}
+                value={phone}
+                onChangeText={(value) => setPhone(value.replace(/\D/g, "").slice(0, 10))}
+                style={styles.phoneInput}
+              />
+            </View>
 
             <Pressable
               style={({ pressed }) => [
@@ -261,6 +280,34 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1E293B",
     marginBottom: scale(16),
+  },
+  phoneInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: scale(18),
+    borderWidth: 1.5,
+    borderColor: "#F1F5F9",
+    marginBottom: scale(16),
+  },
+  countryCodeContainer: {
+    paddingHorizontal: scale(16),
+    justifyContent: "center",
+    borderRightWidth: 1.5,
+    borderRightColor: "#F1F5F9",
+  },
+  countryCodeText: {
+    fontSize: scale(16),
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  phoneInput: {
+    flex: 1,
+    paddingVertical: scale(14),
+    paddingHorizontal: scale(16),
+    fontSize: scale(16),
+    fontWeight: "600",
+    color: "#1E293B",
   },
   primaryButton: {
     backgroundColor: "#0A8754",

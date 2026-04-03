@@ -20,16 +20,17 @@ import ProductCard from "../components/ProductCard";
 import { getSubcategoriesByCategory } from "../services/api/subcategories";
 import { filterProducts } from "../services/api/products";
 import FloatingCart from "../components/FloatingCart";
+import SearchBar from "../components/SearchBar";
 import { scale } from "../utils/responsive";
 
 const CategoryProductsScreen = ({ route }: any) => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { category } = route.params;
+  const { category, initialSubCategoryId } = route.params || {};
   const categoryId = category?.id || category?._id;
 
   const [subcategories, setSubCategories] = useState<any[]>([]);
-  const [selectedSubId, setSelectedSubId] = useState<string | number>("all");
+  const [selectedSubId, setSelectedSubId] = useState<string | number>(initialSubCategoryId || "all");
 
   const [products, setProducts] = useState<any[]>([]);
   const [displayed, setDisplayed] = useState<any[]>([]);
@@ -39,9 +40,7 @@ const CategoryProductsScreen = ({ route }: any) => {
   const [priceRange, setPrice] = useState(PRICE_RANGES[0]);
 
   // Search state
-  const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const searchInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     loadSubcategories();
@@ -96,15 +95,15 @@ const CategoryProductsScreen = ({ route }: any) => {
 
     if (range.max > 0) {
       result = result.filter(p => {
-        const price = p.price ?? p.sellingPrice ?? 0;
+        const price = p.sellingPrice ?? p.price ?? 0;
         return price >= range.min && price <= range.max;
       });
     } else if (range.min > 0) {
-      result = result.filter(p => (p.price ?? p.sellingPrice ?? 0) >= range.min);
+      result = result.filter(p => (p.sellingPrice ?? p.price ?? 0) >= range.min);
     }
 
-    if (sort === "price_asc") result.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    if (sort === "price_desc") result.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    if (sort === "price_asc") result.sort((a, b) => (a.sellingPrice ?? a.price ?? 0) - (b.sellingPrice ?? b.price ?? 0));
+    if (sort === "price_desc") result.sort((a, b) => (b.sellingPrice ?? b.price ?? 0) - (a.sellingPrice ?? a.price ?? 0));
     if (sort === "name_asc") result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
     setDisplayed(result);
@@ -118,17 +117,6 @@ const CategoryProductsScreen = ({ route }: any) => {
   const handlePrice = (r: typeof PRICE_RANGES[0]) => {
     setPrice(r);
     applyFilters(sortBy, r, products);
-  };
-
-  const toggleSearch = () => {
-    if (isSearching) {
-      setSearchQuery("");
-      setIsSearching(false);
-      Keyboard.dismiss();
-    } else {
-      setIsSearching(true);
-      setTimeout(() => searchInputRef.current?.focus(), 100);
-    }
   };
 
   const renderProductItem = ({ item }: any) => {
@@ -148,7 +136,6 @@ const CategoryProductsScreen = ({ route }: any) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f9fdfb" }}>
-      {/* ─── Custom TopBar with Inline Search ─── */}
       <View style={[styles.topBar, { paddingTop: Math.max(insets.top, scale(12)) }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -158,35 +145,15 @@ const CategoryProductsScreen = ({ route }: any) => {
           <Ionicons name="arrow-back" size={scale(24)} color="#111" />
         </TouchableOpacity>
 
-        {isSearching ? (
-          <View style={styles.searchInputBox}>
-            <Ionicons name="search" size={scale(18)} color="#9CA3AF" />
-            <TextInput
-              ref={searchInputRef}
-              style={styles.searchInput}
-              placeholder="Search in this category..."
-              placeholderTextColor="#9CA3AF"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-              onSubmitEditing={() => Keyboard.dismiss()}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={scale(18)} color="#D1D5DB" />
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <Text style={styles.topBarTitle} numberOfLines={1}>
-            {category?.name || "Category"}
-          </Text>
-        )}
-
-        <TouchableOpacity onPress={toggleSearch} style={styles.searchIconBtn} activeOpacity={0.7}>
-          <Ionicons name={isSearching ? "close" : "search-outline"} size={scale(22)} color="#111" />
-        </TouchableOpacity>
+        <Text style={styles.topBarTitle} numberOfLines={1}>
+          {category?.name || "Category"}
+        </Text>
       </View>
+
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
 
       <ProductFilterBar
         activeSort={sortBy}
@@ -313,32 +280,6 @@ const styles = StyleSheet.create({
     color: "#111",
     letterSpacing: scale(-0.5),
   },
-  searchInputBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: scale(12),
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(8),
-    gap: scale(8),
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: scale(15),
-    fontWeight: "500",
-    color: "#111827",
-    padding: 0,
-  },
-  searchIconBtn: {
-    width: scale(40),
-    height: scale(40),
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: scale(20),
-    backgroundColor: "#F9FAFB",
-    marginLeft: scale(8),
-  },
 
   container: {
     flex: 1,
@@ -346,7 +287,7 @@ const styles = StyleSheet.create({
   },
 
   sidebar: {
-    width: scale(85),
+    width: scale(95),
     backgroundColor: "#fff",
     borderRightWidth: 1,
     borderRightColor: "#eee",
@@ -366,24 +307,24 @@ const styles = StyleSheet.create({
   },
 
   icon: {
-    width: scale(40),
-    height: scale(40),
+    width: scale(54),
+    height: scale(54),
     resizeMode: "contain",
     marginBottom: scale(6),
   },
 
   allIconContainer: {
-    width: scale(40),
-    height: scale(40),
+    width: scale(54),
+    height: scale(54),
     justifyContent: "center",
     alignItems: "center",
     marginBottom: scale(6),
     backgroundColor: "#f5f5f5",
-    borderRadius: scale(20),
+    borderRadius: scale(27),
   },
 
   text: {
-    fontSize: scale(10),
+    fontSize: scale(11.5),
     textAlign: "center",
     color: "#555",
   },

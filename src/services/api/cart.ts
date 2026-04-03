@@ -7,10 +7,10 @@ const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
 
-/** 5.1 GET /api/cart – fetch the current user's cart
- *  Returns: { items: [CartItem] }
+/**
+ * GET /api/cart/{customerId} – fetch a customer's cart
  */
-export const getCart = async (token: string) => {
+export const getCart = async (token: string, _customerId?: number | string) => {
   try {
     const response = await fetchWithTimeout(API_BASE, {
       headers: authHeaders(token),
@@ -19,26 +19,28 @@ export const getCart = async (token: string) => {
       console.error(`[getCart] FAILED ${response.status}: ${API_BASE}`);
       throw new Error(`HTTP ${response.status}`);
     }
-    return await response.json(); // { items: [...] }
+    return await response.json();
   } catch (error) {
     console.error("Error fetching cart:", error);
-    return { items: [] };
+    return null;
   }
 };
 
-/** 5.2 POST /api/cart/items – add an item to cart
- *  Body: { variantId, quantity }
- *  Returns: Updated cart or CartItem
+/**
+ * POST /api/cart/add – add an item to cart
+ * Body: { customerId, productVariationId, quantity }
  */
 export const addCartItem = async (
   token: string,
   variantId: number | string,
   quantity: number = 1,
-  productId?: number | string
+  _customerId?: number | string
 ) => {
   try {
-    const body: any = { variantId: Number(variantId), quantity };
-    if (productId) body.productId = Number(productId);
+    const body = {
+      variantId: Number(variantId),
+      quantity,
+    };
 
     const response = await fetchWithTimeout(`${API_BASE}/items`, {
       method: "POST",
@@ -58,24 +60,30 @@ export const addCartItem = async (
   }
 };
 
-/** 5.3 PUT /api/cart/items/{cartItemId}?quantity={qty} – update quantity
- *  Returns: Updated CartItem
+/**
+ * PUT /api/cart/update-quantity – update item quantity
+ * Body: { customerId, productVariationId, quantity }
  */
 export const updateCartItemQty = async (
   token: string,
-  cartItemId: number | string,
-  quantity: number
+  productVariationId: number | string,
+  quantity: number,
+  customerId?: number | string
 ) => {
   try {
-    const response = await fetchWithTimeout(
-      `${API_BASE}/items/${cartItemId}?quantity=${quantity}`,
-      {
-        method: "PUT",
-        headers: authHeaders(token),
-      }
-    );
+    const body: any = {
+      productVariationId: Number(productVariationId),
+      quantity,
+    };
+    if (customerId) body.customerId = Number(customerId);
+
+    const response = await fetchWithTimeout(`${API_BASE}/update-quantity`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify(body),
+    });
     if (!response.ok) {
-      console.error(`[updateCartItemQty] FAILED ${response.status}: ${API_BASE}/items/${cartItemId}`);
+      console.error(`[updateCartItemQty] FAILED ${response.status}: ${API_BASE}/update-quantity`);
       throw new Error(`HTTP ${response.status}`);
     }
     return await response.json();
@@ -85,15 +93,19 @@ export const updateCartItemQty = async (
   }
 };
 
-/** 5.4 DELETE /api/cart/items/{cartItemId} – remove single item
- *  Returns: 204 No Content
+/**
+ * DELETE /api/cart/remove?customerId=X&productVariationId=Y – remove single item
  */
 export const removeCartItem = async (
   token: string,
-  cartItemId: number | string
+  productVariationId: number | string,
+  customerId?: number | string
 ) => {
   try {
-    const response = await fetchWithTimeout(`${API_BASE}/items/${cartItemId}`, {
+    let url = `${API_BASE}/remove?productVariationId=${productVariationId}`;
+    if (customerId) url += `&customerId=${customerId}`;
+
+    const response = await fetchWithTimeout(url, {
       method: "DELETE",
       headers: authHeaders(token),
     });
@@ -106,10 +118,10 @@ export const removeCartItem = async (
   }
 };
 
-/** 5.5 DELETE /api/cart – clear entire cart
- *  Returns: 204 No Content
+/**
+ * DELETE /api/cart/clear/{customerId} – clear entire cart
  */
-export const clearServerCart = async (token: string) => {
+export const clearServerCart = async (token: string, _customerId?: number | string) => {
   try {
     const response = await fetchWithTimeout(API_BASE, {
       method: "DELETE",
@@ -120,6 +132,25 @@ export const clearServerCart = async (token: string) => {
     return true;
   } catch (error) {
     console.error("Error clearing cart:", error);
+    return false;
+  }
+};
+
+/** POST /api/cart/merge - Merge guest cart */
+export const mergeCart = async (token: string, guestCart: any[]) => {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE}/merge`, {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(guestCart),
+    });
+    if (!response.ok) {
+      console.error(`[mergeCart] FAILED ${response.status}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("Error merging cart:", error);
     return false;
   }
 };

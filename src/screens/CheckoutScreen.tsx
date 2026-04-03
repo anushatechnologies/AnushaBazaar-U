@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,17 +8,23 @@ import {
   ActivityIndicator,
   Image,
   ScrollView,
+  TextInput,
 } from "react-native";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useWallet } from "../context/WalletContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons, MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import { TextInput } from "react-native";
 import { getAddresses, addAddress } from "../services/api/addresses";
 import { placeOrder as placeOrderAPI } from "../services/api/orders";
-import * as CartAPI from "../services/api/cart";
+import { initiateOnlinePayment } from "../services/api/payments";
+import {
+  getEasebuzzResultMessage,
+  isEasebuzzAvailable,
+  isEasebuzzSuccess,
+  startEasebuzzCheckout,
+} from "../services/easebuzz";
 import LoginPromptModal from "../components/LoginPromptModal";
 import { scale } from "../utils/responsive";
 
@@ -50,6 +56,7 @@ const CheckoutScreen = ({ navigation }: any) => {
   const [locating, setLocating] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<string>("COD");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const onlinePaymentAvailable = isEasebuzzAvailable();
 
   // Fetch saved addresses on mount
   useEffect(() => {
@@ -82,11 +89,20 @@ const CheckoutScreen = ({ navigation }: any) => {
   // Auto-fill user details from profile
   useEffect(() => {
     if (user) {
+      let formattedPhone = user.phone || "";
+      if (formattedPhone && !formattedPhone.startsWith("+91")) {
+        formattedPhone = `+91${formattedPhone}`;
+      } else if (!formattedPhone) {
+        formattedPhone = "+91";
+      }
+
       setAddress(prev => ({
         ...prev,
         name: user.name || "",
-        phone: user.phone || ""
+        phone: formattedPhone
       }));
+    } else {
+      setAddress((prev) => ({ ...prev, phone: "+91" }));
     }
   }, [user]);
 
@@ -121,7 +137,7 @@ const CheckoutScreen = ({ navigation }: any) => {
           area: [addr.name, addr.street].filter(Boolean).join(", "),
           landmark: addr.district || "",
         }));
-        Alert.alert("Location Found 📍", "Address fields updated!");
+        Alert.alert("Location Found", "Address fields updated.");
       }
     } catch (error) {
       console.error(error);
@@ -129,6 +145,63 @@ const CheckoutScreen = ({ navigation }: any) => {
     } finally {
       setLocating(false);
     }
+  };
+
+  const calculatePointsEarned = () => Math.floor(total / 100);
+
+  const applyWalletChanges = async () => {
+    const pointsEarned = calculatePointsEarned();
+
+    try {
+      if (usePoints && pointsDiscount > 0) {
+        await spendPoints(pointsDiscount);
+      }
+
+      if (pointsEarned > 0) {
+        await addPoints(pointsEarned);
+      }
+    } catch (walletError) {
+      console.error("Wallet sync warning:", walletError);
+    }
+
+    return pointsEarned;
+  };
+
+  const finalizeSuccessfulOrder = async (
+    orderId: number | string,
+    orderedItems: any[]
+  ) => {
+    const pointsEarned = await applyWalletChanges();
+
+    clearCart();
+    setLoading(false);
+
+    navigation.replace("OrderSuccess", {
+      orderId,
+      totalPaid: total.toFixed(2),
+      pointsEarned,
+      items: orderedItems,
+    });
+  };
+
+  const handleExistingOnlineOrder = (
+    orderId: number | string,
+    title: string,
+    message: string
+  ) => {
+    clearCart();
+    setLoading(false);
+
+    Alert.alert(title, message, [
+      {
+        text: "Track Order",
+        onPress: () => navigation.replace("OrderTracking", { orderId }),
+      },
+      {
+        text: "OK",
+        style: "cancel",
+      },
+    ]);
   };
 
   const placeOrder = async () => {
@@ -153,8 +226,8 @@ const CheckoutScreen = ({ navigation }: any) => {
         return;
       }
 
-      if (address.phone.length < 10) {
-        Alert.alert("Invalid Phone", "Please enter a valid 10-digit mobile number.");
+      if (address.phone.length < 13) {
+        Alert.alert("Invalid Phone", "Please enter a valid 10-digit mobile number starting with +91.");
         return;
       }
     }
@@ -165,15 +238,24 @@ const CheckoutScreen = ({ navigation }: any) => {
       return;
     }
 
+    if (selectedPayment === "ONLINE" && !onlinePaymentAvailable) {
+      Alert.alert(
+        "Online payment setup required",
+        "Install the latest Android build with the Easebuzz SDK to use UPI, cards, and net banking."
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
       let finalAddressId = selectedAddressId;
+      const orderedItems = cart.map((item: any) => ({ ...item }));
 
       // If manual address, save it to server first and get the real ID
       if (useManualAddress) {
         const newAddress = await addAddress(jwtToken, {
-          addressType: address.type.toLowerCase(),
+          addressType: address.type,
           addressLine1: `${address.houseNo}, ${address.area}`,
           addressLine2: "",
           landmark: address.landmark,
@@ -196,50 +278,52 @@ const CheckoutScreen = ({ navigation }: any) => {
       // The DB column 'product_id' cannot be null. We re-upload every cart item
       // with productId right before placing the order to guarantee the DB has it.
       // ────────────────────────────────────────────────────────────────────
-      try {
-        await CartAPI.clearServerCart(jwtToken);
-      } catch (_) { /* ignore clear errors */ }
-
-      for (const item of cart) {
-        const variantId = Number(item.variantId || item.id);
-        const productId = Number(item.productId || item.id);
-        if (!variantId || !productId) {
-          console.warn("[Checkout] Skipping item missing variantId/productId:", item.name);
-          continue;
-        }
-        try {
-          await CartAPI.addCartItem(jwtToken, variantId, item.quantity, productId);
-        } catch (syncErr) {
-          console.warn("[Checkout] Re-sync item failed:", item.name, syncErr);
-        }
-      }
       // ────────────────────────────────────────────────────────────────────
 
       // POST /api/orders – body is ONLY addressId + paymentMethod per API spec
       const orderResult = await placeOrderAPI(jwtToken, finalAddressId!, selectedPayment);
+      const orderId = orderResult?.id || orderResult?.orderId;
 
-      // Handle Points Redemption
-      if (usePoints && pointsDiscount > 0) {
-        await spendPoints(pointsDiscount);
+      if (!orderId) {
+        throw new Error("Order response did not include an order ID.");
       }
 
-      // Handle Points Earning (1 coin per ₹100)
-      const pointsEarned = Math.floor(total / 100);
-      if (pointsEarned > 0) {
-        await addPoints(pointsEarned);
+      if (selectedPayment === "ONLINE") {
+        if (total === 0) {
+          Alert.alert("Invalid Amount", "Your total order amount is zero. Online payments cannot be processed without a valid amount.");
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const paymentInit = await initiateOnlinePayment(jwtToken, orderId);
+          const paymentResult = await startEasebuzzCheckout(paymentInit.access_key);
+
+          if (isEasebuzzSuccess(paymentResult.result)) {
+            await finalizeSuccessfulOrder(orderId, orderedItems);
+            return;
+          }
+
+          handleExistingOnlineOrder(
+            orderId,
+            "Payment not completed",
+            `${getEasebuzzResultMessage(paymentResult.result)} Your order was created, so please check My Orders before trying again.`
+          );
+          return;
+        } catch (paymentError: any) {
+          console.error("Online payment flow error:", paymentError);
+          handleExistingOnlineOrder(
+            orderId,
+            "Payment pending",
+            `${paymentError?.message || "We could not complete the Easebuzz payment flow."} Your order was created, so please verify its latest status in My Orders.`
+          );
+          return;
+        }
       }
 
-      clearCart();
-      setLoading(false);
-      
-      // Navigate to OrderSuccess
-      const orderId = orderResult?.id || orderResult?.orderId || ("AB-" + Math.floor(1000 + Math.random() * 9000));
-      navigation.replace("OrderSuccess", { 
-        orderId, 
-        totalPaid: total.toFixed(2),
-        pointsEarned,
-        items: [...cart]
-      });
+      await finalizeSuccessfulOrder(orderId, orderedItems);
+      return;
+
     } catch (error: any) {
       setLoading(false);
       console.error("Place order error:", error);
@@ -282,13 +366,13 @@ const CheckoutScreen = ({ navigation }: any) => {
                   >
                     <View style={styles.paymentLeft}>
                       <Ionicons
-                        name={(addr.addressType || "home") === "home" ? "home-outline" : (addr.addressType || "") === "work" ? "briefcase-outline" : "location-outline"}
+                        name={String(addr.addressType || "Home").toLowerCase() === "home" ? "home-outline" : String(addr.addressType || "").toLowerCase() === "work" ? "briefcase-outline" : "location-outline"}
                         size={scale(20)}
                         color={isSelected ? "#0A8754" : "#666"}
                       />
                       <View style={{ marginLeft: scale(12), flex: 1 }}>
                         <Text style={[styles.paymentName, isSelected && styles.paymentNameActive]}>
-                          {(addr.addressType || "Home").charAt(0).toUpperCase() + (addr.addressType || "Home").slice(1)}
+                          {String(addr.addressType || "Home").charAt(0).toUpperCase() + String(addr.addressType || "Home").slice(1).toLowerCase()}
                         </Text>
                         <Text style={styles.paymentSub} numberOfLines={2}>{fullAddr}</Text>
                       </View>
@@ -338,11 +422,17 @@ const CheckoutScreen = ({ navigation }: any) => {
                   <Text style={styles.label}>Mobile Number *</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="10-digit number"
+                    placeholder="+91 Mobile number"
                     keyboardType="phone-pad"
-                    maxLength={10}
+                    maxLength={13}
                     value={address.phone}
-                    onChangeText={(t) => updateAddress("phone", t)}
+                    onChangeText={(t) => {
+                      if (!t.startsWith("+91")) {
+                        updateAddress("phone", "+91" + t.replace(/^\+?9?1?/, ""));
+                      } else {
+                        updateAddress("phone", t);
+                      }
+                    }}
                   />
                 </View>
               </View>
@@ -405,7 +495,7 @@ const CheckoutScreen = ({ navigation }: any) => {
                   style={{ alignSelf: "center", marginTop: scale(4) }}
                   onPress={() => setUseManualAddress(false)}
                 >
-                  <Text style={{ color: "#0A8754", fontWeight: "700", fontSize: scale(13) }}>← Use saved address</Text>
+                  <Text style={{ color: "#0A8754", fontWeight: "700", fontSize: scale(13) }}>Use saved address</Text>
                 </Pressable>
               )}
             </>
@@ -417,28 +507,82 @@ const CheckoutScreen = ({ navigation }: any) => {
           <Text style={styles.sectionTitle}>Payment Method</Text>
 
           <View style={styles.paymentOptionsStack}>
-            {/* COD Option - Now the Only Option */}
             <Pressable
-              style={[styles.paymentOption, styles.paymentOptionActive]}
+              style={[
+                styles.paymentOption,
+                selectedPayment === "COD" && styles.paymentOptionActive,
+              ]}
               onPress={() => setSelectedPayment("COD")}
             >
               <View style={styles.paymentLeft}>
-                <Ionicons name="cash-outline" size={scale(20)} color="#0A8754" />
+                <Ionicons
+                  name="cash-outline"
+                  size={scale(20)}
+                  color={selectedPayment === "COD" ? "#0A8754" : "#666"}
+                />
                 <View style={{ marginLeft: scale(12) }}>
-                  <Text style={[styles.paymentName, styles.paymentNameActive]}>Cash on Delivery</Text>
+                  <Text style={[styles.paymentName, selectedPayment === "COD" && styles.paymentNameActive]}>
+                    Cash on Delivery
+                  </Text>
                   <Text style={styles.paymentSub}>Pay at your doorstep</Text>
                 </View>
               </View>
               <Ionicons
-                name="radio-button-on"
+                name={selectedPayment === "COD" ? "radio-button-on" : "radio-button-off"}
                 size={scale(22)}
-                color="#0A8754"
+                color={selectedPayment === "COD" ? "#0A8754" : "#ccc"}
               />
             </Pressable>
-            
+
+            <Pressable
+              style={[
+                styles.paymentOption,
+                selectedPayment === "ONLINE" && styles.paymentOptionActive,
+                !onlinePaymentAvailable && styles.paymentOptionDisabled,
+              ]}
+              onPress={() => {
+                if (!onlinePaymentAvailable) {
+                  Alert.alert(
+                    "Online payment setup required",
+                    "Install the latest Android build with the Easebuzz SDK to use UPI, cards, and net banking."
+                  );
+                  return;
+                }
+
+                setSelectedPayment("ONLINE");
+              }}
+            >
+              <View style={styles.paymentLeft}>
+                <Ionicons
+                  name="card-outline"
+                  size={scale(20)}
+                  color={selectedPayment === "ONLINE" ? "#0A8754" : "#666"}
+                />
+                <View style={{ marginLeft: scale(12), flex: 1 }}>
+                  <Text style={[styles.paymentName, selectedPayment === "ONLINE" && styles.paymentNameActive]}>
+                    Online Payment
+                  </Text>
+                  <Text style={styles.paymentSub}>
+                    {onlinePaymentAvailable
+                      ? "UPI, cards, and net banking via Easebuzz"
+                      : "Requires the latest Android build with native SDK"}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons
+                name={selectedPayment === "ONLINE" ? "radio-button-on" : "radio-button-off"}
+                size={scale(22)}
+                color={selectedPayment === "ONLINE" ? "#0A8754" : "#ccc"}
+              />
+            </Pressable>
+
             <View style={styles.infoAlert}>
               <Ionicons name="information-circle-outline" size={scale(16)} color="#0A8754" />
-              <Text style={styles.infoText}>Online payments are currently disabled</Text>
+              <Text style={styles.infoText}>
+                {onlinePaymentAvailable
+                  ? "Online orders are placed first, then Easebuzz opens securely for payment."
+                  : "Rebuild the Android app after installing these changes to enable Easebuzz online payments."}
+              </Text>
             </View>
           </View>
         </View>
@@ -500,7 +644,7 @@ const CheckoutScreen = ({ navigation }: any) => {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.btnText}>
-              Place Order • ₹{total}
+              {selectedPayment === "ONLINE" ? `Pay Online \u2022 \u20B9${total}` : `Place Order \u2022 \u20B9${total}`}
             </Text>
           )}
         </Pressable>
@@ -678,6 +822,9 @@ const styles = StyleSheet.create({
   paymentOptionActive: {
     borderColor: "#0A8754",
     backgroundColor: "#F4FAF8",
+  },
+  paymentOptionDisabled: {
+    opacity: 0.7,
   },
   paymentLeft: {
     flexDirection: "row",

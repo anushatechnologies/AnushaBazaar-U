@@ -5,6 +5,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../services/api/notifications";
+import AppLoader from "../components/AppLoader";
 
 // Fallback mock if API returns empty or fails
 const FALLBACK_NOTIFS = [
@@ -173,7 +174,7 @@ const NotificationsScreen = () => {
 
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#0A8754" />
+          <AppLoader size="large" />
         </View>
       ) : (
         <FlatList

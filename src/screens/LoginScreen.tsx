@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { checkPhoneExists } from "../services/api/auth";
 import auth from "@react-native-firebase/auth";
+import AppLoader from "../components/AppLoader";
 import { scale } from "../utils/responsive";
 
 const LoginScreen = () => {
@@ -42,24 +43,21 @@ const LoginScreen = () => {
     setLoading(true);
 
     try {
-      // ✅ Check user exists
-      const checkResponse = await checkPhoneExists(normalizedPhone);
+      const { exists } = await checkPhoneExists(normalizedPhone);
 
-      if (!checkResponse.exists) {
+      if (!exists) {
         setLoading(false);
         navigation.navigate("Signup", { phone: normalizedPhone });
         return;
       }
 
-      if (auth().currentUser) {
-        try {
-          await auth().signOut();
-        } catch (signOutError) {
-          console.log("Firebase sign out before OTP request failed:", signOutError);
-        }
+      try {
+        await auth().signOut();
+      } catch (e) {
+        console.log("Silent signout error:", e);
       }
 
-      // Send OTP via Native Firebase
+      // Send OTP via Native Firebase for existing users
       const confirmation = await auth().signInWithPhoneNumber(`+91${normalizedPhone}`);
       
       setLoading(false);
@@ -70,7 +68,7 @@ const LoginScreen = () => {
 
     } catch (error: any) {
       setLoading(false);
-      console.log("Auth Error:", error);
+      console.log("Auth Error:", error?.code, error?.message);
       Alert.alert(
         "Verification Failed",
         error?.message || "Something went wrong. Please try again."
@@ -124,15 +122,20 @@ const LoginScreen = () => {
             </Text>
 
             {/* Phone Input */}
-            <TextInput
-              placeholder="Enter mobile number"
-              placeholderTextColor="#94a3b8"
-              keyboardType="number-pad"
-              maxLength={10}
-              value={phone}
-              onChangeText={(value) => setPhone(value.replace(/\D/g, "").slice(0, 10))}
-              style={styles.input}
-            />
+            <View style={styles.phoneInputContainer}>
+              <View style={styles.countryCodeContainer}>
+                <Text style={styles.countryCodeText}>+91</Text>
+              </View>
+              <TextInput
+                placeholder="Enter mobile number"
+                placeholderTextColor="#94a3b8"
+                keyboardType="number-pad"
+                maxLength={10}
+                value={phone}
+                onChangeText={(value) => setPhone(value.replace(/\D/g, "").slice(0, 10))}
+                style={styles.phoneInput}
+              />
+            </View>
 
             {/* Button */}
             <Pressable
@@ -144,7 +147,7 @@ const LoginScreen = () => {
               disabled={!isValidPhone || loading}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <AppLoader size="small" color="#fff" />
               ) : (
                 <>
                   <Text style={styles.buttonText}>Get OTP</Text>
@@ -266,6 +269,30 @@ const styles = StyleSheet.create({
     padding: scale(14),
     fontSize: scale(16),
     marginBottom: scale(20),
+  },
+  phoneInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: scale(15),
+    marginBottom: scale(20),
+  },
+  countryCodeContainer: {
+    paddingHorizontal: scale(14),
+    justifyContent: "center",
+    borderRightWidth: 1,
+    borderRightColor: "#E2E8F0",
+  },
+  countryCodeText: {
+    fontSize: scale(16),
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  phoneInput: {
+    flex: 1,
+    padding: scale(14),
+    fontSize: scale(16),
+    color: "#0F172A",
   },
   primaryButton: {
     backgroundColor: "#0A8754",

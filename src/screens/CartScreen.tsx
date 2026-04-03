@@ -45,12 +45,12 @@ const CartScreen = () => {
   const [couponInput, setCouponInput] = useState("");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     if (!couponInput.trim()) {
       Alert.alert("Error", "Please enter a coupon code.");
       return;
     }
-    const result = applyCoupon(couponInput);
+    const result = await applyCoupon(couponInput);
     if (result.success) {
       setCouponInput("");
       Alert.alert("Success", result.message);
@@ -73,7 +73,12 @@ const CartScreen = () => {
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
           {item.variantName && <Text style={styles.variantTag}>{item.variantName}</Text>}
-          <Text style={styles.itemPrice}>₹{item.price}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: scale(6) }}>
+            <Text style={styles.itemPrice}>₹{item.price}</Text>
+            {item.mrp && item.mrp > item.price && (
+              <Text style={{ fontSize: scale(11), color: "#9CA3AF", textDecorationLine: "line-through" }}>₹{item.mrp}</Text>
+            )}
+          </View>
         </View>
         <View style={styles.qtyControl}>
           <TouchableOpacity 

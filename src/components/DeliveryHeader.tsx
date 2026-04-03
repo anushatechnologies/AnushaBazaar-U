@@ -42,6 +42,7 @@ const DeliveryHeader = () => {
           <Pressable
             style={styles.walletPill}
             onPress={() => navigation.navigate("Wallet")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <View style={styles.walletIconBox}>
               <Ionicons name="wallet-outline" size={scale(14)} color="#0A8754" />
@@ -55,13 +56,18 @@ const DeliveryHeader = () => {
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={() => navigation.navigate("Notifications")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
           >
             <Ionicons name="notifications-outline" size={scale(22)} color="#333" />
             {unreadCount > 0 && <View style={styles.notifBadge} />}
           </TouchableOpacity>
 
           {/* PROFILE */}
-          <Pressable onPress={() => navigation.navigate("Profile")}>
+          <Pressable
+            onPress={() => navigation.navigate("Profile")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Ionicons name="person-circle" size={scale(38)} color="#333" />
           </Pressable>
         </View>

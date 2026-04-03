@@ -42,8 +42,8 @@ const CategoryTabs = ({ onChange }: any) => {
             >
               <Ionicons
                 name={tab.icon as any}
-                size={16}
-                color={active ? "#fff" : "#444"}
+                size={18}
+                color={active ? "#0A8754" : "#64748B"}
               />
               <Text style={[styles.text, active && styles.activeText]}>
                 {tab.name}
@@ -69,29 +69,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 24,
     marginRight: 10,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
     elevation: 2,
     shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
   },
 
   activeTab: {
-    backgroundColor: "#0A8754",
+    backgroundColor: "#ECFDF5",
+    borderColor: "#0A8754",
   },
 
   text: {
-    marginLeft: 5,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#444",
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#64748B",
   },
 
   activeText: {
-    color: "#fff",
+    color: "#0A8754",
   },
 });

@@ -1,11 +1,24 @@
 import { API_CONFIG, fetchWithTimeout } from "@/config/api.config";
 
 const API_BASE = API_CONFIG.ENDPOINTS.ORDERS;
+const TRACKING_BASE = API_CONFIG.ENDPOINTS.TRACKING;
 
 const authHeaders = (token: string) => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${token}`,
 });
+
+const normalizeOrderList = (payload: any) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.orders)) return payload.orders;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.value)) return payload.value;
+  if (Array.isArray(payload?.result)) return payload.result;
+  if (Array.isArray(payload?.data?.content)) return payload.data.content;
+  if (Array.isArray(payload?.data?.orders)) return payload.data.orders;
+  return [];
+};
 
 export interface OrderCartItem {
   variantId: number | string;
@@ -14,16 +27,20 @@ export interface OrderCartItem {
   unitPrice: number;
 }
 
+/**
+ * POST /api/orders – create a new order
+ * Body includes customerId, addressId, paymentMethod (COD/ONLINE), and items
+ */
 export const placeOrder = async (
   token: string,
   addressId: number | string,
   paymentMethod: string
 ) => {
-  const body = { 
-    addressId: Number(addressId), 
-    paymentMethod 
+  const body = {
+    addressId: Number(addressId),
+    paymentMethod,
   };
-  
+
   const response = await fetchWithTimeout(API_BASE, {
     method: "POST",
     headers: authHeaders(token),
@@ -32,13 +49,21 @@ export const placeOrder = async (
   if (!response.ok) {
     const errorText = await response.text();
     console.error(`[placeOrder] FAILED ${response.status}: ${API_BASE} - ${errorText}`);
-    throw new Error(errorText || `HTTP ${response.status}`);
+
+    if (response.status === 401) {
+      throw new Error("Your session has expired or is unauthorized. Please log out and log in again.");
+    }
+
+    throw new Error(errorText || `Request failed with error code ${response.status}`);
   }
   return await response.json();
 };
 
-/** GET /api/orders – get all orders */
-export const getOrders = async (token: string) => {
+/**
+ * GET /api/orders/customer/{customerId} – get customer's order history
+ * Falls back to GET /api/orders if customerId is not available
+ */
+export const getOrders = async (token: string, _customerId?: number | string) => {
   try {
     const response = await fetchWithTimeout(API_BASE, {
       headers: authHeaders(token),
@@ -48,7 +73,8 @@ export const getOrders = async (token: string) => {
       console.error(`[getOrders] FAILED ${response.status}: ${API_BASE} - ${errorText}`);
       throw new Error(errorText || `HTTP ${response.status}`);
     }
-    return await response.json();
+    const json = await response.json();
+    return normalizeOrderList(json);
   } catch (error) {
     console.error("Error fetching orders:", error);
     return [];
@@ -97,6 +123,25 @@ export const cancelOrder = async (
   } catch (error) {
     console.error(`Error cancelling order ${orderId}:`, error);
     throw error;
+  }
+};
+
+/**
+ * GET /api/tracking/{orderNumber} – get real-time delivery tracking
+ */
+export const getOrderTracking = async (token: string, orderNumber: string) => {
+  try {
+    const response = await fetchWithTimeout(`${TRACKING_BASE}/${orderNumber}`, {
+      headers: authHeaders(token),
+    });
+    if (!response.ok) {
+      console.error(`[getOrderTracking] FAILED ${response.status}: ${TRACKING_BASE}/${orderNumber}`);
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching tracking for ${orderNumber}:`, error);
+    return null;
   }
 };
 

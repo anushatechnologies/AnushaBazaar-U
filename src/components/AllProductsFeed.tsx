@@ -21,6 +21,7 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
     const [loading, setLoading] = useState(true);
     const [sortBy, setSort] = useState<SortOption>("default");
     const [priceRange, setPrice] = useState(PRICE_RANGES[0]);
+    const [displayLimit, setDisplayLimit] = useState(12);
 
     useEffect(() => {
         loadProducts();
@@ -66,19 +67,20 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
         // Price range filter
         if (range.max > 0) {
             result = result.filter(p => {
-                const price = p.price ?? p.sellingPrice ?? 0;
+                const price = p.sellingPrice ?? p.price ?? 0;
                 return price >= range.min && price <= range.max;
             });
         } else if (range.min > 0) {
-            result = result.filter(p => (p.price ?? p.sellingPrice ?? 0) >= range.min);
+            result = result.filter(p => (p.sellingPrice ?? p.price ?? 0) >= range.min);
         }
 
         // Sort
-        if (sort === "price_asc") result.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-        if (sort === "price_desc") result.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+        if (sort === "price_asc") result.sort((a, b) => (a.sellingPrice ?? a.price ?? 0) - (b.sellingPrice ?? b.price ?? 0));
+        if (sort === "price_desc") result.sort((a, b) => (b.sellingPrice ?? b.price ?? 0) - (a.sellingPrice ?? a.price ?? 0));
         if (sort === "name_asc") result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
         setDisplayed(result);
+        setDisplayLimit(12); // Reset count on filter change
     }, []);
 
     if (loading && allProducts.length === 0) {
@@ -117,11 +119,26 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
                 </View>
             ) : (
                 <View style={styles.grid}>
-                    {displayed.map((item, index) => (
-                        <View key={item.id?.toString() || index} style={{ width: "31%", marginBottom: 12 }}>
+                    {displayed.slice(0, displayLimit).map((item, index) => (
+                        <View 
+                            key={item.id?.toString() || index} 
+                            style={{ 
+                                width: "31%", 
+                                marginBottom: 12,
+                                marginLeft: index % 3 !== 0 ? "3.5%" : 0
+                            }}
+                        >
                             <ProductCard product={item} />
                         </View>
                     ))}
+                    {displayLimit < displayed.length && (
+                        <TouchableOpacity 
+                            style={styles.loadMoreBtn} 
+                            onPress={() => setDisplayLimit((prev) => prev + 12)}
+                        >
+                            <Text style={styles.loadMoreText}>Load More</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             )}
         </View>
@@ -145,7 +162,7 @@ const styles = StyleSheet.create({
     grid: {
         flexDirection: "row",
         flexWrap: "wrap",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         paddingHorizontal: 16,
         marginTop: 10,
     },
@@ -168,5 +185,19 @@ const styles = StyleSheet.create({
         color: "#0A8754",
         fontWeight: "700",
         marginTop: 4,
+    },
+    loadMoreBtn: {
+        width: "100%",
+        paddingVertical: 14,
+        marginTop: 10,
+        marginBottom: 20,
+        alignItems: "center",
+        backgroundColor: "#E2F2E9",
+        borderRadius: 12,
+    },
+    loadMoreText: {
+        color: "#0A8754",
+        fontSize: 15,
+        fontWeight: "800",
     },
 });

@@ -11,8 +11,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useCart } from "../context/CartContext";
-import { LinearGradient } from "expo-linear-gradient";
-import { scale, screenWidth } from "../utils/responsive";
+import { scale } from "../utils/responsive";
+import { resolveImageSource } from "../utils/image";
 
 const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
     const navigation = useNavigation<any>();
@@ -20,21 +20,18 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
     const insets = useSafeAreaInsets();
 
     const slideAnim = useRef(new Animated.Value(scale(150))).current;
-    const pulseAnim = useRef(new Animated.Value(1)).current;
 
     // Screens that have bottom tab bar
     const tabScreens = ["Home", "Categories", "Trending", "Order Again"];
     const isTabScreen = currentRoute ? tabScreens.includes(currentRoute) : true;
-    const bottomOffset = isTabScreen ? scale(65) : 0; // 60 (tab bar) + 5 padding
+    const bottomOffset = isTabScreen ? scale(65) : 0;
 
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-    // Get last 3 unique items for thumbnails
-    const thumbnails = cart.slice(-3).reverse();
+    const previewItem = cart.find((item) => item.imageUrl || item.image) || cart[0];
+    const previewImageSource = resolveImageSource(previewItem?.imageUrl || previewItem?.image);
 
     useEffect(() => {
-        // Hide on Cart screen or if empty
         if (totalItems > 0 && currentRoute !== "Cart" && currentRoute !== "Checkout") {
             Animated.spring(slideAnim, {
                 toValue: 0,
@@ -50,7 +47,7 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
                 useNativeDriver: true,
             }).start();
         }
-    }, [totalItems, currentRoute]);
+    }, [currentRoute, slideAnim, totalItems]);
 
     if (totalItems === 0) return null;
 
@@ -69,42 +66,39 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
                 ]}
                 onPress={() => navigation.navigate("Cart")}
             >
-                <LinearGradient
-                    colors={["#0C831F", "#0B6E1A"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.cartGradient}
-                >
+                <View style={styles.cartGradient}>
                     <View style={styles.left}>
-                        {/* Thumbnails stack */}
-                        <View style={styles.thumbStack}>
-                            {thumbnails.map((item, idx) => {
-                                const img = item.imageUrl || item.image;
-                                const source = typeof img === "string" ? { uri: img } : img;
-                                return (
-                                    <View 
-                                        key={item.id} 
-                                        style={[
-                                            styles.thumbCircle, 
-                                            { marginLeft: idx === 0 ? 0 : scale(-20), zIndex: 10 - idx }
-                                        ]}
-                                    >
-                                        <Image source={source} style={styles.thumbImg} resizeMode="contain" />
-                                    </View>
-                                );
-                            })}
+                        <View style={styles.thumbnailWrap}>
+                            {previewImageSource ? (
+                                <Image
+                                    source={previewImageSource as any}
+                                    style={styles.thumbnail}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <View style={styles.thumbnailFallback}>
+                                    <Ionicons name="cart" size={scale(16)} color="#0C831F" />
+                                </View>
+                            )}
+
+                            <View style={styles.countBadge}>
+                                <Text style={styles.countBadgeText}>{totalItems}</Text>
+                            </View>
                         </View>
+
                         <View style={styles.textColumn}>
-                            <Text style={styles.itemsCountText}>{totalItems} items</Text>
-                            <Text style={styles.priceText}>₹{totalPrice.toLocaleString()}</Text>
+                            <Text style={styles.priceText}>{"\u20B9"}{totalPrice.toLocaleString()}</Text>
+                            <Text style={styles.itemText}>
+                                {totalItems} {totalItems > 1 ? "items" : "item"} in cart
+                            </Text>
                         </View>
                     </View>
 
                     <View style={styles.right}>
                         <Text style={styles.viewCart}>View Cart</Text>
-                        <Ionicons name="caret-forward" size={scale(12)} color="#fff" />
+                        <Ionicons name="chevron-forward" size={scale(16)} color="#fff" />
                     </View>
-                </LinearGradient>
+                </View>
             </Pressable>
         </Animated.View>
     );
@@ -122,72 +116,88 @@ const styles = StyleSheet.create({
         zIndex: 9999,
     },
     cartContainer: {
-        width: screenWidth * 0.94,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: scale(4) },
         shadowOpacity: 0.2,
         shadowRadius: scale(8),
         elevation: 10,
+        backgroundColor: "#0C831F",
+        borderRadius: scale(30),
+        alignSelf: "center",
     },
     cartGradient: {
-        height: scale(56),
-        paddingHorizontal: scale(16),
-        borderRadius: scale(12), // More rectangular like Blinkit/Zepto
+        minHeight: scale(56),
+        paddingHorizontal: scale(12),
+        paddingVertical: scale(8),
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
+        justifyContent: "space-between",
+        gap: scale(18),
     },
     left: {
         flexDirection: "row",
         alignItems: "center",
-        flex: 1,
-    },
-    thumbStack: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginRight: scale(12),
-    },
-    thumbCircle: {
-        width: scale(32),
-        height: scale(32),
-        borderRadius: scale(16),
-        backgroundColor: "#fff",
-        borderWidth: 1.5,
-        borderColor: "#0C831F",
-        justifyContent: "center",
-        alignItems: "center",
-        overflow: "hidden",
-    },
-    thumbImg: {
-        width: "90%",
-        height: "90%",
+        flexShrink: 1,
     },
     textColumn: {
         justifyContent: "center",
     },
-    itemsCountText: {
-        color: "#fff",
-        fontSize: scale(11),
-        fontWeight: "600",
-        opacity: 0.9,
+    thumbnailWrap: {
+        position: "relative",
+        marginRight: scale(10),
+    },
+    thumbnail: {
+        width: scale(38),
+        height: scale(38),
+        borderRadius: scale(12),
+        backgroundColor: "#fff",
+    },
+    thumbnailFallback: {
+        width: scale(38),
+        height: scale(38),
+        borderRadius: scale(12),
+        backgroundColor: "#fff",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    countBadge: {
+        position: "absolute",
+        right: scale(-4),
+        bottom: scale(-4),
+        minWidth: scale(18),
+        height: scale(18),
+        paddingHorizontal: scale(4),
+        borderRadius: scale(9),
+        backgroundColor: "#fff",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#DCFCE7",
+    },
+    countBadgeText: {
+        color: "#0C831F",
+        fontWeight: "900",
+        fontSize: scale(9),
     },
     priceText: {
         color: "#fff",
         fontWeight: "800",
-        fontSize: scale(16),
+        fontSize: scale(14),
+    },
+    itemText: {
+        color: "rgba(255,255,255,0.84)",
+        fontWeight: "600",
+        fontSize: scale(11),
+        marginTop: scale(1),
     },
     right: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.05)",
-        paddingVertical: scale(8),
-        paddingHorizontal: scale(12),
-        borderRadius: scale(8),
-        gap: scale(4),
+        gap: scale(2),
     },
     viewCart: {
         color: "#fff",
-        fontWeight: "800",
+        fontWeight: "700",
         fontSize: scale(13),
     },
 });

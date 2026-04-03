@@ -23,16 +23,21 @@ const AddAddressScreen = () => {
 
   const [label, setLabel] = useState("");
   const [address, setAddress] = useState("");
-  // Auto-fill from user profile, assuming user.phone is the 10-digit number
-  const [mobile, setMobile] = useState(user?.phone ? user.phone : "");
+  // Auto-fill phone field correctly with +91 prefix
+  const [mobile, setMobile] = useState(() => {
+    if (user?.phone) {
+      return user.phone.startsWith("+91") ? user.phone : `+91${user.phone}`;
+    }
+    return "+91";
+  });
 
   const saveAddress = () => {
-    if (!label || !address || !mobile) return;
+    if (!label || !address || !mobile || mobile.length < 13) return;
     addAddress({
       id: Date.now().toString(),
       label,
       address,
-      mobile: `+91${mobile}`
+      mobile
     });
     navigation.goBack();
   };
@@ -67,21 +72,22 @@ const AddAddressScreen = () => {
             multiline
           />
 
-          <Text style={styles.labelTitle}>Mobile Number</Text>
-          <View style={styles.phoneInputRow}>
-            <View style={styles.countryBadge}>
-              <Text style={styles.countryText}>🇮🇳 +91</Text>
-            </View>
-            <TextInput
-              placeholder="Mobile Number"
-              placeholderTextColor="#94a3b8"
-              style={styles.phoneInput}
-              keyboardType="number-pad"
-              maxLength={10}
-              value={mobile}
-              onChangeText={setMobile}
-            />
-          </View>
+          <Text style={styles.labelTitle}>Mobile Number *</Text>
+          <TextInput
+            placeholder="+91 Mobile Number"
+            placeholderTextColor="#94a3b8"
+            style={styles.input}
+            keyboardType="phone-pad"
+            maxLength={13} // +91 + 10 digits
+            value={mobile}
+            onChangeText={(text) => {
+              if (!text.startsWith("+91")) {
+                setMobile("+91" + text.replace(/^\+?9?1?/, ""));
+              } else {
+                setMobile(text);
+              }
+            }}
+          />
 
           <Pressable style={styles.btn} onPress={saveAddress}>
             <Text style={styles.btnText}>Save Address</Text>

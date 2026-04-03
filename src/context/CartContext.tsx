@@ -1,16 +1,31 @@
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useWallet } from "./WalletContext";
 import { useAuth } from "./AuthContext";
 import * as CartAPI from "../services/api/cart";
-import { addToWishlistApi, getWishlistApi } from "../services/api/products";
+import {
+  addToWishlistApi,
+  getWishlistApi,
+  mergeWishlistApi,
+  removeFromWishlistApi,
+} from "../services/api/products";
+import { validateCoupon } from "../services/api/coupons";
 import { normalizeImageUrl } from "../utils/image";
+
+const AUTH_CART_STORAGE_KEY = "CART";
+const AUTH_WISHLIST_STORAGE_KEY = "WISHLIST";
+const GUEST_CART_STORAGE_KEY = "GUEST_CART";
+const GUEST_WISHLIST_STORAGE_KEY = "GUEST_WISHLIST";
+const APPLIED_COUPON_STORAGE_KEY = "APPLIED_COUPON";
+const USE_POINTS_STORAGE_KEY = "USE_POINTS";
+const PENDING_GUEST_SYNC_KEY = "PENDING_GUEST_SYNC";
 
 export type Product = {
   id: string;
@@ -20,14 +35,20 @@ export type Product = {
   imageUrl?: string;
   icon?: string;
   unit?: string;
+  quantity?: string | number;
   variantId?: string | number;
   variantName?: string;
+  productVariants?: any[];
+  productId?: number | string;
+  sellingPrice?: number;
+  originalPrice?: number;
+  mrp?: number;
 };
 
 export type CartItem = Product & {
   quantity: number;
-  cartItemId?: number | string; // server-side cart item ID
-  productId?: number | string;  // parent product ID
+  cartItemId?: number | string;
+  productId?: number | string;
 };
 
 type CartContextType = {
@@ -36,28 +57,160 @@ type CartContextType = {
   total: number;
   appliedCoupon: string | null;
   discount: number;
-
   usePoints: boolean;
   setUsePoints: (value: boolean) => void;
   pointsDiscount: number;
-
   addToCart: (product: Product, selectedVariant?: any) => void;
   removeFromCart: (id: string) => void;
   increaseQty: (id: string) => void;
   decreaseQty: (id: string) => void;
   clearCart: () => void;
   refreshCart: () => Promise<void>;
-
-  applyCoupon: (code: string) => { success: boolean; message: string };
+  applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
-
   addToWishlist: (product: Product) => void;
   removeFromWishlist: (id: string) => void;
 };
 
-const CartContext = createContext<CartContextType>(
-  {} as CartContextType
-);
+const CartContext = createContext<CartContextType>({} as CartContextType);
+
+const safeJsonParse = <T,>(value: string | null, fallback: T): T => {
+  if (!value) return fallback;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+const getNormalizedProductImage = (
+  product?: Record<string, any>,
+  variant?: Record<string, any>
+) =>
+  normalizeImageUrl(
+    variant?.imageUrl ||
+      variant?.image ||
+      product?.imageUrl ||
+      product?.image ||
+      product?.thumbnail ||
+      product?.icon ||
+      product?.imageUri
+  ) || undefined;
+
+const readFirstAvailable = async (keys: string[]) => {
+  for (const key of keys) {
+    const value = await AsyncStorage.getItem(key);
+    if (value) return value;
+  }
+
+  return null;
+};
+
+const buildWishlistProduct = (product: any): Product => {
+  const primaryVariant =
+    Array.isArray(product?.productVariants) && product.productVariants.length > 0
+      ? product.productVariants[0]
+      : null;
+
+  const imageUrl =
+    getNormalizedProductImage(product, primaryVariant) ||
+    normalizeImageUrl(product?.thumbnail) ||
+    undefined;
+
+  return {
+    ...product,
+    id: String(product?.id || product?.productId || ""),
+    name: product?.name || product?.productName || "Product",
+    price:
+      primaryVariant?.sellingPrice ??
+      primaryVariant?.price ??
+      product?.price ??
+      0,
+    image: imageUrl || product?.image || null,
+    imageUrl,
+    unit: product?.unit || primaryVariant?.unit,
+    quantity: product?.quantity ?? primaryVariant?.quantity,
+    variantId: product?.variantId ?? primaryVariant?.id,
+    variantName:
+      product?.variantName ??
+      primaryVariant?.variantName ??
+      primaryVariant?.name,
+    productId: product?.productId ?? product?.id,
+  };
+};
+
+/**
+ * Picks the first valid price (> 0, finite number) from a list of candidates.
+ * Unlike ||, this does NOT skip 0 by accident — it explicitly checks each value.
+ */
+const pickValidPrice = (...candidates: any[]): number => {
+  for (const val of candidates) {
+    const num = Number(val);
+    if (num > 0 && Number.isFinite(num)) return num;
+  }
+  return 0;
+};
+
+const mapServerCartItem = (item: any): CartItem => {
+  const normalizedImage =
+    normalizeImageUrl(
+      item?.productImage ||
+        item?.imageUrl ||
+        item?.image ||
+        item?.thumbnail ||
+        item?.product?.imageUrl ||
+        item?.product?.image ||
+        item?.product?.thumbnail ||
+        item?.productVariant?.imageUrl ||
+        item?.productVariant?.image
+    ) || "";
+
+  // The server cart item typically sends:
+  //   unitPrice = the per-unit SELLING price (what customer pays)
+  //   sellingPrice = variant's selling price  
+  //   price = could be MRP or selling price depending on backend
+  //   productVariant.sellingPrice = variant's selling price
+  //   productVariant.price / productVariant.mrp = MRP
+  //
+  // Priority: unitPrice > variant.sellingPrice > item.sellingPrice > product.sellingPrice > price
+  const resolvedPrice = pickValidPrice(
+    item?.unitPrice,
+    item?.productVariant?.sellingPrice,
+    item?.sellingPrice,
+    item?.product?.sellingPrice,
+    item?.price,
+    item?.productVariant?.price,
+    item?.product?.price
+  );
+
+  const resolvedMrp = pickValidPrice(
+    item?.productVariant?.mrp,
+    item?.product?.mrp,
+    item?.productVariant?.price,
+    item?.product?.price,
+    item?.mrp
+  );
+
+  console.log(`[mapServerCartItem] ${item?.productName || item?.name}: unitPrice=${item?.unitPrice}, sellingPrice=${item?.sellingPrice}, variant.sellingPrice=${item?.productVariant?.sellingPrice}, price=${item?.price} → resolved=${resolvedPrice}, mrp=${resolvedMrp}`);
+
+  return {
+    id: String(item?.variantId || item?.productId || item?.id),
+    name: item?.productName || item?.name || "Product",
+    variantName: item?.variantName,
+    price: resolvedPrice,
+    sellingPrice: resolvedPrice,
+    originalPrice: resolvedMrp > resolvedPrice ? resolvedMrp : undefined,
+    mrp: resolvedMrp > resolvedPrice ? resolvedMrp : undefined,
+    image: normalizedImage || null,
+    imageUrl: normalizedImage || undefined,
+    quantity: item?.quantity || 1,
+    variantId: item?.variantId,
+    productId: item?.productId,
+    cartItemId: item?.id,
+    unit: item?.unit,
+  };
+};
 
 export const CartProvider = ({ children }: any) => {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -65,165 +218,304 @@ export const CartProvider = ({ children }: any) => {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discount, setDiscount] = useState<number>(0);
   const [usePoints, setUsePoints] = useState(false);
-  
+  const [storageReady, setStorageReady] = useState(false);
+
   const { points } = useWallet();
-  const { user, jwtToken } = useAuth();
+  const { jwtToken, loading: authLoading, user } = useAuth();
 
-  /* ================= LOAD STORAGE ================= */
+  const hasResolvedAuthRef = useRef(false);
+  const previousTokenRef = useRef<string | null | undefined>(undefined);
 
-  useEffect(() => {
-    loadData();
+  const clearGuestState = useCallback(async () => {
+    await AsyncStorage.multiRemove([
+      GUEST_CART_STORAGE_KEY,
+      GUEST_WISHLIST_STORAGE_KEY,
+      PENDING_GUEST_SYNC_KEY,
+    ]);
   }, []);
 
-  // Sync cart and wishlist from server when user logs in
-  useEffect(() => {
-    if (jwtToken && user?.customerId) {
-      refreshCart();
-      refreshWishlist();
-    }
-  }, [jwtToken, user?.customerId]);
+  const clearAuthCache = useCallback(async () => {
+    await AsyncStorage.multiRemove([
+      AUTH_CART_STORAGE_KEY,
+      AUTH_WISHLIST_STORAGE_KEY,
+    ]);
+  }, []);
 
-  const loadData = async () => {
+  const loadLocalState = useCallback(async (isAuthenticated: boolean) => {
+    setStorageReady(false);
+
     try {
-      const cartData = await AsyncStorage.getItem("CART");
-      const wishlistData = await AsyncStorage.getItem("WISHLIST");
-      const couponCode = await AsyncStorage.getItem("APPLIED_COUPON");
-      const savedUsePoints = await AsyncStorage.getItem("USE_POINTS");
+      const [cartData, wishlistData, couponCode, savedUsePoints] =
+        await Promise.all([
+          readFirstAvailable(
+            isAuthenticated
+              ? [AUTH_CART_STORAGE_KEY]
+              : [GUEST_CART_STORAGE_KEY, AUTH_CART_STORAGE_KEY]
+          ),
+          readFirstAvailable(
+            isAuthenticated
+              ? [AUTH_WISHLIST_STORAGE_KEY]
+              : [GUEST_WISHLIST_STORAGE_KEY, AUTH_WISHLIST_STORAGE_KEY]
+          ),
+          AsyncStorage.getItem(APPLIED_COUPON_STORAGE_KEY),
+          AsyncStorage.getItem(USE_POINTS_STORAGE_KEY),
+        ]);
 
-      if (cartData) setCart(JSON.parse(cartData));
-      if (wishlistData) setWishlist(JSON.parse(wishlistData));
-      if (couponCode) setAppliedCoupon(couponCode);
-      if (savedUsePoints) setUsePoints(JSON.parse(savedUsePoints));
+      setCart(safeJsonParse<CartItem[]>(cartData, []));
+      setWishlist(safeJsonParse<Product[]>(wishlistData, []));
+      setAppliedCoupon(couponCode || null);
+      setUsePoints(safeJsonParse<boolean>(savedUsePoints, false));
     } catch (error) {
-      console.log("Storage Load Error:", error);
+      console.log("Storage load error:", error);
+      setCart([]);
+      setWishlist([]);
+      setAppliedCoupon(null);
+      setUsePoints(false);
+    } finally {
+      setStorageReady(true);
     }
-  };
+  }, []);
 
-  /** Fetch cart from server and sync local state */
   const refreshCart = useCallback(async () => {
     if (!jwtToken) return;
+
     try {
-      const serverCart = await CartAPI.getCart(jwtToken);
-      console.log("[CartSync] Raw Server Cart:", JSON.stringify(serverCart, null, 2));
-      if (serverCart && serverCart.items) {
-        const mapped: CartItem[] = serverCart.items.map((item: any) => {
-          const normalizedImage = normalizeImageUrl(item.productImage) || "";
-          return {
-          // We use variantId as the local unique key for UI consistency,
-          // as each variant is a unique line item in the basket.
-          id: String(item.variantId || item.productId),
-          name: item.productName || "Product",
-          variantName: item.variantName,
-          price: item.unitPrice || item.price || 0,
-          image: normalizedImage || null,
-          imageUrl: normalizedImage || undefined,
-          quantity: item.quantity || 1,
-          variantId: item.variantId,
-          productId: item.productId, // Preserve productId for order consistency
-          cartItemId: item.id, // This is the ID used for PUT/DELETE
-          };
-        });
-        setCart(mapped);
-      }
+      const serverCart = await CartAPI.getCart(jwtToken, user?.customerId);
+      if (!serverCart) return;
+
+      const serverItems = Array.isArray(serverCart)
+        ? serverCart
+        : Array.isArray(serverCart?.items)
+          ? serverCart.items
+          : Array.isArray(serverCart?.data?.items)
+            ? serverCart.data.items
+            : Array.isArray(serverCart?.data)
+              ? serverCart.data
+              : [];
+
+      console.log("[refreshCart] Raw server items:", JSON.stringify(serverItems.slice(0, 2), null, 2));
+
+      setCart(serverItems.map(mapServerCartItem));
     } catch (error) {
       console.log("Cart refresh error:", error);
     }
-  }, [jwtToken]);
+  }, [jwtToken, user?.customerId]);
 
   const refreshWishlist = useCallback(async () => {
-    if (!jwtToken || !user?.customerId) return;
+    if (!jwtToken) return;
+
     try {
-      const serverWishlist = await getWishlistApi(user.customerId);
-      if (serverWishlist) {
-        setWishlist(serverWishlist);
-      }
+      const serverWishlist = await getWishlistApi(jwtToken, user?.customerId);
+      setWishlist(serverWishlist.map(buildWishlistProduct));
     } catch (error) {
       console.log("Wishlist refresh error:", error);
     }
-  }, [jwtToken, user?.customerId]);
+  }, [jwtToken]);
 
-  /* ================= SAVE STORAGE ================= */
-
-  useEffect(() => {
-    const saveData = async () => {
+  const mergeGuestData = useCallback(
+    async (token: string) => {
       try {
-        await AsyncStorage.setItem("CART", JSON.stringify(cart));
-        await AsyncStorage.setItem("USE_POINTS", JSON.stringify(usePoints));
-        if (appliedCoupon) {
-          await AsyncStorage.setItem("APPLIED_COUPON", appliedCoupon);
-        } else {
-          await AsyncStorage.removeItem("APPLIED_COUPON");
+        const [guestCartRaw, guestWishlistRaw] = await Promise.all([
+          AsyncStorage.getItem(GUEST_CART_STORAGE_KEY),
+          AsyncStorage.getItem(GUEST_WISHLIST_STORAGE_KEY),
+        ]);
+
+        const guestCart = safeJsonParse<CartItem[]>(guestCartRaw, []);
+        const guestWishlist = safeJsonParse<Product[]>(guestWishlistRaw, []);
+
+        const cartPayload = guestCart
+          .map((item) => ({
+            variantId: Number(item.variantId || item.id),
+            quantity: Number(item.quantity || 1),
+          }))
+          .filter((item) => Number.isFinite(item.variantId) && item.quantity > 0);
+
+        const wishlistIds = guestWishlist
+          .map((item) => Number(item.id))
+          .filter((id) => Number.isFinite(id));
+
+        const cartMerged =
+          cartPayload.length === 0
+            ? true
+            : await CartAPI.mergeCart(token, cartPayload);
+        const wishlistMerged =
+          wishlistIds.length === 0
+            ? true
+            : await mergeWishlistApi(token, wishlistIds);
+
+        if (cartMerged && wishlistMerged) {
+          await clearGuestState();
         }
       } catch (error) {
-        console.log("Save Error:", error);
+        console.error("Guest merge error:", error);
+      } finally {
+        await Promise.all([refreshCart(), refreshWishlist()]);
       }
-    };
-    saveData();
-  }, [cart, appliedCoupon, usePoints]);
+    },
+    [clearGuestState, refreshCart, refreshWishlist]
+  );
 
   useEffect(() => {
-    const saveWishlist = async () => {
+    if (authLoading) return;
+
+    let cancelled = false;
+
+    const syncForAuthState = async () => {
+      const previousToken = previousTokenRef.current;
+      const isFirstResolution = !hasResolvedAuthRef.current;
+      const isAuthenticated = Boolean(jwtToken);
+
+      if (!isFirstResolution && previousToken && !jwtToken) {
+        await clearAuthCache();
+      }
+
+      await loadLocalState(isAuthenticated);
+      if (cancelled) return;
+
+      hasResolvedAuthRef.current = true;
+
+      if (!jwtToken) {
+        previousTokenRef.current = null;
+        return;
+      }
+
+      const pendingGuestSync =
+        (await AsyncStorage.getItem(PENDING_GUEST_SYNC_KEY)) === "true";
+      const didJustLogin = !previousToken && Boolean(jwtToken);
+
+      previousTokenRef.current = jwtToken;
+
+      if (didJustLogin || pendingGuestSync) {
+        await mergeGuestData(jwtToken);
+        return;
+      }
+
+      await Promise.all([refreshCart(), refreshWishlist()]);
+    };
+
+    syncForAuthState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    authLoading,
+    clearAuthCache,
+    jwtToken,
+    loadLocalState,
+    mergeGuestData,
+    refreshCart,
+    refreshWishlist,
+  ]);
+
+  useEffect(() => {
+    if (authLoading || !storageReady) return;
+
+    const persistCart = async () => {
       try {
         await AsyncStorage.setItem(
-          "WISHLIST",
+          jwtToken ? AUTH_CART_STORAGE_KEY : GUEST_CART_STORAGE_KEY,
+          JSON.stringify(cart)
+        );
+        await AsyncStorage.setItem(
+          USE_POINTS_STORAGE_KEY,
+          JSON.stringify(usePoints)
+        );
+
+        if (appliedCoupon) {
+          await AsyncStorage.setItem(APPLIED_COUPON_STORAGE_KEY, appliedCoupon);
+        } else {
+          await AsyncStorage.removeItem(APPLIED_COUPON_STORAGE_KEY);
+        }
+      } catch (error) {
+        console.log("Cart save error:", error);
+      }
+    };
+
+    persistCart();
+  }, [appliedCoupon, authLoading, cart, jwtToken, storageReady, usePoints]);
+
+  useEffect(() => {
+    if (authLoading || !storageReady) return;
+
+    const persistWishlist = async () => {
+      try {
+        await AsyncStorage.setItem(
+          jwtToken ? AUTH_WISHLIST_STORAGE_KEY : GUEST_WISHLIST_STORAGE_KEY,
           JSON.stringify(wishlist)
         );
       } catch (error) {
-        console.log("Wishlist Save Error:", error);
+        console.log("Wishlist save error:", error);
       }
     };
-    saveWishlist();
-  }, [wishlist]);
 
-  /* ================= COUPON LOGIC ================= */
-
-  const calculateDiscount = (code: string, currentTotal: number) => {
-    switch (code.toUpperCase()) {
-      case "WELCOME100":
-        return currentTotal >= 500 ? 100 : 0;
-      case "SAVE20":
-        return currentTotal >= 1000 ? Math.min(currentTotal * 0.2, 200) : 0;
-      case "FREESHIP":
-        return 0; // Handled separately if there were shipping charges
-      default:
-        return 0;
-    }
-  };
+    persistWishlist();
+  }, [authLoading, jwtToken, storageReady, wishlist]);
 
   useEffect(() => {
-    const rawTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    if (appliedCoupon) {
-      const d = calculateDiscount(appliedCoupon, rawTotal);
-      if (d === 0 && rawTotal > 0) {
-        // Condition not met anymore
+    if (authLoading || !storageReady || jwtToken) return;
+
+    const updatePendingGuestSync = async () => {
+      try {
+        if (cart.length > 0 || wishlist.length > 0) {
+          await AsyncStorage.setItem(PENDING_GUEST_SYNC_KEY, "true");
+        } else {
+          await AsyncStorage.removeItem(PENDING_GUEST_SYNC_KEY);
+        }
+      } catch (error) {
+        console.log("Guest sync flag error:", error);
+      }
+    };
+
+    updatePendingGuestSync();
+  }, [authLoading, cart.length, jwtToken, storageReady, wishlist.length]);
+
+  useEffect(() => {
+    const rawTotal = cart.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    if (appliedCoupon && jwtToken) {
+      validateCoupon(jwtToken, appliedCoupon, rawTotal, user?.customerId).then(result => {
+        if (result.valid) {
+          setDiscount(result.discount);
+        } else {
+          setAppliedCoupon(null);
+          setDiscount(0);
+        }
+      }).catch(() => {
         setAppliedCoupon(null);
         setDiscount(0);
+      });
+      return;
+    }
+
+    setDiscount(0);
+  }, [appliedCoupon, cart, jwtToken, user?.customerId]);
+
+  const applyCoupon = async (code: string): Promise<{ success: boolean; message: string }> => {
+    const rawTotal = cart.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    if (!jwtToken) {
+      return { success: false, message: "Please login to apply coupons." };
+    }
+
+    try {
+      const result = await validateCoupon(jwtToken, code, rawTotal, user?.customerId);
+      if (result.valid) {
+        setAppliedCoupon(code.toUpperCase());
+        setDiscount(result.discount);
+        return { success: true, message: result.message || "Coupon applied successfully" };
       } else {
-        setDiscount(d);
+        return { success: false, message: result.message || "Invalid coupon" };
       }
-    } else {
-      setDiscount(0);
+    } catch (error) {
+      return { success: false, message: "Could not apply coupon at this time." };
     }
-  }, [cart, appliedCoupon]);
-
-  const applyCoupon = (code: string) => {
-    const rawTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const d = calculateDiscount(code, rawTotal);
-
-    if (d > 0 || code.toUpperCase() === "FREESHIP") {
-      setAppliedCoupon(code.toUpperCase());
-      setDiscount(d);
-      return { success: true, message: "Coupon applied successfully! 🎉" };
-    }
-
-    if (code.toUpperCase() === "WELCOME100" && rawTotal < 500) {
-      return { success: false, message: "Add items worth ₹500 or more to use this coupon." };
-    }
-    if (code.toUpperCase() === "SAVE20" && rawTotal < 1000) {
-      return { success: false, message: "Add items worth ₹1000 or more to use this coupon." };
-    }
-
-    return { success: false, message: "Invalid or expired coupon code." };
   };
 
   const removeCoupon = () => {
@@ -231,135 +523,193 @@ export const CartProvider = ({ children }: any) => {
     setDiscount(0);
   };
 
-  /* ================= POINTS LOGIC ================= */
-
-  const rawTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const rawTotal = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
   const totalAfterCoupon = rawTotal - discount;
   const pointsDiscount = usePoints ? Math.min(points, totalAfterCoupon) : 0;
-
   const total = totalAfterCoupon - pointsDiscount;
 
-  /* ================= CART LOGIC ================= */
-  
-  const addToCart = async (product: Product & { productVariants?: any[] }, selectedVariant?: any) => {
-    // Resolve which variant to use
-    const variant = selectedVariant
-      || (product.productVariants && product.productVariants.length > 0 ? product.productVariants[0] : null);
+  const addToCart = async (
+    product: Product & { productVariants?: any[] },
+    selectedVariant?: any
+  ) => {
+    const variant =
+      selectedVariant ||
+      (product.productVariants && product.productVariants.length > 0
+        ? product.productVariants[0]
+        : null);
 
-    // variantId is required by the API — fall back to product.id for products without variants
-    const vId = variant?.id ?? product.variantId ?? product.id;
-    const vName = variant?.variantName ?? variant?.name ?? product.variantName ?? "";
-    const vPrice = variant?.sellingPrice ?? variant?.price ?? product.price ?? 0;
-    const pId = Number(product.id || (product as any).productId);
+    // Always prefer the variant's own id; product.variantId is the first variant id
+    // set during normalization; product.id is the PRODUCT id and must NOT be sent
+    // to the backend as a variantId.
+    const variantId = variant?.id ?? product.variantId;
+    const variantName =
+      variant?.variantName ?? variant?.name ?? product.variantName ?? "";
+    const variantPrice = pickValidPrice(
+      variant?.sellingPrice, variant?.price, product?.sellingPrice, product?.price
+    );
+    const variantMrp = pickValidPrice(
+      variant?.mrp, variant?.price, product?.mrp, product?.originalPrice
+    );
+    const productId = Number(product.productId || product.id);
+    const imageUrl = getNormalizedProductImage(product as any, variant);
 
-    if (!vId) {
-      console.warn("[Cart] Cannot add to cart: No id found for product", product.name);
+    if (!variantId) {
+      console.warn("[Cart] Cannot add to cart: missing variant id for", product.name);
       return;
     }
 
-    const cartKey = String(vId);
+    const cartKey = String(variantId);
 
-    // 1. Optimistic local update
-    setCart((prev) => {
-      const exists = prev.find((i) => String(i.variantId || i.id) === cartKey);
-      if (exists) return prev;
+    setCart((previousCart) => {
+      const existingItem = previousCart.find(
+        (item) => String(item.variantId || item.id) === cartKey
+      );
+
+      if (existingItem) {
+        return previousCart;
+      }
+
       return [
-        ...prev,
+        ...previousCart,
         {
           ...product,
           id: cartKey,
-          variantId: Number(vId),
-          name: product.name,
-          variantName: vName,
-          price: vPrice,
+          variantId: Number(variantId),
+          variantName,
+          price: variantPrice,
+          sellingPrice: variantPrice,
+          originalPrice: variantMrp > variantPrice ? variantMrp : undefined,
+          mrp: variantMrp > variantPrice ? variantMrp : undefined,
+          image: imageUrl || null,
+          imageUrl,
           quantity: 1,
           cartItemId: undefined,
-          productId: pId,
+          productId,
         } as CartItem,
       ];
     });
 
-    // 2. Sync to server — API only needs { variantId, quantity }
-    if (jwtToken) {
-      try {
-        const addedItem = await CartAPI.addCartItem(jwtToken, Number(vId), 1, pId);
-        if (addedItem?.id) {
-          setCart((prev) =>
-            prev.map((item) =>
-              String(item.variantId || item.id) === cartKey
-                ? { ...item, cartItemId: addedItem.id }
-                : item
-            )
-          );
-        }
-      } catch (err: any) {
-        const errMsg = err?.message || "";
-        if (errMsg.includes("Duplicate") || errMsg.includes("duplicate") || errMsg.includes("constraint")) {
-          console.log("[Cart] Item already on server, syncing...");
-          await refreshCart();
-        } else {
-          console.log("Server add cart error:", err);
-        }
+    if (!jwtToken) return;
+
+    try {
+      const addedItem = await CartAPI.addCartItem(jwtToken, Number(variantId), 1, user?.customerId);
+
+      // If server returns an ID, attach it
+      if (addedItem && (addedItem.id || addedItem.cartItemId)) {
+        const serverId = addedItem.id || addedItem.cartItemId;
+        setCart((previousCart) =>
+          previousCart.map((item) =>
+            String(item.variantId || item.id) === cartKey
+              ? { ...item, cartItemId: serverId }
+              : item
+          )
+        );
       }
+      
+      // DO NOT call refreshCart() here. It will forcibly wipe the multi-adds
+      // that the user pressed rapidly. We rely completely on the optimistic state.
+
+    } catch (error) {
+      console.log("Server add cart error:", error);
+      // Don't wipe optimistic state for network errors — keep the local item
     }
   };
 
-  const removeFromCart = (vId: string) => {
-    const item = cart.find((i) => i.id === vId);
-    setCart((prev) => prev.filter((item) => item.id !== vId));
+  const removeFromCart = (id: string) => {
+    const item = cart.find((cartItem) => cartItem.id === id);
 
-    // Sync to server
-    if (jwtToken && item?.cartItemId) {
-      CartAPI.removeCartItem(jwtToken, item.cartItemId).catch((err) =>
-        console.log("Server remove cart error:", err)
-      );
+    setCart((previousCart) =>
+      previousCart.filter((cartItem) => cartItem.id !== id)
+    );
+
+    if (!jwtToken) return;
+
+    if (!item?.cartItemId) {
+      refreshCart().catch(() => undefined);
+      return;
     }
+
+    CartAPI.removeCartItem(jwtToken, item.cartItemId, user?.customerId).catch((error) => {
+      console.log("Server remove cart error:", error);
+      refreshCart().catch(() => undefined);
+    });
   };
 
   const increaseQty = (id: string) => {
-    const item = cart.find((i) => i.id === id);
+    const item = cart.find((cartItem) => cartItem.id === id);
     if (!item) return;
 
-    const newQty = item.quantity + 1;
+    const nextQuantity = item.quantity + 1;
 
-    // 1. Optimistic Update
-    setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: newQty } : i))
+    setCart((previousCart) =>
+      previousCart.map((cartItem) =>
+        cartItem.id === id ? { ...cartItem, quantity: nextQuantity } : cartItem
+      )
     );
 
-    // 2. Server Sync
-    if (jwtToken && item.cartItemId) {
-      CartAPI.updateCartItemQty(jwtToken, item.cartItemId, newQty).catch((err) =>
-        console.log("Server update qty error:", err)
-      );
+    if (!jwtToken) return;
+
+    if (!item.cartItemId) {
+      refreshCart().catch(() => undefined);
+      return;
     }
+
+    CartAPI.updateCartItemQty(jwtToken, item.cartItemId, nextQuantity, user?.customerId).catch(
+      (error) => {
+        console.log("Server update qty error:", error);
+        refreshCart().catch(() => undefined);
+      }
+    );
   };
 
   const decreaseQty = (id: string) => {
-    const item = cart.find((i) => i.id === id);
+    const item = cart.find((cartItem) => cartItem.id === id);
     if (!item) return;
 
     if (item.quantity <= 1) {
-      // Remove item
-      setCart((prev) => prev.filter((i) => i.id !== id));
-      if (jwtToken && item.cartItemId) {
-        CartAPI.removeCartItem(jwtToken, item.cartItemId).catch((err) =>
-          console.log("Server remove cart error:", err)
-        );
-      }
-    } else {
-      const newQty = item.quantity - 1;
-      // 1. Optimistic Update
-      setCart((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, quantity: newQty } : i))
+      setCart((previousCart) =>
+        previousCart.filter((cartItem) => cartItem.id !== id)
       );
-      // 2. Server Sync
-      if (jwtToken && item.cartItemId) {
-        CartAPI.updateCartItemQty(jwtToken, item.cartItemId, newQty).catch((err) =>
-          console.log("Server update qty error:", err)
-        );
+
+      if (!jwtToken) return;
+
+      if (!item.cartItemId) {
+        refreshCart().catch(() => undefined);
+        return;
       }
+
+      CartAPI.removeCartItem(jwtToken, item.cartItemId, user?.customerId).catch((error) => {
+        console.log("Server remove cart error:", error);
+        refreshCart().catch(() => undefined);
+      });
+
+      return;
     }
+
+    const nextQuantity = item.quantity - 1;
+
+    setCart((previousCart) =>
+      previousCart.map((cartItem) =>
+        cartItem.id === id ? { ...cartItem, quantity: nextQuantity } : cartItem
+      )
+    );
+
+    if (!jwtToken) return;
+
+    if (!item.cartItemId) {
+      refreshCart().catch(() => undefined);
+      return;
+    }
+
+    CartAPI.updateCartItemQty(jwtToken, item.cartItemId, nextQuantity, user?.customerId).catch(
+      (error) => {
+        console.log("Server update qty error:", error);
+        refreshCart().catch(() => undefined);
+      }
+    );
   };
 
   const clearCart = () => {
@@ -367,36 +717,53 @@ export const CartProvider = ({ children }: any) => {
     setUsePoints(false);
     setAppliedCoupon(null);
 
-    // Sync to server
-    if (jwtToken) {
-      CartAPI.clearServerCart(jwtToken).catch((err) =>
-        console.log("Server clear cart error:", err)
-      );
-    }
+    if (!jwtToken) return;
+
+    CartAPI.clearServerCart(jwtToken, user?.customerId).catch((error) => {
+      console.log("Server clear cart error:", error);
+      refreshCart().catch(() => undefined);
+    });
   };
 
-  /* ================= WISHLIST ================= */
-
   const addToWishlist = async (product: Product) => {
-    setWishlist((prev) => {
-      const exists = prev.find((i) => i.id === product.id);
-      if (exists) return prev;
-      return [...prev, product];
+    const normalizedProduct = buildWishlistProduct(product);
+
+    setWishlist((previousWishlist) => {
+      const alreadyExists = previousWishlist.find(
+        (item) => String(item.id) === String(normalizedProduct.id)
+      );
+
+      if (alreadyExists) {
+        return previousWishlist;
+      }
+
+      return [...previousWishlist, normalizedProduct];
     });
 
-    if (jwtToken && user?.customerId) {
-      try {
-        await addToWishlistApi(user.customerId, product.id);
-      } catch (err) {
-        console.log("Server add wishlist error:", err);
+    if (!jwtToken) return;
+
+    try {
+      const success = await addToWishlistApi(jwtToken, normalizedProduct.id, user?.customerId);
+      if (!success) {
+        await refreshWishlist();
       }
+    } catch (error) {
+      console.log("Server add wishlist error:", error);
+      await refreshWishlist();
     }
   };
 
   const removeFromWishlist = (id: string) => {
-    setWishlist((prev) =>
-      prev.filter((item) => item.id !== id)
+    setWishlist((previousWishlist) =>
+      previousWishlist.filter((item) => String(item.id) !== String(id))
     );
+
+    if (!jwtToken) return;
+
+    removeFromWishlistApi(jwtToken, id, user?.customerId).catch((error) => {
+      console.log("Server remove wishlist error:", error);
+      refreshWishlist().catch(() => undefined);
+    });
   };
 
   return (

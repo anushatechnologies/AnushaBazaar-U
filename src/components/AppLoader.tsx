@@ -1,317 +1,332 @@
 import React, { useEffect, useRef } from "react";
 import {
-  View,
-  StyleSheet,
   Animated,
-  Dimensions,
-  Text,
-  StatusBar,
+  Easing,
   Image,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { moderateScale, scale, screenWidth, verticalScale } from "../utils/responsive";
 
-const { width, height } = Dimensions.get("window");
+const BRAND_GREEN = "#0A8754";
+const BRAND_GREEN_DARK = "#06683F";
+const WARM_YELLOW = "#FFC94A";
+const SOFT_GREEN = "#EAF8F1";
+const SOFT_MINT = "#F4FFF8";
+const BRAND_LOGO = require("../../assets/company-logo.png");
 
-const AppLoader = () => {
-  // Logo animations
-  const logoScale = useRef(new Animated.Value(0)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
+interface Props {
+  size?: "small" | "large";
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+  fullScreen?: boolean;
+  title?: string;
+  subtitle?: string;
+}
 
-  // Ripple circles
-  const ripple1 = useRef(new Animated.Value(0)).current;
-  const ripple2 = useRef(new Animated.Value(0)).current;
-  const ripple1Opacity = useRef(new Animated.Value(0.6)).current;
-  const ripple2Opacity = useRef(new Animated.Value(0.6)).current;
+const QUICK_FACTS = [
+  { label: "Fresh Picks", icon: "leaf-outline" as const },
+  { label: "Daily Needs", icon: "basket-outline" as const },
+  { label: "Fast Delivery", icon: "flash-outline" as const },
+];
 
-  // Text
-  const brandSlide = useRef(new Animated.Value(30)).current;
-  const brandOpacity = useRef(new Animated.Value(0)).current;
-  const taglineSlide = useRef(new Animated.Value(20)).current;
-  const taglineOpacity = useRef(new Animated.Value(0)).current;
+const AppLoader = ({
+  size = "large",
+  color = BRAND_GREEN,
+  style,
+  fullScreen = false,
+  title = "Anusha Bazaar",
+  subtitle = "Packing fresh groceries, fruits, and daily essentials for your doorstep.",
+}: Props) => {
+  const isSmall = size === "small";
 
-  // Bouncing dots
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
-
-  // Footer
-  const footerOpacity = useRef(new Animated.Value(0)).current;
-
-  // Glow pulse
-  const glowScale = useRef(new Animated.Value(0.8)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const spinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Phase 1: Glow appears
-    Animated.timing(glowOpacity, {
-      toValue: 0.3,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-
-    // Phase 1: Logo bounces in
-    Animated.sequence([
-      Animated.delay(200),
-      Animated.parallel([
-        Animated.spring(logoScale, {
-          toValue: 1,
-          friction: 6,
-          tension: 80,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-
-    // Phase 2: Brand name slides up
-    Animated.sequence([
-      Animated.delay(500),
-      Animated.parallel([
-        Animated.spring(brandSlide, {
-          toValue: 0,
-          friction: 8,
-          tension: 60,
-          useNativeDriver: true,
-        }),
-        Animated.timing(brandOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-
-    // Phase 3: Tagline slides up
-    Animated.sequence([
-      Animated.delay(800),
-      Animated.parallel([
-        Animated.spring(taglineSlide, {
-          toValue: 0,
-          friction: 8,
-          tension: 60,
-          useNativeDriver: true,
-        }),
-        Animated.timing(taglineOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-
-    // Phase 4: Footer fades in
-    Animated.sequence([
-      Animated.delay(1000),
-      Animated.timing(footerOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Continuous: Ripple rings
-    const createRipple = (rippleScale: Animated.Value, rippleOpacity: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.parallel([
-            Animated.timing(rippleScale, {
-              toValue: 1,
-              duration: 1800,
-              useNativeDriver: true,
-            }),
-            Animated.timing(rippleOpacity, {
-              toValue: 0,
-              duration: 1800,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.parallel([
-            Animated.timing(rippleScale, {
-              toValue: 0,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-            Animated.timing(rippleOpacity, {
-              toValue: 0.6,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-          ]),
-        ])
-      );
-    };
-
-    createRipple(ripple1, ripple1Opacity, 0).start();
-    createRipple(ripple2, ripple2Opacity, 900).start();
-
-    // Continuous: Glow pulse
-    Animated.loop(
+    const pulseLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(glowScale, {
-          toValue: 1.3,
-          duration: 1200,
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1150,
+          easing: Easing.inOut(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.timing(glowScale, {
-          toValue: 0.8,
-          duration: 1200,
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1150,
+          easing: Easing.inOut(Easing.cubic),
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
 
-    // Continuous: Bouncing dots
-    const bounceDot = (dot: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(dot, {
-            toValue: -10,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.timing(dot, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.delay(600),
-        ])
-      );
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    const progressLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(progressAnim, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
+    const spinLoop = Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 850,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+
+    pulseLoop.start();
+    floatLoop.start();
+    progressLoop.start();
+    spinLoop.start();
+
+    return () => {
+      pulseLoop.stop();
+      floatLoop.stop();
+      progressLoop.stop();
+      spinLoop.stop();
     };
+  }, [floatAnim, progressAnim, pulseAnim, spinAnim]);
 
-    Animated.sequence([
-      Animated.delay(1000),
-      Animated.parallel([
-        bounceDot(dot1, 0),
-        bounceDot(dot2, 150),
-        bounceDot(dot3, 300),
-      ]),
-    ]).start();
-  }, []);
-
-  const ripple1Scale = ripple1.interpolate({
+  const rippleScale = pulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 2.5],
+    outputRange: [1, 1.58],
   });
 
-  const ripple2Scale = ripple2.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 2.5],
+  const rippleOpacity = pulseAnim.interpolate({
+    inputRange: [0, 0.55, 1],
+    outputRange: [0.24, 0.12, 0],
   });
+
+  const coreScale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.98, 1.05],
+  });
+
+  const floatY = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -scale(10)],
+  });
+
+  const orbitY = floatAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [scale(3), -scale(5), scale(3)],
+  });
+
+  const orbitYInverse = floatAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [-scale(3), scale(5), -scale(3)],
+  });
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [scale(48), Math.min(screenWidth * 0.44, scale(176))],
+  });
+
+  const dotOneOpacity = progressAnim.interpolate({
+    inputRange: [0, 0.33, 0.66, 1],
+    outputRange: [1, 0.42, 0.42, 1],
+  });
+
+  const dotTwoOpacity = progressAnim.interpolate({
+    inputRange: [0, 0.33, 0.66, 1],
+    outputRange: [0.42, 1, 0.42, 0.42],
+  });
+
+  const dotThreeOpacity = progressAnim.interpolate({
+    inputRange: [0, 0.33, 0.66, 1],
+    outputRange: [0.42, 0.42, 1, 0.42],
+  });
+
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
+  if (isSmall) {
+    return (
+      <Animated.View style={[styles.smallLoader, { transform: [{ rotate: spin }] }, style]}>
+        <Ionicons name="refresh-outline" size={scale(18)} color={color} />
+      </Animated.View>
+    );
+  }
+
+  if (fullScreen) {
+    return (
+      <View style={[styles.screen, style]}>
+        <LinearGradient
+          colors={["#FFF7E8", SOFT_MINT, "#FFFFFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+
+        <View style={styles.bgOrbTop} />
+        <View style={styles.bgOrbBottom} />
+        <View style={styles.bgBubbleOne} />
+        <View style={styles.bgBubbleTwo} />
+
+        <View style={styles.screenContent}>
+          <View style={styles.quickFactsRow}>
+            {QUICK_FACTS.map((fact) => (
+              <View key={fact.label} style={styles.quickFactChip}>
+                <Ionicons name={fact.icon} size={scale(14)} color={BRAND_GREEN} />
+                <Text style={styles.quickFactText}>{fact.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Animated.View style={[styles.heroCard, { transform: [{ translateY: floatY }] }]}>
+            <View style={styles.heroBadgeStage}>
+              <Animated.View
+                style={[
+                  styles.heroRipple,
+                  {
+                    transform: [{ scale: rippleScale }],
+                    opacity: rippleOpacity,
+                  },
+                ]}
+              />
+
+              <Animated.View
+                style={[
+                  styles.heroFloatingChip,
+                  styles.heroChipLeft,
+                  { transform: [{ translateY: orbitY }] },
+                ]}
+              >
+                <Ionicons name="leaf-outline" size={scale(16)} color={BRAND_GREEN} />
+              </Animated.View>
+
+              <Animated.View
+                style={[
+                  styles.heroFloatingChip,
+                  styles.heroChipRight,
+                  { transform: [{ translateY: orbitYInverse }] },
+                ]}
+              >
+                <Ionicons name="flash-outline" size={scale(16)} color="#B7791F" />
+              </Animated.View>
+
+              <Animated.View style={{ transform: [{ scale: coreScale }] }}>
+                <LinearGradient
+                  colors={[BRAND_GREEN, "#10B26C"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.heroBadge}
+                >
+                  <View style={styles.heroLogoPlate}>
+                    <Image source={BRAND_LOGO} style={styles.heroLogo} resizeMode="contain" />
+                  </View>
+                </LinearGradient>
+              </Animated.View>
+            </View>
+
+            <Text style={styles.heroTitle}>{title}</Text>
+            <Text style={styles.heroSubtitle}>{subtitle}</Text>
+
+            <View style={styles.statusPill}>
+              <Ionicons name="storefront-outline" size={scale(16)} color={BRAND_GREEN} />
+              <Text style={styles.statusText}>Checking nearby stores and fresh stock</Text>
+            </View>
+
+            <View style={styles.progressTrack}>
+              <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+            </View>
+
+            <View style={styles.loadingDotsRow}>
+              <Animated.View style={[styles.loadingDot, { opacity: dotOneOpacity }]} />
+              <Animated.View style={[styles.loadingDot, { opacity: dotTwoOpacity }]} />
+              <Animated.View style={[styles.loadingDot, { opacity: dotThreeOpacity }]} />
+            </View>
+          </Animated.View>
+
+          <Text style={styles.footerText}>Fresh groceries. Better prices. Faster doorstep delivery.</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8D66D" />
+    <View style={[styles.compactWrap, style]}>
+      <Animated.View
+        style={[
+          styles.compactRipple,
+          {
+            backgroundColor: color,
+            transform: [{ scale: rippleScale }],
+            opacity: rippleOpacity,
+          },
+        ]}
+      />
 
-      {/* Background gradient effect with colored circles */}
-      <View style={styles.bgCircle1} />
-      <View style={styles.bgCircle2} />
-      <View style={styles.bgCircle3} />
+      <Animated.View
+        style={[
+          styles.compactChip,
+          styles.compactChipLeft,
+          { transform: [{ translateY: orbitY }] },
+        ]}
+      >
+        <Ionicons name="leaf-outline" size={scale(14)} color={color} />
+      </Animated.View>
 
-      {/* Center Content */}
-      <View style={styles.centerContent}>
-        {/* Glow behind logo */}
-        <Animated.View
-          style={[
-            styles.glow,
-            {
-              opacity: glowOpacity,
-              transform: [{ scale: glowScale }],
-            },
-          ]}
-        />
+      <Animated.View
+        style={[
+          styles.compactChip,
+          styles.compactChipRight,
+          { transform: [{ translateY: orbitYInverse }] },
+        ]}
+      >
+        <Ionicons name="flash-outline" size={scale(14)} color="#B7791F" />
+      </Animated.View>
 
-        {/* Ripple rings */}
-        <Animated.View
-          style={[
-            styles.ripple,
-            {
-              opacity: ripple1Opacity,
-              transform: [{ scale: ripple1Scale }],
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.ripple,
-            {
-              opacity: ripple2Opacity,
-              transform: [{ scale: ripple2Scale }],
-            },
-          ]}
-        />
-
-        {/* Logo */}
-        <Animated.View
-          style={[
-            styles.logoContainer,
-            {
-              opacity: logoOpacity,
-              transform: [{ scale: logoScale }],
-            },
-          ]}
+      <Animated.View style={{ transform: [{ translateY: floatY }, { scale: coreScale }] }}>
+        <LinearGradient
+          colors={[color, BRAND_GREEN_DARK]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.compactCore}
         >
-          <Image
-            source={require("../../assets/company-logo.png")}
-            style={styles.logo}
-            resizeMode="cover"
-          />
-        </Animated.View>
-
-        {/* Brand Name */}
-        <Animated.View
-          style={{
-            opacity: brandOpacity,
-            transform: [{ translateY: brandSlide }],
-            marginTop: 28,
-          }}
-        >
-          <Text style={styles.brandName}>Anusha Bazaar</Text>
-        </Animated.View>
-
-        {/* Tagline */}
-        <Animated.View
-          style={{
-            opacity: taglineOpacity,
-            transform: [{ translateY: taglineSlide }],
-            marginTop: 8,
-          }}
-        >
-          <Text style={styles.tagline}>Freshness at your Doorstep</Text>
-        </Animated.View>
-      </View>
-
-      {/* Footer with bouncing dots */}
-      <Animated.View style={[styles.footer, { opacity: footerOpacity }]}>
-        <View style={styles.dotsContainer}>
-          <Animated.View
-            style={[
-              styles.dot,
-              styles.dot1,
-              { transform: [{ translateY: dot1 }] },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.dot,
-              styles.dot2,
-              { transform: [{ translateY: dot2 }] },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.dot,
-              styles.dot3,
-              { transform: [{ translateY: dot3 }] },
-            ]}
-          />
-        </View>
-        <Text style={styles.poweredBy}>ANUSHA TECHNOLOGIES</Text>
+          <View style={styles.compactCoreInner}>
+            <Ionicons name="cart-outline" size={scale(28)} color="#fff" />
+          </View>
+        </LinearGradient>
       </Animated.View>
     </View>
   );
@@ -320,130 +335,275 @@ const AppLoader = () => {
 export default AppLoader;
 
 const styles = StyleSheet.create({
-  container: {
+  smallLoader: {
+    width: scale(20),
+    height: scale(20),
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  screen: {
     flex: 1,
-    backgroundColor: "#F8D66D",
+    backgroundColor: "#FFFFFF",
+  },
+  bgOrbTop: {
+    position: "absolute",
+    top: verticalScale(-95),
+    right: scale(-70),
+    width: scale(250),
+    height: scale(250),
+    borderRadius: scale(125),
+    backgroundColor: "#FFF0C8",
+    opacity: 0.75,
+  },
+  bgOrbBottom: {
+    position: "absolute",
+    bottom: verticalScale(-110),
+    left: scale(-85),
+    width: scale(300),
+    height: scale(300),
+    borderRadius: scale(150),
+    backgroundColor: "#DFF5E7",
+    opacity: 0.8,
+  },
+  bgBubbleOne: {
+    position: "absolute",
+    top: verticalScale(160),
+    left: scale(28),
+    width: scale(16),
+    height: scale(16),
+    borderRadius: scale(8),
+    backgroundColor: "#FFE39B",
+    opacity: 0.9,
+  },
+  bgBubbleTwo: {
+    position: "absolute",
+    top: verticalScale(220),
+    right: scale(34),
+    width: scale(22),
+    height: scale(22),
+    borderRadius: scale(11),
+    backgroundColor: "#D6F3E2",
+    opacity: 0.9,
+  },
+  screenContent: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: scale(22),
   },
-
-  // Decorative background circles
-  bgCircle1: {
-    position: "absolute",
-    top: -height * 0.15,
-    right: -width * 0.3,
-    width: width * 0.9,
-    height: width * 0.9,
-    borderRadius: width * 0.45,
-    backgroundColor: "rgba(255, 220, 100, 0.5)",
-  },
-  bgCircle2: {
-    position: "absolute",
-    bottom: -height * 0.1,
-    left: -width * 0.25,
-    width: width * 0.7,
-    height: width * 0.7,
-    borderRadius: width * 0.35,
-    backgroundColor: "rgba(255, 195, 50, 0.3)",
-  },
-  bgCircle3: {
-    position: "absolute",
-    top: height * 0.3,
-    left: -width * 0.15,
-    width: width * 0.5,
-    height: width * 0.5,
-    borderRadius: width * 0.25,
-    backgroundColor: "rgba(10, 135, 84, 0.06)",
-  },
-
-  centerContent: {
-    alignItems: "center",
+  quickFactsRow: {
+    width: "100%",
+    flexDirection: "row",
     justifyContent: "center",
+    flexWrap: "wrap",
+    gap: scale(8),
+    marginBottom: verticalScale(30),
   },
-
-  // Glow behind the logo
-  glow: {
+  quickFactChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(6),
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderRadius: scale(999),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(8),
+    borderWidth: 1,
+    borderColor: "#E2F2E9",
+  },
+  quickFactText: {
+    fontSize: moderateScale(12),
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  heroCard: {
+    width: "100%",
+    maxWidth: scale(320),
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: scale(30),
+    paddingHorizontal: scale(24),
+    paddingTop: verticalScale(28),
+    paddingBottom: verticalScale(24),
+    borderWidth: 1,
+    borderColor: "#ECF4EE",
+    shadowColor: "#0A8754",
+    shadowOffset: { width: 0, height: verticalScale(12) },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(18),
+    elevation: 8,
+  },
+  heroBadgeStage: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: verticalScale(20),
+  },
+  heroRipple: {
     position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "#0A8754",
+    width: scale(132),
+    height: scale(132),
+    borderRadius: scale(66),
+    backgroundColor: BRAND_GREEN,
   },
-
-  // Ripple rings
-  ripple: {
+  heroFloatingChip: {
     position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: "#0A8754",
-  },
-
-  // Logo
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 35,
+    width: scale(38),
+    height: scale(38),
+    borderRadius: scale(19),
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E6F4EC",
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: scale(4) },
+    shadowOpacity: 0.08,
+    shadowRadius: scale(10),
+    elevation: 4,
   },
-  logo: {
-    width: "100%",
-    height: "100%",
+  heroChipLeft: {
+    left: scale(-10),
+    top: scale(18),
   },
-
-  brandName: {
-    fontSize: 30,
-    fontWeight: "900",
-    color: "#1a1a1a",
-    letterSpacing: -0.5,
+  heroChipRight: {
+    right: scale(-10),
+    bottom: scale(18),
   },
-  tagline: {
-    fontSize: 14,
-    color: "#555",
-    fontWeight: "600",
-    letterSpacing: 1,
-    textTransform: "uppercase",
+  heroBadge: {
+    width: scale(118),
+    height: scale(118),
+    borderRadius: scale(59),
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: BRAND_GREEN,
+    shadowOffset: { width: 0, height: scale(10) },
+    shadowOpacity: 0.22,
+    shadowRadius: scale(18),
+    elevation: 10,
   },
-
-  footer: {
-    position: "absolute",
-    bottom: height * 0.08,
+  heroLogoPlate: {
+    width: scale(90),
+    height: scale(90),
+    borderRadius: scale(28),
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
     alignItems: "center",
   },
-
-  dotsContainer: {
+  heroLogo: {
+    width: "76%",
+    height: "76%",
+  },
+  heroTitle: {
+    fontSize: moderateScale(28),
+    fontWeight: "900",
+    color: "#0F172A",
+    letterSpacing: scale(-0.6),
+    textAlign: "center",
+  },
+  heroSubtitle: {
+    fontSize: moderateScale(14),
+    lineHeight: moderateScale(21),
+    color: "#64748B",
+    textAlign: "center",
+    marginTop: verticalScale(8),
+    marginBottom: verticalScale(18),
+  },
+  statusPill: {
+    width: "100%",
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: scale(8),
+    backgroundColor: SOFT_GREEN,
+    borderRadius: scale(16),
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(10),
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  statusText: {
+    fontSize: moderateScale(12),
+    fontWeight: "700",
+    color: "#1F2937",
   },
-  dot1: {
-    backgroundColor: "#0A8754",
+  progressTrack: {
+    width: "100%",
+    height: scale(10),
+    backgroundColor: "#E8F3EC",
+    borderRadius: scale(999),
+    overflow: "hidden",
+    marginTop: verticalScale(18),
   },
-  dot2: {
-    backgroundColor: "#1a1a1a",
+  progressFill: {
+    height: "100%",
+    borderRadius: scale(999),
+    backgroundColor: BRAND_GREEN,
   },
-  dot3: {
-    backgroundColor: "#0A8754",
+  loadingDotsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(8),
+    marginTop: verticalScale(16),
   },
-
-  poweredBy: {
-    fontSize: 10,
-    color: "#777",
-    fontWeight: "800",
-    letterSpacing: 3,
+  loadingDot: {
+    width: scale(8),
+    height: scale(8),
+    borderRadius: scale(4),
+    backgroundColor: WARM_YELLOW,
+  },
+  footerText: {
+    marginTop: verticalScale(26),
+    fontSize: moderateScale(12),
+    fontWeight: "600",
+    color: "#7C8B9A",
+    textAlign: "center",
+  },
+  compactWrap: {
+    width: scale(124),
+    height: scale(124),
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  compactRipple: {
+    position: "absolute",
+    width: scale(88),
+    height: scale(88),
+    borderRadius: scale(44),
+  },
+  compactChip: {
+    position: "absolute",
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E6F4EC",
+  },
+  compactChipLeft: {
+    left: scale(16),
+    top: scale(26),
+  },
+  compactChipRight: {
+    right: scale(16),
+    bottom: scale(26),
+  },
+  compactCore: {
+    width: scale(88),
+    height: scale(88),
+    borderRadius: scale(44),
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: BRAND_GREEN,
+    shadowOffset: { width: 0, height: scale(8) },
+    shadowOpacity: 0.18,
+    shadowRadius: scale(14),
+    elevation: 8,
+  },
+  compactCoreInner: {
+    width: scale(62),
+    height: scale(62),
+    borderRadius: scale(31),
+    backgroundColor: "rgba(255,255,255,0.14)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

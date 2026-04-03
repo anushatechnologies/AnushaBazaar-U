@@ -34,7 +34,7 @@ const OrderSuccessScreen = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: scale(40) }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: scale(40) }}>
       <View style={styles.content}>
         <Animated.View style={[styles.successIconBox, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
           <View style={styles.whiteCircle}>

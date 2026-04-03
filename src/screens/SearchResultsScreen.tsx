@@ -31,9 +31,21 @@ const SearchResultsScreen = () => {
   const [priceRange, setPrice] = useState(PRICE_RANGES[0]);
   const inputRef = useRef<TextInput>(null);
 
+  // Debounce typing to instantly fetch products
   useEffect(() => {
-    if (activeQuery.trim()) {
+    const handler = setTimeout(() => {
+      setActiveQuery(searchText.trim());
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchText]);
+
+  useEffect(() => {
+    if (activeQuery) {
       fetchResults(activeQuery);
+    } else {
+      setAllProducts([]);
+      setDisplayed([]);
+      setLoading(false);
     }
   }, [activeQuery]);
 
@@ -62,15 +74,15 @@ const SearchResultsScreen = () => {
 
     if (range.max > 0) {
       result = result.filter(p => {
-        const price = p.price ?? p.sellingPrice ?? 0;
+        const price = p.sellingPrice ?? p.price ?? 0;
         return price >= range.min && price <= range.max;
       });
     } else if (range.min > 0) {
-      result = result.filter(p => (p.price ?? p.sellingPrice ?? 0) >= range.min);
+      result = result.filter(p => (p.sellingPrice ?? p.price ?? 0) >= range.min);
     }
 
-    if (sort === "price_asc") result.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    if (sort === "price_desc") result.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    if (sort === "price_asc") result.sort((a, b) => (a.sellingPrice ?? a.price ?? 0) - (b.sellingPrice ?? b.price ?? 0));
+    if (sort === "price_desc") result.sort((a, b) => (b.sellingPrice ?? b.price ?? 0) - (a.sellingPrice ?? a.price ?? 0));
     if (sort === "name_asc") result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
     setDisplayed(result);
@@ -249,7 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardWrapper: {
-    width: "31%",
+    width: "48%",
   },
 
   /* Empty State */

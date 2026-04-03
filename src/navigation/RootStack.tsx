@@ -17,7 +17,6 @@ import OtpScreen from "../screens/OtpScreen";
 /* Profile */
 import OrdersScreen from "../screens/OrdersScreen";
 import SavedAddressScreen from "../screens/SavedAddressScreen";
-import WishlistScreen from "../screens/WishlistScreen";
 import PaymentScreen from "../screens/PaymentScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
 import EditProfileScreen from "../screens/EditProfileScreen";
@@ -26,7 +25,7 @@ import EditProfileScreen from "../screens/EditProfileScreen";
 import ProductDetailScreen from "../screens/ProductDetailScreen";
 import CheckoutScreen from "../screens/CheckoutScreen";
 import CategoryProductsScreen from "../screens/CategoryProductsScreen";
-import CartScreen from "../screens/CartScreen";
+import SubCategoriesScreen from "../screens/SubCategoriesScreen";
 
 /* Address Flow */
 import AddressScreen from "../screens/AddressScreen";
@@ -49,7 +48,8 @@ export type RootStackParamList = {
   /* Product Flow */
   ProductDetail: { product: any };
   Checkout: undefined;
-  CategoryProducts: { category: string };
+  SubCategories: { category: any };
+  CategoryProducts: { category: any; initialSubCategoryId?: string | number };
   Cart: undefined;
 
   /* Address Flow */
@@ -122,13 +122,18 @@ const RootStack = () => {
       />
 
       <Stack.Screen
+        name="SubCategories"
+        component={SubCategoriesScreen}
+      />
+
+      <Stack.Screen
         name="CategoryProducts"
         component={CategoryProductsScreen}
       />
 
       <Stack.Screen
         name="Cart"
-        component={CartScreen}
+        getComponent={() => require("../screens/CartScreen").default}
       />
 
       {/* ADDRESS FLOW */}
@@ -177,7 +182,7 @@ const RootStack = () => {
 
       <Stack.Screen
         name="Wishlist"
-        component={WishlistScreen}
+        getComponent={() => require("../screens/WishlistScreen").default}
       />
 
       <Stack.Screen
@@ -236,5 +241,4 @@ const RootStack = () => {
   );
 };
 
-
-export default RootStack;
+export default RootStack;

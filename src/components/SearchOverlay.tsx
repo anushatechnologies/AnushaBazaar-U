@@ -9,6 +9,7 @@ import {
   FlatList,
   Image,
   Animated,
+  Alert,
   Keyboard,
   BackHandler,
   Platform,
@@ -21,6 +22,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { searchProducts } from "../services/api/products";
 import { useCart } from "../context/CartContext";
 import { useVoiceSearch } from "../hooks/useVoiceSearch";
+import ProductCard from "./ProductCard";
+import * as Speech from "expo-speech";
 
 const RECENT_KEY = "anusha_recent_searches";
 const MAX_RECENT = 8;
@@ -52,10 +55,29 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
 
   const handleVoiceResult = useCallback((text: string) => {
     setSearchText(text);
+    Speech.speak(`Showing results for ${text}`, {
+      language: "en-IN",
+      pitch: 1.0,
+      rate: 0.95,
+    });
     submitSearch(text);
   }, [setRecentSearches, onClose, navigation]);
 
   const { isListening, startListening, stopListening, error: voiceError } = useVoiceSearch(handleVoiceResult);
+
+  // Handle Voice Search Errors (Permissions, etc.)
+  useEffect(() => {
+    if (voiceError) {
+      if (voiceError.toLowerCase().includes('permission')) {
+        Alert.alert(
+          "Microphone Permission Required",
+          "Anusha Bazaar needs access to your microphone to enable voice search. Please enable it in your device settings."
+        );
+      } else {
+        ToastAndroid.show(voiceError, ToastAndroid.SHORT);
+      }
+    }
+  }, [voiceError]);
 
   // Animate in/out
   useEffect(() => {
@@ -74,7 +96,7 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
     } else {
       setSearchText("");
       setSuggestions([]);
-      stopListening();
+      stopListening(true);
     }
   }, [isVisible, initialVoiceMode]);
 
@@ -204,7 +226,7 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
             <Ionicons name="mic" size={40} color="#fff" />
           </View>
           <Text style={styles.listeningText}>Listening...</Text>
-          <TouchableOpacity style={styles.cancelVoice} onPress={stopListening}>
+          <TouchableOpacity style={styles.cancelVoice} onPress={() => stopListening(true)}>
             <Text style={styles.cancelVoiceText}>Tap to cancel</Text>
           </TouchableOpacity>
         </View>
@@ -232,55 +254,13 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
                   <Text style={styles.suggText}>Search for "<Text style={{ fontWeight: "700", color: "#111" }}>{searchText}</Text>"</Text>
                 </TouchableOpacity>
 
-                {suggestions.map((item) => {
-                  const img = item.imageUrl ? { uri: item.imageUrl }
-                    : typeof item.image === "string" ? { uri: item.image } : item.image;
-
-                  const cartLookupId = item?.productVariants?.[0]?.id ? String(item.productVariants[0].id) : String(item?.id || "");
-                  const cartItem = cart?.find((i: any) => i.id === cartLookupId || String(i.variantId) === cartLookupId);
-
-                  return (
-                    <TouchableOpacity key={item.id} style={styles.productRow} onPress={() => goToProduct(item)} activeOpacity={0.7}>
-                      <View style={styles.productImgBox}>
-                        {img ? (
-                          <Image source={img} style={styles.productImg} />
-                        ) : (
-                          <Ionicons name="cube-outline" size={18} color="#D1D5DB" />
-                        )}
-                      </View>
-                      <View style={styles.productInfo}>
-                        <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-                        <Text style={styles.productUnit}>{item.unit || ""}</Text>
-                      </View>
-                      <View style={styles.productRight}>
-                        <Text style={styles.productPrice}>₹{item.price ?? item.sellingPrice}</Text>
-                        {!cartItem ? (
-                          <TouchableOpacity
-                            style={styles.addBtn}
-                            onPress={() => {
-                              addToCart(item);
-                              if (Platform.OS === "android") {
-                                ToastAndroid.show(`${item?.name?.substring(0, 15)} added ✅`, ToastAndroid.SHORT);
-                              }
-                            }}
-                          >
-                            <Text style={styles.addText}>ADD</Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <View style={styles.qtyBox}>
-                            <TouchableOpacity style={styles.qtyBtn} onPress={() => decreaseQty(cartItem.id)}>
-                              <Text style={styles.qtyBtnText}>-</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.qtyValue}>{cartItem.quantity}</Text>
-                            <TouchableOpacity style={styles.qtyBtn} onPress={() => increaseQty(cartItem.id)}>
-                              <Text style={styles.qtyBtnText}>+</Text>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                <View style={styles.searchGrid}>
+                  {suggestions.map((item) => (
+                    <View key={item.id} style={styles.cardWrapper}>
+                      <ProductCard product={item} />
+                    </View>
+                  ))}
+                </View>
 
                 {/* See all */}
                 <TouchableOpacity style={styles.seeAllBtn} onPress={() => submitSearch(searchText)} activeOpacity={0.7}>
@@ -420,28 +400,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  /* Product rows */
-  productRow: {
+  /* Product rows replacing with Grid */
+  searchGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F9FAFB",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    marginTop: 10,
   },
-  productImgBox: {
-    width: 44, height: 44,
-    borderRadius: 10,
-    backgroundColor: "#F9FAFB",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-    marginRight: 12,
+  cardWrapper: {
+    width: "48%",
+    marginBottom: 10,
   },
-  productImg: { width: 36, height: 36, resizeMode: "contain" },
-  productInfo: { flex: 1, paddingRight: 10 },
-  productName: { fontSize: 14, fontWeight: "600", color: "#111827" },
   productUnit: { fontSize: 12, color: "#9CA3AF", marginTop: 1 },
   
   productRight: { alignItems: "flex-end" },

@@ -52,22 +52,6 @@ const OtpScreen = () => {
           }
     }, [resendTimer]);
 
-    useEffect(() => {
-          isReadyRef.current = true;
-
-                  const unsubscribe = auth().onAuthStateChanged((user) => {
-                          if (user && isReadyRef.current && !isCompletingRef.current) {
-                                    console.log("Firebase auto-verified:", user.phoneNumber);
-                                    handleAuthenticatedUser(user);
-                          }
-                  });
-
-                  return () => {
-                          isReadyRef.current = false;
-                          unsubscribe();
-                  };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
     const finalizeSession = useCallback(
           async (firebaseUser: any) => {
                   const firebaseIdToken = await firebaseUser.getIdToken(true);
@@ -104,19 +88,43 @@ const OtpScreen = () => {
                       }
             } catch (error: any) {
                       isCompletingRef.current = false;
-                      console.error("Backend auth error:", JSON.stringify(error));
+                      console.error("Backend auth error:", error?.status, error?.message);
 
-                    if (error?.status === 404) {
-                                Alert.alert("Account Not Found", "No account found. Please sign up.", [
+                    if (error?.status === 404 && !signupData) {
+                                // Login flow but user not registered — send to signup
+                                Alert.alert("Account Not Found", "No account found with this number. Please sign up.", [
                                   { text: "Sign Up", onPress: () => navigation.navigate("Signup", { phone }) },
                                   { text: "Cancel", style: "cancel" },
                                             ]);
                                 return;
                     }
-                      if (error?.status === 409) {
-                                  Alert.alert("Already Registered", "This number is already registered. Please login.");
-                                  return;
-                      }
+                    if (error?.status === 409 && signupData) {
+                                // Signup flow but user already exists — auto-retry as login
+                                console.log("[OTP] User already exists, retrying as login...");
+                                try {
+                                  const firebaseIdToken = await firebaseUser.getIdToken(true);
+                                  const loginRes = await loginWithFirebaseToken(firebaseIdToken);
+                                  if (loginRes) {
+                                    login(
+                                      {
+                                        name: loginRes.name || signupData.name || "Customer",
+                                        phone: loginRes.phoneNumber || phone,
+                                        email: loginRes.email || signupData.email || "",
+                                        customerId: loginRes.customerId,
+                                      },
+                                      loginRes.jwtToken
+                                    );
+                                    navigation.reset({ index: 0, routes: [{ name: "MainTabs" }] });
+                                    return;
+                                  }
+                                } catch (retryError) {
+                                  console.error("[OTP] Login retry after 409 failed:", retryError);
+                                }
+                                Alert.alert("Already Registered", "This number is already registered. You have been logged in.", [
+                                  { text: "OK" },
+                                ]);
+                                return;
+                    }
                       Alert.alert("Error", error?.message || "Something went wrong. Please try again.");
             } finally {
                       setLoading(false);
@@ -124,6 +132,17 @@ const OtpScreen = () => {
           },
           [finalizeSession, login, navigation, phone, signupData]
         );
+
+    // Handle Firebase auto-verification (Android)
+    useEffect(() => {
+          const subscriber = auth().onAuthStateChanged(async (firebaseUser) => {
+                  if (firebaseUser && firebaseUser.phoneNumber === `+91${phone}` && !isCompletingRef.current) {
+                          console.log("[OTP] Auto-verified by Firebase. Proceeding to finalize...");
+                          await handleAuthenticatedUser(firebaseUser);
+                  }
+          });
+          return subscriber;
+    }, [phone, handleAuthenticatedUser]);
     const verifyOtp = async () => {
           if (code.length !== 6 || loading || isCompletingRef.current) return;
 
@@ -135,6 +154,13 @@ const OtpScreen = () => {
                   const result = await auth().signInWithCredential(credential);
                   await handleAuthenticatedUser(result.user);
           } catch (error: any) {
+                  // Fallback: If auto-verification already consumed the session
+                  if (auth().currentUser && auth().currentUser?.phoneNumber === `+91${phone}`) {
+                            console.log("[OTP] verification failed but user already signed in. Proceeding...");
+                            await handleAuthenticatedUser(auth().currentUser);
+                            return;
+                  }
+
                   setLoading(false);
                   isReadyRef.current = true;
                   console.error("OTP error code:", error?.code, "message:", error?.message);
@@ -160,7 +186,11 @@ const OtpScreen = () => {
           isCompletingRef.current = false;
 
           try {
-                  try { await auth().signOut(); } catch (_) {}
+            try {
+              await auth().signOut();
+            } catch (e) {
+              console.log("Silent signout error:", e);
+            }
 
             const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
                   setVerificationId(confirmation.verificationId);
@@ -195,11 +225,11 @@ const OtpScreen = () => {
                                                                               char !== "" && styles.otpBoxFilled,
                                                                             ]}
                                                           >
-                                                          <Text style={styles.otpBoxText}>{char}</Text>Text>
-                                            </View>View>
+                                                          <Text style={styles.otpBoxText}>{char}</Text>
+                                            </View>
                                           );
                   })}
-                  </View>View>
+                  </View>
                 );
     };
   
@@ -212,17 +242,17 @@ const OtpScreen = () => {
                         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                                   <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
                                               <Ionicons name="chevron-back" size={24} color="#1E293B" />
-                                  </Pressable>Pressable>
-                        </View>View>
+                                  </Pressable>
+                        </View>
                 
                         <View style={styles.content}>
                                   <View style={styles.titleSection}>
-                                              <Text style={styles.title}>Verification Code</Text>Text>
+                                              <Text style={styles.title}>Verification Code</Text>
                                               <Text style={styles.subtitle}>
                                                             We have sent a 6-digit code to{"\n"}
-                                                            <Text style={styles.phoneHighlight}>+91 {phone}</Text>Text>
-                                              </Text>Text>
-                                  </View>View>
+                                                            <Text style={styles.phoneHighlight}>+91 {phone}</Text>
+                                              </Text>
+                                  </View>
                         
                                   <TextInput
                                                 style={styles.hiddenInput}
@@ -231,9 +261,6 @@ const OtpScreen = () => {
                                                 value={code}
                                                 onChangeText={setCode}
                                                 autoFocus
-                                                textContentType="oneTimeCode"
-                                                autoComplete="sms-otp"
-                                                importantForAutofill="yes"
                                               />
                         
                           {renderOtpBoxes()}
@@ -251,31 +278,31 @@ const OtpScreen = () => {
                                                               <ActivityIndicator color="#fff" />
                                                             ) : (
                                                               <>
-                                                                              <Text style={styles.buttonText}>Verify and Continue</Text>Text>
+                                                                              <Text style={styles.buttonText}>Verify and Continue</Text>
                                                                               <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                                                              </>>
+                                                              </>
                                                             )}
-                                  </Pressable>Pressable>
+                                  </Pressable>
                         
                                   <View style={styles.resendSection}>
-                                              <Text style={styles.resendText}>Didn't receive the code?</Text>Text>
+                                              <Text style={styles.resendText}>Didn't receive the code?</Text>
                                     {canResend ? (
                                 <Pressable onPress={resendOtp} disabled={isResending}>
                                   {isResending ? (
                                                     <ActivityIndicator size="small" color="#0A8754" />
                                                   ) : (
-                                                    <Text style={styles.resendAction}>Resend Code</Text>Text>
+                                                    <Text style={styles.resendAction}>Resend Code</Text>
                                                 )}
-                                </Pressable>Pressable>
+                                </Pressable>
                               ) : (
                                 <Text style={styles.timerText}>
-                                                Resend in <Text style={styles.timerBold}>{resendTimer}s</Text>Text>
-                                </Text>Text>
+                                                Resend in <Text style={styles.timerBold}>{resendTimer}s</Text>
+                                </Text>
                                               )}
-                                  </View>View>
-                        </View>View>
-                </ScrollView>ScrollView>
-          </KeyboardAvoidingView>KeyboardAvoidingView>
+                                  </View>
+                        </View>
+                </ScrollView>
+          </KeyboardAvoidingView>
         );
 };
 

@@ -119,69 +119,71 @@ const ProductFilterBar = ({
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable style={styles.overlay} onPress={() => setModalVisible(false)} />
-        <View style={styles.sheet}>
-          <View style={styles.sheetHandle} />
-          
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Sort & Filter</Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Ionicons name="close" size={scale(24)} color="#333" />
+        <View style={{ flex: 1 }}>
+          <Pressable style={styles.overlay} onPress={() => setModalVisible(false)} />
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Sort & Filter</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={scale(24)} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Sort Section */}
+              <Text style={styles.sectionTitle}>Sort By</Text>
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.optionRow, activeSort === key && styles.optionRowActive]}
+                  onPress={() => onSortChange(key)}
+                >
+                  <Text style={[styles.optionText, activeSort === key && styles.optionTextActive]}>
+                    {SORT_LABELS[key]}
+                  </Text>
+                  {activeSort === key && (
+                    <Ionicons name="checkmark-circle" size={scale(20)} color="#0A8754" />
+                  )}
+                </TouchableOpacity>
+              ))}
+
+              <View style={styles.divider} />
+
+              {/* Price Section */}
+              <Text style={styles.sectionTitle}>Price Range</Text>
+              {PRICE_RANGES.map((range) => (
+                <TouchableOpacity
+                  key={range.label}
+                  style={[
+                    styles.optionRow,
+                    activePriceRange.label === range.label && styles.optionRowActive,
+                  ]}
+                  onPress={() => onPriceChange(range)}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      activePriceRange.label === range.label && styles.optionTextActive,
+                    ]}
+                  >
+                    {range.label}
+                  </Text>
+                  {activePriceRange.label === range.label && (
+                    <Ionicons name="checkmark-circle" size={scale(20)} color="#0A8754" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.applyBtn}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.applyBtnText}>Apply Filters</Text>
             </TouchableOpacity>
           </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Sort Section */}
-            <Text style={styles.sectionTitle}>Sort By</Text>
-            {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.optionRow, activeSort === key && styles.optionRowActive]}
-                onPress={() => onSortChange(key)}
-              >
-                <Text style={[styles.optionText, activeSort === key && styles.optionTextActive]}>
-                  {SORT_LABELS[key]}
-                </Text>
-                {activeSort === key && (
-                  <Ionicons name="checkmark-circle" size={scale(20)} color="#0A8754" />
-                )}
-              </TouchableOpacity>
-            ))}
-
-            <View style={styles.divider} />
-
-            {/* Price Section */}
-            <Text style={styles.sectionTitle}>Price Range</Text>
-            {PRICE_RANGES.map((range) => (
-              <TouchableOpacity
-                key={range.label}
-                style={[
-                  styles.optionRow,
-                  activePriceRange.label === range.label && styles.optionRowActive,
-                ]}
-                onPress={() => onPriceChange(range)}
-              >
-                <Text
-                  style={[
-                    styles.optionText,
-                    activePriceRange.label === range.label && styles.optionTextActive,
-                  ]}
-                >
-                  {range.label}
-                </Text>
-                {activePriceRange.label === range.label && (
-                  <Ionicons name="checkmark-circle" size={scale(20)} color="#0A8754" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          <TouchableOpacity
-            style={styles.applyBtn}
-            onPress={() => setModalVisible(false)}
-          >
-            <Text style={styles.applyBtnText}>Apply Filters</Text>
-          </TouchableOpacity>
         </View>
       </Modal>
     </View>

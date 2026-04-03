@@ -13,6 +13,34 @@ const LOCAL_HOST_PATTERN =
 
 const isLocalHost = (host: string) => LOCAL_HOST_PATTERN.test(host);
 
+const withRequestedImageSize = (
+  value: string,
+  width?: number,
+  height?: number
+) => {
+  if (!value || (!width && !height)) return value;
+
+  try {
+    const parsed = new URL(value);
+
+    if (API_ORIGIN && parsed.origin !== API_ORIGIN) {
+      return value;
+    }
+
+    if (width && !parsed.searchParams.has("width")) {
+      parsed.searchParams.set("width", String(width));
+    }
+
+    if (height && !parsed.searchParams.has("height")) {
+      parsed.searchParams.set("height", String(height));
+    }
+
+    return parsed.toString();
+  } catch {
+    return value;
+  }
+};
+
 export const normalizeImageUrl = (value?: unknown): string | null => {
   if (typeof value !== "string") return null;
 
@@ -53,11 +81,18 @@ export const normalizeImageUrl = (value?: unknown): string | null => {
   return null;
 };
 
-export const resolveImageSource = (value?: unknown) => {
+export const resolveImageSource = (
+  value?: unknown,
+  options?: { width?: number; height?: number }
+) => {
   if (typeof value === "number") {
     return value;
   }
 
   const normalized = normalizeImageUrl(value);
-  return normalized ? { uri: normalized } : null;
+  if (!normalized) return null;
+
+  return {
+    uri: withRequestedImageSize(normalized, options?.width, options?.height),
+  };
 };

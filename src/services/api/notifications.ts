@@ -51,3 +51,18 @@ export const markNotificationRead = async (token: string, notifId: string | numb
     return { success: true, clientOnly: true };
   }
 };
+
+/** POST /api/save-token – Save FCM token for push notifications */
+export const saveFcmToken = async (phone: string, fcmToken: string) => {
+  try {
+    const response = await fetchWithTimeout(`${API_CONFIG.BASE_URL}/save-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, fcmToken }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error saving FCM token:", error);
+    return false;
+  }
+};

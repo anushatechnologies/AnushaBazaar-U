@@ -3,7 +3,7 @@
     "name": "AnushaBazaar",
     "slug": "AnushaBazaar",
     "scheme": "anushabazaar",
-    "version": "1.0.9",
+    "version": "1.0.17",
     "orientation": "portrait",
     "icon": "./assets/company-logo.png",
     "userInterfaceStyle": "light",
@@ -13,7 +13,7 @@
       "backgroundColor": "#121212"
     },
     "android": {
-      "versionCode": 19,
+      "versionCode": 30,
       "adaptiveIcon": {
         "foregroundImage": "./assets/company-logo.png",
         "backgroundColor": "#ffffff"
@@ -30,8 +30,7 @@
         }
       },
       "package": "com.anusha.deliveryapp",
-      "googleServicesFile": "./google-services.json",
-      "enableProguardInReleaseBuilds": true
+      "googleServicesFile": "./google-services.json"
     },
     "ios": {
       "supportsTablet": true,
@@ -42,7 +41,6 @@
       }
     },
     "plugins": [
-      "@react-native-firebase/app",
       [
         "expo-location",
         {
@@ -55,7 +53,8 @@
           "microphonePermission": "Allow Anusha Bazaar to access your microphone for voice search.",
           "speechRecognitionPermission": "Allow Anusha Bazaar to recognize your speech for voice search."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

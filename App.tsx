@@ -84,7 +84,13 @@ export default function App() {
   }, []);
 
   if (!appIsReady) {
-    return <AppLoader />;
+    return (
+      <AppLoader
+        fullScreen
+        title="Anusha Bazaar"
+        subtitle="Fresh groceries, fruits, and daily essentials are getting ready for you."
+      />
+    );
   }
 
   return (

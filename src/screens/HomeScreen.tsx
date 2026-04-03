@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -26,12 +26,13 @@ import { useAuth } from "../context/AuthContext";
 import { useLocation } from "../context/LocationContext";
 import { useAppPermissions } from "../hooks/useAppPermissions";
 import * as ExpoLocation from "expo-location";
-import { useNavigation, CompositeNavigationProp } from "@react-navigation/native";
+import { useNavigation, CompositeNavigationProp, useFocusEffect } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootTabParamList } from "../navigation/BottomTabs";
 import { RootStackParamList } from "../navigation/RootStack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTabBar } from "../context/TabBarContext";
 import { scale } from "../utils/responsive";
 
 type HomeScreenNavigationProp = CompositeNavigationProp<
@@ -45,6 +46,14 @@ const HomeScreen = () => {
   const { setLocation, hasPermission, checkPermission } = useLocation();
   const { requestLocationPermission } = useAppPermissions();
   const insets = useSafeAreaInsets();
+  const { onScrollDown } = useTabBar();
+  
+  // Reset tab bar to visible every time Home gains focus
+  useFocusEffect(
+    useCallback(() => {
+      onScrollDown();
+    }, [onScrollDown])
+  );
   
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState("All");
@@ -53,6 +62,8 @@ const HomeScreen = () => {
   
   const [showSearch, setShowSearch] = useState(false);
   const [showSearchVoice, setShowSearchVoice] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [floatingSearchVisible, setFloatingSearchVisible] = useState(false);
 
   useEffect(() => {
     handleInitialPermission();
@@ -94,36 +105,49 @@ const HomeScreen = () => {
 
   const onRefresh = () => {
     setRefreshing(true);
+    setRefreshKey(prev => prev + 1);
     setTimeout(() => setRefreshing(false), 1500);
   };
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: true }
+    {
+      useNativeDriver: true,
+      listener: (event: any) => {
+        const y = event.nativeEvent.contentOffset.y;
+        const threshold = headerHeight + 10;
+        setFloatingSearchVisible(y > threshold);
+      },
+    }
   );
 
   const sections = [
     { key: "sticky_header" }, 
-    { key: "banner" },
-    { key: "categories" },
-    { key: "trending" },
-    { key: "bestSeller" },
-    { key: "orderAgain" },
-    { key: "allProducts" },
+    { key: `banner_${refreshKey}` },
+    { key: `categories_${refreshKey}` },
+    { key: `trending_${refreshKey}` },
+    { key: `bestSeller_${refreshKey}` },
+    { key: `allProducts_${refreshKey}` },
   ];
 
   const renderSection = ({ item }: any) => {
-    switch (item.key) {
-      case "sticky_header":
-        return (
-          <View style={styles.stickyHeaderWrapper}>
-            <AnimatedSearchTrigger 
-              onPress={() => { setShowSearch(true); setShowSearchVoice(false); }} 
-              onMicPress={() => { setShowSearch(true); setShowSearchVoice(true); }}
-            />
-            <CategoryTabs onChange={setFilter} />
-          </View>
-        );
+    // Break off the raw key prefix ignoring the suffix
+    const baseKey = item.key.split('_')[0];
+    
+    // For sticky header we don't apply the prefix trick
+    if (item.key === "sticky_header") {
+      return (
+        <View style={styles.stickyHeaderWrapper}>
+          <AnimatedSearchTrigger 
+            onPress={() => { setShowSearch(true); setShowSearchVoice(false); }} 
+            onMicPress={() => { setShowSearch(true); setShowSearchVoice(true); }}
+          />
+          <CategoryTabs onChange={setFilter} />
+        </View>
+      );
+    }
+    
+    switch (baseKey) {
       case "banner":
         return <BannerCarousel />;
       case "categories":
@@ -144,31 +168,6 @@ const HomeScreen = () => {
               onPress={() => navigation.navigate("Trending")}
             />
             <TrendingList filter={filter} />
-          </>
-        );
-      case "orderAgain":
-        if (!user) return null;
-        return (
-          <>
-            <SectionTitle
-              title="Order Again"
-              onPress={() => navigation.navigate("Order Again")}
-            />
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingLeft: 16, paddingRight: 8 }}
-              data={[
-                { id: "1", name: "Fortune Soya Health Oil", price: 135, oldPrice: 155, icon: "https://www.jiomart.com/images/product/original/490000072/fortune-soya-health-refined-soyabean-oil-1-l-pouch-product-images-o490000072-p490000072-0-202203151213.jpg", unit: "1 L" },
-                { id: "2", name: "Aashirvaad Atta", price: 210, oldPrice: 240, icon: "https://www.bigbasket.com/media/uploads/p/l/126906_8-aashirvaad-atta-whole-wheat.jpg", unit: "5 kg" }
-              ]}
-              keyExtractor={(item: any) => item.id}
-              renderItem={({ item }: { item: any }) => (
-                <View style={{ width: 140, marginRight: 12 }}>
-                  <ProductCard product={item} />
-                </View>
-              )}
-            />
           </>
         );
       case "bestSeller":
@@ -218,16 +217,22 @@ const HomeScreen = () => {
       />
 
       <Animated.View 
+        pointerEvents={floatingSearchVisible ? "auto" : "none"}
         style={[
           styles.floatingSearch, 
           { 
             transform: [{
               translateY: scrollY.interpolate({
-                inputRange: [Math.max(0, headerHeight - 1), headerHeight],
-                outputRange: [-300, 0],
+                inputRange: [Math.max(0, headerHeight + 10), headerHeight + 60],
+                outputRange: [-100, 0],
                 extrapolate: 'clamp'
               })
-            }]
+            }],
+            opacity: scrollY.interpolate({
+              inputRange: [Math.max(0, headerHeight + 10), headerHeight + 60],
+              outputRange: [0, 1],
+              extrapolate: 'clamp'
+            })
           }
         ]}
       >

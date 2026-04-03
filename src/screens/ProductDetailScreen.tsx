@@ -13,9 +13,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "../context/CartContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { filterProducts, submitProductRating, getProductRatings } from "../services/api/products";
+import { filterProducts, submitProductRating, getProductRatings, getProductById } from "../services/api/products";
 import { useAuth } from "../context/AuthContext";
 import { Alert } from "react-native";
+import { getOrders } from "../services/api/orders";
 import ProductCard from "../components/ProductCard";
 import QuantitySelector from "../components/common/QuantitySelector";
 import PriceRow from "../components/common/PriceRow";
@@ -23,39 +24,222 @@ import FloatingCart from "../components/FloatingCart";
 import { Share } from "react-native";
 import { API_CONFIG } from "../config/api.config";
 import { scale } from "../utils/responsive";
-import { resolveImageSource } from "../utils/image";
+import { normalizeImageUrl, resolveImageSource } from "../utils/image";
+import { getProductPackLabel } from "../utils/product";
+
+import MediaCarousel from "../components/common/MediaCarousel";
+
+const buildOrderedGallery = (...collections: any[]) => {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+
+  collections.forEach((collection) => {
+    const values = Array.isArray(collection) ? collection : [collection];
+
+    values.forEach((value) => {
+      const normalized = normalizeImageUrl(value);
+      if (!normalized || seen.has(normalized)) return;
+      seen.add(normalized);
+      ordered.push(normalized);
+    });
+  });
+
+  return ordered;
+};
+
+const mergeProductDetails = (previousProduct: any, nextProduct: any) => {
+  const preferredPrimaryImage =
+    normalizeImageUrl(
+      previousProduct?.imageUrl ||
+        previousProduct?.image ||
+        previousProduct?.thumbnail ||
+        previousProduct?.productImage ||
+        previousProduct?.icon ||
+        previousProduct?.imageUri
+    ) ||
+    normalizeImageUrl(
+      nextProduct?.imageUrl ||
+        nextProduct?.image ||
+        nextProduct?.thumbnail ||
+        nextProduct?.productImage ||
+        nextProduct?.icon ||
+        nextProduct?.imageUri
+    ) ||
+    "";
+
+  const orderedGallery = buildOrderedGallery(
+    preferredPrimaryImage,
+    nextProduct?.images,
+    nextProduct?.gallery,
+    previousProduct?.images,
+    previousProduct?.gallery
+  );
+
+  return {
+    ...previousProduct,
+    ...nextProduct,
+    image: preferredPrimaryImage || nextProduct?.image || previousProduct?.image,
+    imageUrl: preferredPrimaryImage || nextProduct?.imageUrl || previousProduct?.imageUrl,
+    thumbnail: preferredPrimaryImage || nextProduct?.thumbnail || previousProduct?.thumbnail,
+    images: orderedGallery,
+    gallery: orderedGallery,
+  };
+};
+
+const PRODUCT_IMAGE_SIZE = 512;
+
+const RATING_BLOCKED_STATUSES = new Set([
+  "cancelled",
+  "canceled",
+  "failed",
+  "payment_failed",
+  "rejected",
+]);
+
+const normalizeOrderStatus = (order: any) =>
+  String(
+    order?.orderStatus ||
+      order?.status ||
+      order?.deliveryStatus ||
+      order?.paymentStatus ||
+      ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+const extractOrderItems = (order: any) => {
+  const candidateCollections = [
+    order?.items,
+    order?.orderItems,
+    order?.products,
+    order?.productDetails,
+    order?.cartItems,
+    order?.order_items,
+  ];
+
+  for (const candidate of candidateCollections) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+};
+
+const orderItemMatchesProduct = (item: any, currentProduct: any) => {
+  const targetIds = [
+    currentProduct?.id,
+    currentProduct?.productId,
+    currentProduct?.product?.id,
+    currentProduct?.product?.productId,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value));
+
+  const itemIds = [
+    item?.productId,
+    item?.product?.id,
+    item?.product?.productId,
+    item?.productDetails?.id,
+    item?.productDetails?.productId,
+    item?.productVariant?.productId,
+    item?.variant?.productId,
+    item?.id,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value));
+
+  if (itemIds.some((value) => targetIds.includes(value))) {
+    return true;
+  }
+
+  const targetName = String(
+    currentProduct?.name || currentProduct?.productName || ""
+  )
+    .trim()
+    .toLowerCase();
+  const itemName = String(
+    item?.productName ||
+      item?.name ||
+      item?.title ||
+      item?.product?.name ||
+      item?.product?.productName ||
+      ""
+  )
+    .trim()
+    .toLowerCase();
+
+  return Boolean(targetName && itemName && targetName === itemName);
+};
 
 const ProductDetailScreen = ({ route }: any) => {
-  const { product } = route.params;
+  const { product: initialProduct } = route.params;
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const scrollRef = React.useRef<ScrollView>(null);
+  const { jwtToken, user } = useAuth();
   const { cart, addToCart, increaseQty, decreaseQty, wishlist, addToWishlist, removeFromWishlist } = useCart();
 
+  const [product, setProduct] = React.useState<any>(initialProduct);
+  const [loading, setLoading] = React.useState(false);
   const [selectedVariant, setSelectedVariant] = React.useState<any>(
-    product.productVariants && product.productVariants.length > 0 ? product.productVariants[0] : null
+    initialProduct.productVariants && initialProduct.productVariants.length > 0 ? initialProduct.productVariants[0] : null
   );
 
   const [relatedProducts, setRelatedProducts] = React.useState<any[]>([]);
   const [loadingRelated, setLoadingRelated] = React.useState(true);
 
   React.useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    setProduct(initialProduct);
+    setSelectedVariant(
+      initialProduct.productVariants && initialProduct.productVariants.length > 0
+        ? initialProduct.productVariants[0]
+        : null
+    );
+    setComment("");
+    setRating(5);
+    fetchFullDetails();
     fetchRelated();
-  }, [product.id]);
+  }, [initialProduct.id]);
 
-  // Update selected variant if product changes
-  React.useEffect(() => {
-    if (product.productVariants && product.productVariants.length > 0) {
-      setSelectedVariant(product.productVariants[0]);
+  const fetchFullDetails = async () => {
+    if (!initialProduct.id) return;
+    setLoading(true);
+    try {
+      const fullData = await getProductById(initialProduct.id);
+      if (fullData) {
+        setProduct((previousProduct: any) => mergeProductDetails(previousProduct, fullData));
+        setSelectedVariant((currentVariant: any) => {
+          if (!fullData.productVariants || fullData.productVariants.length === 0) {
+            return null;
+          }
+
+          if (!currentVariant) {
+            return fullData.productVariants[0];
+          }
+
+          return (
+            fullData.productVariants.find(
+              (variant: any) => String(variant.id) === String(currentVariant.id)
+            ) || fullData.productVariants[0]
+          );
+        });
+      }
+    } catch (e) {
+      console.log("Error fetching full details", e);
+    } finally {
+      setLoading(false);
     }
-  }, [product]);
+  };
 
   const fetchRelated = async () => {
     setLoadingRelated(true);
     try {
       const data = await filterProducts({
-        categoryId: product.categoryId || product.category_id,
-        subCategoryId: product.subCategoryId || product.sub_category_id
+        categoryId: initialProduct.categoryId || initialProduct.category_id,
+        subCategoryId: initialProduct.subCategoryId || initialProduct.sub_category_id
       });
       // Filter out current product
       const filtered = data.filter((p: any) => p.id !== product.id);
@@ -67,36 +251,50 @@ const ProductDetailScreen = ({ route }: any) => {
     }
   };
 
-  const productImage =
-    product?.imageUrl || product?.image || product?.thumbnail || product?.icon || product?.imageUri;
-  const imageSource = resolveImageSource(productImage);
-  const [imageFailed, setImageFailed] = React.useState(false);
-
-  React.useEffect(() => {
-    setImageFailed(false);
-  }, [product?.id, productImage]);
-
   // Use variantId for matching cart items
-  const activeVariantId = selectedVariant?.id || product.variantId;
-  const cartItem = cart.find((item: any) => String(item.variantId) === String(activeVariantId));
+  const activeVariantId = selectedVariant?.id || product.variantId || product.id;
+  const cartItem = cart.find(
+    (item: any) => String(item.variantId || item.id) === String(activeVariantId)
+  );
 
   // Display prices based on selected variant or top-level product
   const displayPrice = selectedVariant ? selectedVariant.sellingPrice : (product.price || 0);
   const displayMrp = (selectedVariant ? selectedVariant.mrp : product.mrp) || product.originalPrice || displayPrice;
   const hasDiscount = displayMrp > displayPrice;
-  
+  const displayPackInfo = getProductPackLabel(selectedVariant, product)
+    || getProductPackLabel(product, initialProduct)
+    || selectedVariant?.variantName
+    || product?.productVariants?.[0]?.variantName
+    || product?.unit
+    || '';
+
   // Rating State
   const [ratings, setRatings] = React.useState<any[]>([]);
   const [rating, setRating] = React.useState(5);
   const [comment, setComment] = React.useState("");
   const [submittingRating, setSubmittingRating] = React.useState(false);
   const [loadingRatings, setLoadingRatings] = React.useState(true);
+  const [canRateProduct, setCanRateProduct] = React.useState(false);
+  const [ratingEligibilityLoading, setRatingEligibilityLoading] = React.useState(false);
+  const [ratingEligibilityMessage, setRatingEligibilityMessage] = React.useState(
+    "Login to submit a review after delivery."
+  );
 
   React.useEffect(() => {
     fetchRatings();
   }, [product.id]);
 
+  React.useEffect(() => {
+    checkRatingEligibility();
+  }, [jwtToken, product.id]);
+
   const fetchRatings = async () => {
+    if (!product?.id) {
+      setRatings([]);
+      setLoadingRatings(false);
+      return;
+    }
+
     setLoadingRatings(true);
     try {
       const data = await getProductRatings(product.id);
@@ -108,9 +306,50 @@ const ProductDetailScreen = ({ route }: any) => {
     }
   };
 
-  const averageRating = ratings.length > 0 
-    ? (ratings.reduce((acc, curr) => acc + curr.rating, 0) / ratings.length).toFixed(1) 
+  const averageRating = ratings.length > 0
+    ? (
+        ratings.reduce((acc, curr) => acc + Number(curr?.rating || 0), 0) /
+        ratings.length
+      ).toFixed(1)
     : "5.0";
+
+  const checkRatingEligibility = async () => {
+    if (!jwtToken || !product?.id) {
+      setCanRateProduct(false);
+      setRatingEligibilityLoading(false);
+      setRatingEligibilityMessage("Login to submit a review after a successful order.");
+      return;
+    }
+
+    setRatingEligibilityLoading(true);
+
+    try {
+      const orders = await getOrders(jwtToken, user?.customerId);
+      const hasSuccessfulPurchase = (Array.isArray(orders) ? orders : []).some((order: any) => {
+        const status = normalizeOrderStatus(order);
+        if (!status || RATING_BLOCKED_STATUSES.has(status)) {
+          return false;
+        }
+
+        return extractOrderItems(order).some((item: any) =>
+          orderItemMatchesProduct(item, product)
+        );
+      });
+
+      setCanRateProduct(hasSuccessfulPurchase);
+      setRatingEligibilityMessage(
+        hasSuccessfulPurchase
+          ? ""
+          : "Ratings unlock after you successfully order this product."
+      );
+    } catch (error) {
+      console.error("Error checking rating eligibility:", error);
+      setCanRateProduct(false);
+      setRatingEligibilityMessage("We could not verify your orders right now.");
+    } finally {
+      setRatingEligibilityLoading(false);
+    }
+  };
 
   const isWishlisted = wishlist.some((item: any) => String(item.id) === String(product.id));
 
@@ -123,10 +362,19 @@ const ProductDetailScreen = ({ route }: any) => {
   };
 
   const handleSubmitRating = async () => {
-    if (!user?.customerId) {
+    if (!jwtToken) {
       Alert.alert("Login Required", "Please login to rate this product");
       return;
     }
+
+    if (!canRateProduct) {
+      Alert.alert(
+        "Not Eligible Yet",
+        ratingEligibilityMessage || "Ratings unlock after a successful order."
+      );
+      return;
+    }
+
     if (!comment.trim()) {
       Alert.alert("Required", "Please add a comment");
       return;
@@ -134,19 +382,31 @@ const ProductDetailScreen = ({ route }: any) => {
 
     setSubmittingRating(true);
     try {
-      const success = await submitProductRating({
-        customerId: user.customerId,
+      const reviewText = comment.trim();
+      const result = await submitProductRating(jwtToken, {
+        customerId: user?.customerId ? Number(user.customerId) : undefined,
         productId: product.id,
         rating,
-        comment: comment.trim(),
+        comment: reviewText,
       });
 
-      if (success) {
+      if (result.ok) {
+        setRatings((current) => [
+          {
+            rating,
+            comment: reviewText,
+          },
+          ...current,
+        ]);
         Alert.alert("Success", "Thank you for your rating!");
         setComment("");
-        fetchRatings(); // Refresh ratings
+        setRating(5);
+        await fetchRatings();
       } else {
-        Alert.alert("Error", "Could not submit rating. Please try again.");
+        Alert.alert(
+          result.status === 403 ? "Successful Order Required" : "Error",
+          result.message || "Could not submit rating. Please try again."
+        );
       }
     } catch (error) {
       Alert.alert("Error", "Something went wrong");
@@ -198,17 +458,8 @@ const ProductDetailScreen = ({ route }: any) => {
   return (
     <View style={styles.container}>
       {renderHeader()}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.imageContainer}>
-          {imageSource && !imageFailed ? (
-            <Image source={imageSource} style={styles.image} onError={() => setImageFailed(true)} />
-          ) : (
-            <View style={styles.imageFallback}>
-              <Ionicons name="image-outline" size={scale(44)} color="#CBD5E1" />
-              <Text style={styles.imageFallbackText}>Image unavailable</Text>
-            </View>
-          )}
-        </View>
+      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
+        <MediaCarousel product={product} />
 
         <View style={styles.infoContainer}>
           <View style={styles.badgeRow}>
@@ -222,6 +473,9 @@ const ProductDetailScreen = ({ route }: any) => {
           </View>
 
           <Text style={styles.name}>{product.name}</Text>
+          {displayPackInfo ? (
+            <Text style={styles.packInfo}>{displayPackInfo}</Text>
+          ) : null}
           <Text style={styles.reviewerCount}>{ratings.length} ratings</Text>
 
           <View style={styles.priceRow}>
@@ -244,6 +498,27 @@ const ProductDetailScreen = ({ route }: any) => {
 
           <View style={styles.divider} />
 
+          {(!product.productVariants || product.productVariants.length <= 1) && (
+            <View style={styles.mainActionRow}>
+              {!cartItem ? (
+                <Pressable
+                  style={styles.mainAddBtn}
+                  onPress={() => addToCart(product, selectedVariant || null)}
+                >
+                  <Text style={styles.mainAddText}>ADD TO CART</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.mainQuantityBox}>
+                  <QuantitySelector
+                    quantity={cartItem.quantity}
+                    onIncrease={() => increaseQty(cartItem.id)}
+                    onDecrease={() => decreaseQty(cartItem.id)}
+                  />
+                </View>
+              )}
+            </View>
+          )}
+
           {product.productVariants && product.productVariants.length > 1 && (
             <View style={styles.variantSection}>
               <Text style={styles.variantTitle}>Select Variant</Text>
@@ -252,8 +527,28 @@ const ProductDetailScreen = ({ route }: any) => {
                   const variantCartItem = cart.find((item: any) => String(item.variantId) === String(v.id));
                   return (
                     <View key={v.id} style={styles.variantRow}>
+                      <Image
+                        source={
+                          resolveImageSource(
+                            v.image ||
+                              v.imageUrl ||
+                              product.imageUrl ||
+                              product.imageUri ||
+                              product.image,
+                            {
+                              width: PRODUCT_IMAGE_SIZE,
+                              height: PRODUCT_IMAGE_SIZE,
+                            }
+                          ) as any
+                        }
+                        style={styles.variantImage}
+                        resizeMode="contain"
+                      />
                       <View style={styles.variantInfo}>
                         <Text style={styles.variantNameText}>{v.variantName}</Text>
+                        {(getProductPackLabel(v) || v.unit) ? (
+                          <Text style={styles.variantQtyLabel}>{getProductPackLabel(v) || v.unit}</Text>
+                        ) : null}
                         <View style={styles.variantPriceBox}>
                           <Text style={styles.variantSellingPrice}>₹{v.sellingPrice}</Text>
                           {v.mrp > v.sellingPrice && (
@@ -297,44 +592,58 @@ const ProductDetailScreen = ({ route }: any) => {
           {/* Rating Section */}
           <View style={styles.ratingSection}>
             <Text style={styles.detailsHeader}>Rate this product</Text>
-            <View style={styles.starsRow}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Pressable key={s} onPress={() => setRating(s)}>
-                  <Ionicons
-                    name={s <= rating ? "star" : "star-outline"}
-                    size={scale(32)}
-                    color={s <= rating ? "#FFB800" : "#ccc"}
-                  />
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.inputContainer}>
-               <View style={styles.commentInputBox}>
-                 <Ionicons name="chatbubble-outline" size={scale(20)} color="#666" style={{ marginTop: scale(12), marginLeft: scale(12) }} />
-                 <View style={{ flex: 1, padding: scale(12) }}>
-                   <Text style={{ fontSize: scale(12), color: '#888', marginBottom: scale(4) }}>Your Review</Text>
-                   <TextInput
-                      style={styles.commentTextInput}
-                      placeholder="Write your thoughts about this product..."
-                      value={comment}
-                      onChangeText={setComment}
-                      multiline
-                   />
-                 </View>
-               </View>
+            {ratingEligibilityLoading ? (
+              <View style={styles.ratingInfoCard}>
+                <ActivityIndicator color="#0A8754" size="small" />
+                <Text style={styles.ratingInfoText}>Checking your orders...</Text>
+              </View>
+            ) : canRateProduct ? (
+              <>
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Pressable key={s} onPress={() => setRating(s)}>
+                      <Ionicons
+                        name={s <= rating ? "star" : "star-outline"}
+                        size={scale(32)}
+                        color={s <= rating ? "#FFB800" : "#ccc"}
+                      />
+                    </Pressable>
+                  ))}
+                </View>
+                <View style={styles.inputContainer}>
+                   <View style={styles.commentInputBox}>
+                     <Ionicons name="chatbubble-outline" size={scale(20)} color="#666" style={{ marginTop: scale(12), marginLeft: scale(12) }} />
+                     <View style={{ flex: 1, padding: scale(12) }}>
+                       <Text style={{ fontSize: scale(12), color: '#888', marginBottom: scale(4) }}>Your Review</Text>
+                       <TextInput
+                          style={styles.commentTextInput}
+                          placeholder="Write your thoughts about this product..."
+                          value={comment}
+                          onChangeText={setComment}
+                          multiline
+                       />
+                     </View>
+                   </View>
 
-              <Pressable
-                style={[styles.submitBtn, submittingRating && { opacity: 0.7 }]}
-                onPress={handleSubmitRating}
-                disabled={submittingRating}
-              >
-                {submittingRating ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.submitText}>Submit Review</Text>
-                )}
-              </Pressable>
-            </View>
+                  <Pressable
+                    style={[styles.submitBtn, submittingRating && { opacity: 0.7 }]}
+                    onPress={handleSubmitRating}
+                    disabled={submittingRating}
+                  >
+                    {submittingRating ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.submitText}>Submit Review</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <View style={styles.ratingInfoCard}>
+                <Ionicons name="checkmark-done-circle-outline" size={scale(18)} color="#0A8754" />
+                <Text style={styles.ratingInfoText}>{ratingEligibilityMessage}</Text>
+              </View>
+            )}
 
             {ratings.length > 0 && (
               <View style={styles.reviewsList}>
@@ -500,6 +809,13 @@ const styles = StyleSheet.create({
     color: "#888",
     marginBottom: scale(10),
   },
+  packInfo: {
+    fontSize: scale(13),
+    color: "#475569",
+    fontWeight: "700",
+    marginTop: scale(2),
+    marginBottom: scale(4),
+  },
   badgeRow: {
     flexDirection: "row",
     gap: scale(8),
@@ -594,6 +910,13 @@ const styles = StyleSheet.create({
     borderColor: "#eee",
     backgroundColor: "#fff",
   },
+  variantImage: {
+    width: scale(40),
+    height: scale(40),
+    marginRight: scale(10),
+    borderRadius: scale(6),
+    backgroundColor: "#f9f9f9",
+  },
   variantInfo: {
     flex: 1,
   },
@@ -601,6 +924,12 @@ const styles = StyleSheet.create({
     fontSize: scale(14),
     fontWeight: "600",
     color: "#333",
+  },
+  variantQtyLabel: {
+    fontSize: scale(11),
+    color: "#666",
+    fontWeight: "500",
+    marginTop: scale(2),
   },
   variantPriceBox: {
     flexDirection: "row",
@@ -638,6 +967,25 @@ const styles = StyleSheet.create({
   ratingSection: {
     marginTop: scale(10),
     marginBottom: scale(40),
+  },
+  ratingInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(10),
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    borderRadius: scale(12),
+    paddingHorizontal: scale(14),
+    paddingVertical: scale(12),
+    marginTop: scale(10),
+  },
+  ratingInfoText: {
+    flex: 1,
+    fontSize: scale(13),
+    color: "#166534",
+    lineHeight: scale(18),
+    fontWeight: "600",
   },
   starsRow: {
     flexDirection: "row",
@@ -705,5 +1053,27 @@ const styles = StyleSheet.create({
     fontSize: scale(13),
     color: "#444",
     lineHeight: scale(18),
+  },
+  mainActionRow: {
+    marginBottom: scale(5),
+    alignItems: "center",
+    width: "100%",
+  },
+  mainAddBtn: {
+    backgroundColor: "#0C831F",
+    paddingVertical: scale(14),
+    borderRadius: scale(12),
+    width: "100%",
+    alignItems: "center",
+  },
+  mainAddText: {
+    color: "#fff",
+    fontSize: scale(16),
+    fontWeight: "800",
+  },
+  mainQuantityBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
 });

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { getProductPackLabel } from '../utils/product';
 
 const { height } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ interface ProductSuggestion {
   imageUrl?: string;
   image?: any;
   unit?: string;
+  quantity?: string | number;
   categoryId?: string;
   subCategoryId?: string;
 }
@@ -73,6 +75,7 @@ const SearchSuggestions = ({ suggestions, searchText, isVisible, onClose }: Sear
   const renderProductItem = ({ item }: { item: ProductSuggestion }) => {
     const imgSource = item.imageUrl ? { uri: item.imageUrl } :
                      (typeof item.image === 'string' ? { uri: item.image } : item.image);
+    const packLabel = getProductPackLabel(item);
 
     return (
       <TouchableOpacity
@@ -89,7 +92,7 @@ const SearchSuggestions = ({ suggestions, searchText, isVisible, onClose }: Sear
         </View>
         <View style={styles.info}>
           <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.productUnit}>{item.unit || ''}</Text>
+          <Text style={styles.productUnit}>{packLabel}</Text>
         </View>
         <Text style={styles.productPrice}>₹{item.price}</Text>
       </TouchableOpacity>

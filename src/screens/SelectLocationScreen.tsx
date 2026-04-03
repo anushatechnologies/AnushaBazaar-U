@@ -9,6 +9,7 @@ import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplet
 
 // Hooks & Components
 import { useMapLocation } from "../hooks/useMapLocation";
+import AppLoader from "../components/AppLoader";
 import MapPin from "../components/map/MapPin";
 import GpsButton from "../components/map/GpsButton";
 import MapBottomCard from "../components/map/MapBottomCard";
@@ -43,7 +44,6 @@ const SelectLocationScreen = () => {
     onRegionChangeComplete,
   } = useMapLocation();
 
-  const storeCoords = { latitude: 17.48995, longitude: 78.393127 };
 
   const handleConfirm = () => {
     if (!region) return;
@@ -58,7 +58,7 @@ const SelectLocationScreen = () => {
   if (initialLoading || !region) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#0A8754" />
+        <AppLoader size="large" />
         <Text style={styles.loaderText}>Setting up map...</Text>
       </View>
     );
@@ -76,15 +76,7 @@ const SelectLocationScreen = () => {
         showsUserLocation
         showsMyLocationButton={false}
       >
-        <Marker 
-          coordinate={storeCoords}
-          title="Anusha Bazaar Store"
-          description="Manjeera Trinity Corporate"
-        >
-          <View style={styles.storeMarker}>
-            <Ionicons name="storefront" size={18} color="#fff" />
-          </View>
-        </Marker>
+
       </MapView>
 
       <MapPin pinAnim={pinAnim} />

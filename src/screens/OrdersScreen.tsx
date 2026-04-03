@@ -14,13 +14,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { getOrders } from "../services/api/orders";
 import { useCart } from "../context/CartContext";
+import AppLoader from "../components/AppLoader";
 import FloatingCart from "../components/FloatingCart";
 import { scale } from "../utils/responsive";
+import { resolveImageSource } from "../utils/image";
 
 const OrdersScreen = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const { jwtToken } = useAuth();
+  const { jwtToken, user } = useAuth();
   const { addToCart } = useCart();
 
   const [orders, setOrders] = useState<any[]>([]);
@@ -36,7 +38,7 @@ const OrdersScreen = () => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const data = await getOrders(jwtToken);
+      const data = await getOrders(jwtToken, user?.customerId);
       setOrders(Array.isArray(data) ? data : []);
     } catch (error: any) {
       console.error("Error loading orders:", error);
@@ -58,6 +60,28 @@ const OrdersScreen = () => {
     if (s === "delivered") return { color: "#4B5563", bg: "#F3F4F6" };
     if (s === "cancelled") return { color: "#EF4444", bg: "#FEF2F2" };
     return { color: "#0A8754", bg: "#ECFDF5" }; // In Progress, Pending, etc.
+  };
+
+  const handleReorder = (items: any[]) => {
+    if (!items || items.length === 0) return;
+    
+    items.forEach(item => {
+      // Map order item to cart item format
+      // variantId is critical — addToCart uses it to call the backend API
+      const resolvedVariantId = item.variantId || item.productVariantId || item.variant?.id;
+      const cartItem = {
+        id: String(item.productId || item.id),
+        variantId: resolvedVariantId,
+        productId: item.productId || item.id,
+        name: item.productName || item.name || "Product",
+        price: item.unitPrice || item.price || 0,
+        image: item.productImage || item.image || "",
+        unit: item.unit || "",
+      };
+      addToCart(cartItem);
+    });
+
+    navigation.navigate("Cart");
   };
 
   const renderOrder = ({ item }: { item: any }) => {
@@ -94,10 +118,11 @@ const OrdersScreen = () => {
           <View style={styles.imagesRow}>
             {orderItems.slice(0, 4).map((prod: any, idx: number) => {
               const imgUrl = prod.productImage || prod.image || prod.imageUrl || prod.thumb || prod.product?.image || prod.product?.imageUrl || prod.product?.icon;
+              const source = resolveImageSource(imgUrl, { width: 100, height: 100 });
               return (
                 <View key={idx} style={styles.productImgBox}>
                   {imgUrl ? (
-                    <Image source={{ uri: imgUrl }} style={styles.productImg} resizeMode="contain" />
+                    <Image source={source as any} style={styles.productImg} resizeMode="contain" />
                   ) : (
                     <Ionicons name="basket-outline" size={scale(24)} color="#D1D5DB" />
                   )}
@@ -142,24 +167,6 @@ const OrdersScreen = () => {
     );
   };
 
-  const handleReorder = (items: any[]) => {
-    if (!items || items.length === 0) return;
-    
-    items.forEach(item => {
-      // Map order item to cart item format
-      const cartItem = {
-        id: item.productId || item.id,
-        name: item.productName || item.name || "Product",
-        price: item.unitPrice || item.price || 0,
-        image: item.productImage || item.image || "",
-        unit: item.unit || "",
-      };
-      addToCart(cartItem);
-    });
-
-    navigation.navigate("Cart");
-  };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header Setup */}
@@ -173,7 +180,7 @@ const OrdersScreen = () => {
 
       {loading ? (
         <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color="#0A8754" />
+          <AppLoader size="large" />
         </View>
       ) : (
         <FlatList
@@ -182,6 +189,10 @@ const OrdersScreen = () => {
           renderItem={renderOrder}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={true}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>

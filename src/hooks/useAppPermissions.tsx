@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
+import { Audio } from 'expo-av';
 
 export const useAppPermissions = () => {
   const requestLocationPermission = async () => {
@@ -22,6 +23,16 @@ export const useAppPermissions = () => {
     }
   };
 
+  const requestMicrophonePermission = async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      return status;
+    } catch (error) {
+      console.error("Error requesting microphone permission:", error);
+      return 'error';
+    }
+  };
+
   const checkLocationPermission = async () => {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
@@ -35,6 +46,7 @@ export const useAppPermissions = () => {
   return {
     requestLocationPermission,
     requestNotificationPermission,
+    requestMicrophonePermission,
     checkLocationPermission,
   };
 };

@@ -10,8 +10,10 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, Modal } from "react-native";
 import { searchProducts } from "../services/api/products";
+import { useVoiceSearch } from "../hooks/useVoiceSearch";
+import * as Speech from "expo-speech";
 import { scale } from "../utils/responsive";
 
 interface SearchBarProps {
@@ -110,17 +112,37 @@ const SearchBar = ({
     onSearch?.(displayText);
   };
 
+  const handleVoiceResult = (text: string) => {
+    if (isControlled) {
+      onChangeText!(text);
+    } else {
+      setInternalText(text);
+    }
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    performSearch(text);
+    stopListening();
+    
+    Speech.speak(`Showing results for ${text}`, {
+      language: "en-IN",
+      pitch: 1.0,
+      rate: 0.95,
+    });
+
+    // Explicitly call onSearch if present
+    if (onSearch) {
+      onSearch(text);
+    }
+  };
+
+  const { isListening, startListening, stopListening } = useVoiceSearch(handleVoiceResult);
+
   const handleMicPress = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 0.8, duration: 100, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
     ]).start();
 
-    inputRef.current?.focus();
-
-    if (Platform.OS === "android") {
-      ToastAndroid.show("Tap 🎤 on your keyboard to speak", ToastAndroid.SHORT);
-    }
+    startListening();
   };
 
   return (
@@ -161,14 +183,28 @@ const SearchBar = ({
           </TouchableOpacity>
         )}
 
+        <View style={styles.divider} />
+
         <TouchableOpacity onPress={handleMicPress} activeOpacity={0.7}>
           <Animated.View
-            style={[styles.micBtn, { transform: [{ scale: scaleAnim }] }]}
+            style={[styles.micBtn, isListening && styles.micBtnActive, { transform: [{ scale: scaleAnim }] }]}
           >
-            <Ionicons name="mic-outline" size={scale(18)} color="#555" />
+            <Ionicons name={isListening ? "mic" : "mic-outline"} size={scale(18)} color={isListening ? "#fff" : "#EF4444"} />
           </Animated.View>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={isListening} transparent animationType="fade" onRequestClose={() => stopListening(true)}>
+        <View style={styles.listeningOverlay}>
+          <View style={styles.pulseCircle}>
+            <Ionicons name="mic" size={scale(40)} color="#fff" />
+          </View>
+          <Text style={styles.listeningText}>Listening...</Text>
+          <TouchableOpacity style={styles.cancelVoice} onPress={() => stopListening(true)}>
+            <Text style={styles.cancelVoiceText}>Tap to cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -185,11 +221,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F1F5F9",
-    borderRadius: scale(24),
+    borderRadius: scale(14),
     paddingHorizontal: scale(16),
-    paddingVertical: scale(10),
+    paddingVertical: scale(12),
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowOpacity: 0.05,
+    shadowRadius: scale(2),
+    elevation: 2,
   },
   searchIcon: {
     marginRight: scale(10),
@@ -224,18 +265,54 @@ const styles = StyleSheet.create({
   clearBtn: {
     marginRight: scale(4),
   },
+  divider: {
+    width: 1,
+    height: scale(18),
+    backgroundColor: "#CBD5E1",
+    marginHorizontal: scale(10),
+  },
   micBtn: {
-    width: scale(36),
-    height: scale(36),
-    borderRadius: scale(18),
-    backgroundColor: "#FFFFFF",
+    padding: scale(4),
+  },
+  micBtnActive: {
+    backgroundColor: "#EF4444",
+    borderRadius: scale(12),
+  },
+  listeningOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    zIndex: 6000,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: scale(8),
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: scale(2) },
-    shadowOpacity: 0.1,
-    shadowRadius: scale(4),
+  },
+  pulseCircle: {
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(40),
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: scale(4) },
+    shadowOpacity: 0.3,
+    shadowRadius: scale(8),
+  },
+  listeningText: {
+    marginTop: scale(20),
+    fontSize: scale(18),
+    fontWeight: "700",
+    color: "#111",
+  },
+  cancelVoice: {
+    marginTop: scale(40),
+    paddingHorizontal: scale(20),
+    paddingVertical: scale(10),
+    borderRadius: scale(20),
+    backgroundColor: "#F3F4F6",
+  },
+  cancelVoiceText: {
+    color: "#6B7280",
+    fontWeight: "600",
   },
 });

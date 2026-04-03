@@ -1,8 +1,50 @@
 import { API_CONFIG, fetchWithTimeout } from "@/config/api.config";
 import { normalizeImageUrl } from "@/utils/image";
+import { getProductPackLabel } from "@/utils/product";
 
 const API_BASE = API_CONFIG.ENDPOINTS.PRODUCTS;
 const CUSTOMER_BASE = API_CONFIG.ENDPOINTS.CUSTOMER;
+
+const authHeaders = (token: string) => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${token}`,
+});
+
+const readErrorMessage = async (response: Response) => {
+  try {
+    const text = await response.text();
+    if (!text) return `HTTP ${response.status}`;
+
+    try {
+      const parsed = JSON.parse(text);
+      return parsed.message || parsed.error || text;
+    } catch {
+      return text;
+    }
+  } catch {
+    return `HTTP ${response.status}`;
+  }
+};
+
+const normalizeRatingsList = (payload: any) => {
+  const base =
+    Array.isArray(payload)
+      ? payload
+      : payload?.data ||
+        payload?.ratings ||
+        payload?.content ||
+        payload?.value ||
+        payload?.result ||
+        [];
+
+  const list = Array.isArray(base) ? base : [];
+
+  return list.map((entry: any) => ({
+    ...entry,
+    rating: Number(entry?.rating ?? entry?.stars ?? 0),
+    comment: entry?.comment ?? entry?.review ?? "",
+  }));
+};
 
 export interface Variant {
   id: string | number;
@@ -38,13 +80,36 @@ const mapProducts = (json: any): Product[] => {
   const list = items.content ? items.content : items;
   return (Array.isArray(list) ? list : []).map((p: any) => {
     const variants = p.variants || p.productVariants || [];
-    const normalizedVariants: Variant[] = variants.map((v: any) => ({
-      ...v,
-      variantName: v.name || v.variantName,
-      sellingPrice: v.sellingPrice ?? (v.price - (v.discountPrice || 0)),
-      mrp: v.mrp ?? v.price,
-    }));
+    const normalizedVariants: Variant[] = variants.map((v: any) => {
+      // The backend sends:
+      //   v.price = MRP (original price)
+      //   v.sellingPrice = the actual selling price customers pay
+      //   v.discountPrice = the discount AMOUNT (how much is saved)
+      // We must ALWAYS use v.sellingPrice as the selling price.
+      // Only fall back to v.price (MRP) if sellingPrice is truly missing.
+      const resolvedSellingPrice = v.sellingPrice ?? v.price ?? 0;
+      const resolvedMrp = v.mrp ?? v.price ?? resolvedSellingPrice;
+
+      return {
+        ...v,
+        variantName: v.name || v.variantName,
+        sellingPrice: resolvedSellingPrice,
+        mrp: resolvedMrp,
+        unit: getProductPackLabel(v) || v.unit || v.unitName,
+        quantity: v.quantity ?? v.qty ?? v.packQuantity ?? v.netQuantity,
+      };
+    });
     const firstVariant = normalizedVariants[0];
+
+    // Normalize gallery images: handle string[] or {imageUrl: string}[]
+    const galleryItems = Array.isArray(p.images) 
+      ? p.images.map((img: any) => {
+          if (typeof img === 'string') return normalizeImageUrl(img);
+          if (img && typeof img === 'object' && img.imageUrl) return normalizeImageUrl(img.imageUrl);
+          return null;
+        }).filter(Boolean)
+      : [];
+
     const primaryImage =
       normalizeImageUrl(
         p.imageUrl ||
@@ -52,7 +117,7 @@ const mapProducts = (json: any): Product[] => {
           p.thumbnail ||
           p.productImage ||
           p.icon ||
-          (Array.isArray(p.imageUrls) ? p.imageUrls[0] : "")
+          (galleryItems.length > 0 ? galleryItems[0] : "")
       ) || "";
 
     return {
@@ -60,9 +125,13 @@ const mapProducts = (json: any): Product[] => {
       id: String(p.id || p._id),
       image: primaryImage,
       imageUrl: primaryImage,
+      gallery: galleryItems,
+      images: galleryItems,
       thumbnail: normalizeImageUrl(p.thumbnail) || primaryImage,
       productVariants: normalizedVariants,
       variantId: firstVariant?.id,
+      unit: getProductPackLabel(p, firstVariant) || p.unit || p.unitName || firstVariant?.unit,
+      quantity: p.quantity ?? p.qty ?? p.packQuantity ?? p.netQuantity ?? firstVariant?.quantity,
       price: firstVariant ? firstVariant.sellingPrice : (p.minPrice || p.price || 0),
     };
   });
@@ -199,45 +268,69 @@ export const getProductsBySubcategory = async (subCategoryId: string | number): 
   }
 };
 
-/* ================= NEW: RATINGS & WISHLIST ================= */
+/* ================= RATINGS & WISHLIST ================= */
 
-export const submitProductRating = async (data: {
-  customerId: number | string;
-  productId: number | string;
-  rating: number;
-  comment: string;
-}): Promise<boolean> => {
+export const submitProductRating = async (
+  token: string,
+  data: {
+    customerId?: number | string;
+    productId: number | string;
+    rating: number;
+    comment: string;
+  }
+): Promise<{ ok: boolean; status?: number; message?: string }> => {
   try {
+    const body = {
+      productId: Number(data.productId),
+      rating: Number(data.rating),
+      comment: data.comment.trim(),
+    };
+
     const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/rating`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      headers: authHeaders(token),
+      body: JSON.stringify(body),
     });
-    return response.ok;
+
+    if (!response.ok) {
+      return {
+        ok: false,
+        status: response.status,
+        message: await readErrorMessage(response),
+      };
+    }
+
+    return { ok: true };
   } catch (error) {
     console.error("Error submitting rating:", error);
-    return false;
+    return { ok: false, message: "Could not submit rating right now." };
   }
 };
 
 export const getProductRatings = async (productId: string | number): Promise<any[]> => {
   try {
-    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/rating/${productId}`);
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/${productId}/ratings`);
     if (!response.ok) return [];
     const json = await response.json();
-    return Array.isArray(json) ? json : (json.data || []);
+    return normalizeRatingsList(json);
   } catch (error) {
     console.error("Error fetching ratings:", error);
     return [];
   }
 };
 
-export const addToWishlistApi = async (customerId: number | string, productId: number | string): Promise<boolean> => {
+export const addToWishlistApi = async (
+  token: string,
+  productId: number | string,
+  _customerId?: number | string
+): Promise<boolean> => {
   try {
+    const body = { productId: Number(productId) };
+
     const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customerId, productId }),
+      headers: authHeaders(token),
+      body: JSON.stringify(body),
     });
     return response.ok;
   } catch (error) {
@@ -246,10 +339,53 @@ export const addToWishlistApi = async (customerId: number | string, productId: n
   }
 };
 
-export const getWishlistApi = async (customerId: number | string): Promise<Product[]> => {
+export const removeFromWishlistApi = async (
+  token: string,
+  productId: number | string,
+  _customerId?: number | string
+): Promise<boolean> => {
   try {
-    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist/${customerId}`);
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist?productId=${productId}`, {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error removing from wishlist:", error);
+    return false;
+  }
+};
+
+export const mergeWishlistApi = async (
+  token: string,
+  productIds: (number | string)[]
+): Promise<boolean> => {
+  try {
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist/merge`, {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        productIds: productIds.map((id) => Number(id)),
+      }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error merging wishlist:", error);
+    return false;
+  }
+};
+
+export const getWishlistApi = async (
+  token: string,
+  _customerId?: number | string
+): Promise<Product[]> => {
+  try {
+    const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/wishlist`, {
+      headers: authHeaders(token),
+    });
+
     if (!response.ok) return [];
+
     const json = await response.json();
     return mapProducts(json);
   } catch (error) {

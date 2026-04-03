@@ -6,7 +6,7 @@
  */
 
 const API_ROOT = process.env.EXPO_PUBLIC_API_URL || "https://api.anushatechnologies.com/api";
-const SHARE_URL = process.env.EXPO_PUBLIC_SHARE_URL || "https://anushabazaar.com";
+const SHARE_URL = process.env.EXPO_PUBLIC_SHARE_URL || "https://api.anushatechnologies.com/api";
 
 export const API_CONFIG = {
   BASE_URL: API_ROOT,
@@ -18,12 +18,16 @@ export const API_CONFIG = {
     AUTH: `${API_ROOT}/auth`,
     CART: `${API_ROOT}/cart`,
     ORDERS: `${API_ROOT}/orders`,
+    PAYMENT: `${API_ROOT}/payment`,
     ADDRESSES: `${API_ROOT}/addresses`,
     PROFILE: `${API_ROOT}/customer/profile`,
     NOTIFICATIONS: `${API_ROOT}/notifications`,
     STORES: `${API_ROOT}/stores`,
     BANNERS: `${API_ROOT}/customer/banners`,
     CUSTOMER: `${API_ROOT}/customer`,
+    COUPONS: `${API_ROOT}/customer/coupons`,
+    WALLET: `${API_ROOT}/wallet`,
+    TRACKING: `${API_ROOT}/tracking`,
   },
   TIMEOUT: 10000,
 };
@@ -31,7 +35,7 @@ export const API_CONFIG = {
 export const fetchWithTimeout = async (url: string, options: any = {}, timeout: number = API_CONFIG.TIMEOUT) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
     console.log(`[Fetch] Navigating to: ${url}`);
     const response = await fetch(url, {

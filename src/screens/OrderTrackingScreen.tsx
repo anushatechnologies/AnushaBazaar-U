@@ -22,6 +22,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { useAuth } from "../context/AuthContext";
 import { getOrderById, cancelOrder } from "../services/api/orders";
+import AppLoader from "../components/AppLoader";
 import { scale } from "../utils/responsive";
 
 const { height } = Dimensions.get("window");
@@ -34,7 +35,7 @@ const OrderTrackingScreen = () => {
     const mapRef = useRef<MapView>(null);
 
     const orderId = route.params?.orderId || "AB-1024";
-    const { jwtToken } = useAuth();
+    const { jwtToken, user } = useAuth();
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelled, setIsCancelled] = useState(false);
 
@@ -263,7 +264,7 @@ const OrderTrackingScreen = () => {
             <View style={styles.mapContainer}>
                 {loadingLocation || !storeLocation || !customerLocation || !riderPosition ? (
                     <View style={styles.loaderCenter}>
-                        <ActivityIndicator size="large" color="#0A8754" />
+                        <AppLoader size="large" />
                         <Text style={{ marginTop: 10, color: "#666", fontWeight: "600" }}>Locating your order...</Text>
                     </View>
                 ) : (
