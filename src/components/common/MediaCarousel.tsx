@@ -101,6 +101,22 @@ const MediaCarousel: React.FC<Props> = ({ product }) => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [mediaSignature]);
 
+  React.useEffect(() => {
+    if (mediaItems.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setActiveIndex((current) => {
+        const next = (current + 1) % mediaItems.length;
+        if (flatListRef.current) {
+          flatListRef.current.scrollToIndex({ index: next, animated: true });
+        }
+        return next;
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [mediaItems.length]);
+
   const handleScroll = (event: any) => {
     const slideSize = event.nativeEvent.layoutMeasurement.width;
     const index = event.nativeEvent.contentOffset.x / slideSize;
@@ -190,33 +206,7 @@ const MediaCarousel: React.FC<Props> = ({ product }) => {
         }}
       />
 
-      {mediaItems.length > 1 && (
-        <>
-          <Pressable
-            style={[
-              styles.navButton,
-              styles.navButtonLeft,
-              activeIndex === 0 && styles.navButtonDisabled,
-            ]}
-            onPress={() => goToIndex(activeIndex - 1)}
-            disabled={activeIndex === 0}
-          >
-            <Ionicons name="chevron-back" size={scale(18)} color="#111827" />
-          </Pressable>
 
-          <Pressable
-            style={[
-              styles.navButton,
-              styles.navButtonRight,
-              activeIndex === mediaItems.length - 1 && styles.navButtonDisabled,
-            ]}
-            onPress={() => goToIndex(activeIndex + 1)}
-            disabled={activeIndex === mediaItems.length - 1}
-          >
-            <Ionicons name="chevron-forward" size={scale(18)} color="#111827" />
-          </Pressable>
-        </>
-      )}
 
       {mediaItems.length > 1 && (
         <View style={styles.pagination}>
