@@ -284,7 +284,14 @@ const CheckoutScreen = ({ navigation }: any) => {
       // ────────────────────────────────────────────────────────────────────
 
       // POST /api/orders – body is ONLY addressId + paymentMethod per API spec
-      const orderResult = await placeOrderAPI(jwtToken, finalAddressId!, selectedPayment);
+      // We also pass coupon details so backend can record usage
+      const orderResult = await placeOrderAPI(
+        jwtToken, 
+        finalAddressId!, 
+        selectedPayment,
+        appliedCoupon || undefined,
+        appliedCoupon ? discount : undefined
+      );
       const orderId = orderResult?.id || orderResult?.orderId;
 
       if (!orderId) {

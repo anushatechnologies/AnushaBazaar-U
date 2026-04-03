@@ -34,12 +34,19 @@ export interface OrderCartItem {
 export const placeOrder = async (
   token: string,
   addressId: number | string,
-  paymentMethod: string
+  paymentMethod: string,
+  couponCode?: string,
+  discountAmount?: number
 ) => {
-  const body = {
+  const body: any = {
     addressId: Number(addressId),
     paymentMethod,
   };
+
+  if (couponCode) {
+    body.couponCode = couponCode;
+    body.discountAmount = discountAmount || 0;
+  }
 
   const response = await fetchWithTimeout(API_BASE, {
     method: "POST",

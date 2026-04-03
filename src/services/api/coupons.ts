@@ -54,53 +54,49 @@ export const getActiveCoupons = async (token: string): Promise<Coupon[]> => {
 };
 
 /**
- * POST /api/customer/coupons/validate
- * Body: { code, cartAmount, customerId }
+ * GET /api/coupons/apply?code=...&customerId=...&cartValue=...
  * Validates if a coupon is applicable and returns the discount amount.
  */
 export const validateCoupon = async (
   token: string,
   code: string,
   cartAmount: number,
-  _customerId?: number | string
+  customerId?: number | string
 ): Promise<CouponValidationResult> => {
   try {
-    const body = {
+    const queryParams = new URLSearchParams({
       code: code.toUpperCase().trim(),
-      cartAmount,
-    };
-
-    const response = await fetchWithTimeout(`${API_BASE}/validate`, {
-      method: "POST",
-      headers: authHeaders(token),
-      body: JSON.stringify(body),
+      cartValue: cartAmount.toString(),
     });
 
+    if (customerId) {
+      queryParams.append("customerId", customerId.toString());
+    }
+
+    const url = `${API_CONFIG.BASE_URL}/coupons/apply?${queryParams.toString()}`;
+
+    const response = await fetchWithTimeout(url, {
+      method: "GET",
+      headers: authHeaders(token),
+    });
+
+    const isJson = response.headers.get("content-type")?.includes("application/json");
+    
+    // In failure cases, backend returns error text or generic 400s
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = isJson ? (await response.json()).message || (await response.text()) : await response.text();
       console.error(`[validateCoupon] FAILED ${response.status}: ${errorText}`);
 
-      // Common failure cases
-      if (response.status === 400) {
-        return { valid: false, discount: 0, message: "Invalid coupon code." };
-      }
-      if (response.status === 404) {
-        return { valid: false, discount: 0, message: "Coupon not found." };
-      }
-      if (response.status === 410) {
-        return { valid: false, discount: 0, message: "This coupon has expired." };
-      }
-
-      return { valid: false, discount: 0, message: errorText || "Could not validate coupon." };
+      return { valid: false, discount: 0, message: typeof errorText === "string" ? errorText.replace(/["]/g, '') : "Could not validate coupon." };
     }
 
     const data = await response.json();
 
     return {
-      valid: data?.valid ?? data?.applicable ?? true,
-      discount: data?.discount ?? data?.discountAmount ?? data?.amount ?? 0,
-      message: data?.message || "Coupon applied successfully!",
-      coupon: data?.coupon || data,
+      valid: data?.success ?? true,
+      discount: data?.discount ?? 0,
+      message: "Coupon applied successfully!",
+      coupon: { code: data?.code || code } as Coupon,
     };
   } catch (error) {
     console.error("Error validating coupon:", error);
