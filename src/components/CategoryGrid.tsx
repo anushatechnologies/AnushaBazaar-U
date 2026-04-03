@@ -58,7 +58,7 @@ const CategoryGrid = () => {
           pressed && { transform: [{ scale: 0.98 }] },
         ]}
         onPress={() =>
-          navigation.navigate("SubCategories", { category: item })
+          navigation.navigate("CategoryProducts", { category: item, initialSubCategoryId: "all" })
         }
       >
         <Image

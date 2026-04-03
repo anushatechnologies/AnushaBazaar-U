@@ -25,7 +25,7 @@ import EditProfileScreen from "../screens/EditProfileScreen";
 import ProductDetailScreen from "../screens/ProductDetailScreen";
 import CheckoutScreen from "../screens/CheckoutScreen";
 import CategoryProductsScreen from "../screens/CategoryProductsScreen";
-import SubCategoriesScreen from "../screens/SubCategoriesScreen";
+
 
 /* Address Flow */
 import AddressScreen from "../screens/AddressScreen";
@@ -48,7 +48,7 @@ export type RootStackParamList = {
   /* Product Flow */
   ProductDetail: { product: any };
   Checkout: undefined;
-  SubCategories: { category: any };
+
   CategoryProducts: { category: any; initialSubCategoryId?: string | number };
   Cart: undefined;
 
@@ -121,10 +121,6 @@ const RootStack = () => {
         component={CheckoutScreen}
       />
 
-      <Stack.Screen
-        name="SubCategories"
-        component={SubCategoriesScreen}
-      />
 
       <Stack.Screen
         name="CategoryProducts"
