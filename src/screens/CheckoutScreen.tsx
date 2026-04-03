@@ -45,10 +45,11 @@ const CheckoutScreen = ({ navigation }: any) => {
   const [address, setAddress] = useState({
     name: "",
     phone: "",
-    houseNo: "",
-    area: "",
+    addressLine1: "",
+    addressLine2: "",
     landmark: "",
     city: "",
+    state: "",
     pincode: "",
     type: "Home",
   });
@@ -133,9 +134,11 @@ const CheckoutScreen = ({ navigation }: any) => {
         setAddress(prev => ({
           ...prev,
           city: addr.city || addr.subregion || "",
+          state: addr.region || "",
           pincode: addr.postalCode || "",
-          area: [addr.name, addr.street].filter(Boolean).join(", "),
-          landmark: addr.district || "",
+          addressLine1: [addr.name, addr.street].filter(Boolean).join(", "),
+          addressLine2: addr.district || "",
+          landmark: "",
         }));
         Alert.alert("Location Found", "Address fields updated.");
       }
@@ -218,7 +221,7 @@ const CheckoutScreen = ({ navigation }: any) => {
     }
 
     if (useManualAddress) {
-      const requiredFields = ["name", "phone", "houseNo", "area", "city", "pincode"];
+      const requiredFields = ["name", "phone", "addressLine1", "city", "pincode"];
       const missing = requiredFields.filter(f => !address[f as keyof typeof address]);
 
       if (missing.length > 0) {
@@ -256,13 +259,13 @@ const CheckoutScreen = ({ navigation }: any) => {
       if (useManualAddress) {
         const newAddress = await addAddress(jwtToken, {
           addressType: address.type,
-          addressLine1: `${address.houseNo}, ${address.area}`,
-          addressLine2: "",
-          landmark: address.landmark,
-          city: address.city,
-          state: "",
-          postalCode: address.pincode,
-          isDefault: savedAddresses.length === 0, // Make default if first address
+          addressLine1: address.addressLine1.trim(),
+          addressLine2: address.addressLine2.trim(),
+          landmark: address.landmark.trim(),
+          city: address.city.trim(),
+          state: address.state.trim(),
+          postalCode: address.pincode.trim(),
+          isDefault: savedAddresses.length === 0,
         });
 
         if (!newAddress || !newAddress.id) {
@@ -438,22 +441,24 @@ const CheckoutScreen = ({ navigation }: any) => {
               </View>
 
               <View style={styles.inputBox}>
-                <Text style={styles.label}>House No. / Flat / Floor *</Text>
+                <Text style={styles.label}>Address Line 1 *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Flat 101, Blue Plaza"
-                  value={address.houseNo}
-                  onChangeText={(t) => updateAddress("houseNo", t)}
+                  placeholder="House No, Building, Street"
+                  placeholderTextColor="#9CA3AF"
+                  value={address.addressLine1}
+                  onChangeText={(t) => updateAddress("addressLine1", t)}
                 />
               </View>
 
               <View style={styles.inputBox}>
-                <Text style={styles.label}>Area / Colony / Street *</Text>
+                <Text style={styles.label}>Address Line 2</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Shanti Nagar"
-                  value={address.area}
-                  onChangeText={(t) => updateAddress("area", t)}
+                  placeholder="Area, Colony (optional)"
+                  placeholderTextColor="#9CA3AF"
+                  value={address.addressLine2}
+                  onChangeText={(t) => updateAddress("addressLine2", t)}
                 />
               </View>
 
@@ -461,7 +466,8 @@ const CheckoutScreen = ({ navigation }: any) => {
                 <Text style={styles.label}>Landmark (Optional)</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Near City Mall"
+                  placeholder="Near Temple, Mall etc."
+                  placeholderTextColor="#9CA3AF"
                   value={address.landmark}
                   onChangeText={(t) => updateAddress("landmark", t)}
                 />
@@ -473,21 +479,34 @@ const CheckoutScreen = ({ navigation }: any) => {
                   <TextInput
                     style={styles.input}
                     placeholder="City"
+                    placeholderTextColor="#9CA3AF"
                     value={address.city}
                     onChangeText={(t) => updateAddress("city", t)}
                   />
                 </View>
                 <View style={[styles.inputBox, { flex: 1 }]}>
-                  <Text style={styles.label}>Pincode *</Text>
+                  <Text style={styles.label}>State</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Pincode"
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    value={address.pincode}
-                    onChangeText={(t) => updateAddress("pincode", t)}
+                    placeholder="State"
+                    placeholderTextColor="#9CA3AF"
+                    value={address.state}
+                    onChangeText={(t) => updateAddress("state", t)}
                   />
                 </View>
+              </View>
+
+              <View style={styles.inputBox}>
+                <Text style={styles.label}>Pincode *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="6-digit Pincode"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={address.pincode}
+                  onChangeText={(t) => updateAddress("pincode", t)}
+                />
               </View>
 
               {savedAddresses.length > 0 && (
