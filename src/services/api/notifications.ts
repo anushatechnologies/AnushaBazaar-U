@@ -7,26 +7,31 @@ const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
 
-/** GET /api/notifications – get all notifications */
+/** GET /api/notifications – get all notifications for the authenticated customer */
 export const getNotifications = async (token: string) => {
   try {
     const response = await fetchWithTimeout(API_BASE, {
       headers: authHeaders(token),
     });
     if (!response.ok) {
-      // Silently return empty on failure - avoids log spam for missing/broken backend
+      console.warn(`[Notifications] GET failed with status ${response.status}`);
       return [];
     }
-    return await response.json();
+    const json = await response.json();
+    // Handle various backend response shapes
+    if (Array.isArray(json)) return json;
+    if (json?.data && Array.isArray(json.data)) return json.data;
+    if (json?.notifications && Array.isArray(json.notifications)) return json.notifications;
+    return [];
   } catch (error) {
+    console.warn("[Notifications] Fetch failed:", error);
     return [];
   }
 };
 
-/** Mark all notifications as read – tries PATCH /read-all, falls back to no-op */
+/** Mark all notifications as read – tries PATCH /read-all */
 export const markAllNotificationsRead = async (token: string) => {
   try {
-    // Try the batch endpoint first
     const response = await fetchWithTimeout(`${API_BASE}/read-all`, {
       method: "PATCH",
       headers: authHeaders(token),
@@ -38,7 +43,7 @@ export const markAllNotificationsRead = async (token: string) => {
   }
 };
 
-/** Mark a single notification as read – silently fails if endpoint unavailable */
+/** Mark a single notification as read */
 export const markNotificationRead = async (token: string, notifId: string | number) => {
   try {
     const response = await fetchWithTimeout(`${API_BASE}/${notifId}/read`, {

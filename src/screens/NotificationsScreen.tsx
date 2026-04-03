@@ -1,88 +1,73 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../services/api/notifications";
+import { useNotifications } from "../context/NotificationsContext";
 import AppLoader from "../components/AppLoader";
-
-// Fallback mock if API returns empty or fails
-const FALLBACK_NOTIFS = [
-  {
-    id: "n1",
-    type: "promo",
-    title: "Flat 20% OFF on Groceries 🎉",
-    message: "Use code GROCERY20 to get instant discount on orders above ₹999. Valid till midnight!",
-    time: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: "n2",
-    type: "order",
-    title: "Order Delivered!",
-    message: "Your order #AB-1024 has been successfully delivered. Rate your experience now.",
-    time: "Yesterday",
-    unread: true,
-  },
-  {
-    id: "n3",
-    type: "wallet",
-    title: "Wallet Refund Successful",
-    message: "₹120 has been added to your Anusha Wallet for your returning request.",
-    time: "12 Mar, 4:30 PM",
-    unread: false,
-  },
-  {
-    id: "n4",
-    type: "system",
-    title: "Welcome to Anusha Bazaar",
-    message: "Get ready to experience the fastest grocery delivery. Explore bestsellers today!",
-    time: "01 Mar, 9:00 AM",
-    unread: false,
-  },
-];
 
 const NotificationsScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { jwtToken } = useAuth();
+  const { localNotifications, clearLocalNotifications, fetchNotifications: refreshBadge } = useNotifications();
   const [notifs, setNotifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     try {
+      let serverNotifs: any[] = [];
+
       if (jwtToken) {
         const data = await getNotifications(jwtToken);
         const items = Array.isArray(data) ? data : data?.data || data?.notifications || [];
-        if (items.length > 0) {
-          setNotifs(items.map((n: any) => ({
-            id: n.id || n._id,
-            type: n.type || "system",
-            title: n.title,
-            message: n.message || n.body || n.description || "",
-            time: n.createdAt
-              ? new Date(n.createdAt).toLocaleDateString("en-IN", {
-                  day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
-                })
-              : n.time || "",
-            unread: n.unread !== undefined ? n.unread : (n.isRead ? false : true),
-          })));
-        } else {
-          setNotifs(FALLBACK_NOTIFS);
-        }
-      } else {
-        setNotifs(FALLBACK_NOTIFS);
+        serverNotifs = items.map((n: any) => ({
+          id: n.id || n._id,
+          type: n.type || "system",
+          title: n.title,
+          message: n.message || n.body || n.description || "",
+          time: n.createdAt
+            ? new Date(n.createdAt).toLocaleDateString("en-IN", {
+                day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
+              })
+            : n.time || "",
+          unread: n.unread !== undefined ? n.unread : (n.isRead ? false : true),
+          orderId: n.orderId || n.order_id,
+          source: "server",
+        }));
       }
+
+      // Merge local FCM notifications (received via push) with server notifications
+      const fcmNotifs = localNotifications.map((n: any) => ({
+        ...n,
+        source: "local",
+      }));
+
+      // Combine: local (push) first, then server — deduplicate by id
+      const seenIds = new Set<string>();
+      const merged: any[] = [];
+
+      for (const n of [...fcmNotifs, ...serverNotifs]) {
+        const key = String(n.id);
+        if (!seenIds.has(key)) {
+          seenIds.add(key);
+          merged.push(n);
+        }
+      }
+
+      setNotifs(merged);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
-      setNotifs(FALLBACK_NOTIFS);
+      // Show only local push notifications on error — no fake defaults
+      setNotifs(localNotifications.map((n: any) => ({ ...n, source: "local" })));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [jwtToken]);
+  }, [jwtToken, localNotifications]);
 
   useFocusEffect(
     useCallback(() => {
@@ -100,18 +85,22 @@ const NotificationsScreen = () => {
 
   const markAllRead = async () => {
     setNotifs((prev) => prev.map((n) => ({ ...n, unread: false })));
+    clearLocalNotifications();
     try {
       if (jwtToken) await markAllNotificationsRead(jwtToken);
     } catch (err) {
       console.error("Failed to mark all read:", err);
     }
+    refreshBadge();
   };
 
   const handleNotifPress = async (item: any) => {
     // Mark as read locally
     setNotifs((prev) => prev.map((n) => n.id === item.id ? { ...n, unread: false } : n));
     try {
-      if (jwtToken) await markNotificationRead(jwtToken, item.id);
+      if (jwtToken && item.source === "server") {
+        await markNotificationRead(jwtToken, item.id);
+      }
     } catch (err) {
       // Silently fail
     }
@@ -127,6 +116,7 @@ const NotificationsScreen = () => {
       case "promo": return { name: "gift-outline", color: "#E8294A", bg: "#FEF2F2" };
       case "order": return { name: "cube-outline", color: "#0A8754", bg: "#ECFDF5" };
       case "wallet": return { name: "wallet-outline", color: "#0ea5e9", bg: "#e0f2fe" };
+      case "delivery": return { name: "bicycle-outline", color: "#F59E0B", bg: "#FFFBEB" };
       default: return { name: "notifications-outline", color: "#6B7280", bg: "#F3F4F6" };
     }
   };
@@ -194,8 +184,10 @@ const NotificationsScreen = () => {
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Ionicons name="notifications-off-outline" size={48} color="#D1D5DB" />
-              <Text style={styles.emptyTitle}>No notifications</Text>
-              <Text style={styles.emptySub}>You're all caught up! 🎉</Text>
+              <Text style={styles.emptyTitle}>No notifications yet</Text>
+              <Text style={styles.emptySub}>
+                When you receive order updates, offers, or alerts they'll appear here.
+              </Text>
             </View>
           }
         />
@@ -302,6 +294,7 @@ const styles = StyleSheet.create({
   emptyBox: {
     alignItems: "center",
     paddingTop: 80,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
     fontSize: 18,
@@ -313,5 +306,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9CA3AF",
     marginTop: 6,
+    textAlign: "center",
+    lineHeight: 22,
   },
 });

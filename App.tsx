@@ -12,8 +12,15 @@ import { TabBarProvider } from "./src/context/TabBarContext";
 import { NotificationsProvider } from "./src/context/NotificationsContext";
 import * as Linking from "expo-linking";
 import * as Location from "expo-location";
-import * as Notifications from "expo-notifications";
 import messaging from '@react-native-firebase/messaging';
+
+// ─── FCM: Background message handler (runs when app is in background/quit) ───
+// This MUST be registered at the top level, outside of any component
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  console.log('[FCM] Background message received:', JSON.stringify(remoteMessage));
+  // The system notification tray handles display automatically.
+  // When the user taps, onNotificationOpenedApp or getInitialNotification handles it.
+});
 
 const prefix = Linking.createURL("/");
 
@@ -42,8 +49,12 @@ const requestAllPermissions = async () => {
     // 1. Location
     await Location.requestForegroundPermissionsAsync();
 
-    // 2. Notifications
-    await Notifications.requestPermissionsAsync();
+    // 2. Android 13+ POST_NOTIFICATIONS permission
+    if (Platform.OS === "android" && Platform.Version >= 33) {
+      await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+      );
+    }
 
     // 3. Microphone & Phone (Android only)
     if (Platform.OS === "android") {
@@ -61,15 +72,36 @@ export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {
-    const getToken = async () => {
+    const initFCM = async () => {
       try {
+        // Request FCM permission
+        const authStatus = await messaging().requestPermission();
+        const enabled =
+          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        console.log('[FCM] Authorization status:', enabled ? 'enabled' : 'disabled');
+
+        // Get & log token for testing
         const token = await messaging().getToken();
-        console.log('🔥 YOUR FCM TOKEN:', token);
+        console.log('🔥 FCM TOKEN:', token);
+
+        // Listen for token refresh
+        const unsubscribeTokenRefresh = messaging().onTokenRefresh((newToken) => {
+          console.log('🔥 FCM TOKEN REFRESHED:', newToken);
+          // TODO: Send newToken to your backend to update the stored token
+        });
+
+        return unsubscribeTokenRefresh;
       } catch (e) {
-        console.error('Failed to get token', e);
+        console.error('FCM init failed:', e);
       }
     };
-    getToken();
+
+    const unsubPromise = initFCM();
+
+    return () => {
+      unsubPromise.then((unsub) => unsub && unsub());
+    };
   }, []);
 
   useEffect(() => {
