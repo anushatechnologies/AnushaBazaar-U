@@ -115,11 +115,19 @@ export const cancelOrder = async (
       body: reason ? JSON.stringify({ reason }) : undefined,
     });
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = await response.text().catch(() => "");
       console.error(`[cancelOrder] FAILED ${response.status}: ${errorText}`);
       throw new Error(errorText || `HTTP ${response.status}`);
     }
-    return await response.json();
+    
+    if (response.status === 204) return true;
+    const text = await response.text().catch(() => "");
+    if (!text || text.trim().length === 0) return true;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return true;
+    }
   } catch (error) {
     console.error(`Error cancelling order ${orderId}:`, error);
     throw error;
