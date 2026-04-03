@@ -9,7 +9,9 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  Linking,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { scale, screenWidth } from "../utils/responsive";
 
 const BANNER_WIDTH = screenWidth - scale(28); // 14 padding on each side
@@ -21,6 +23,7 @@ const BannerCarousel = () => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     fetchBanners();
@@ -70,6 +73,27 @@ const BannerCarousel = () => {
     );
   }
 
+  const handleBannerClick = (item: Banner) => {
+    const { actionType, actionValue, targetUrl } = item;
+
+    if (actionType === "CATEGORY" && actionValue) {
+      navigation.navigate("CategoryProducts", {
+        category: { id: parseInt(actionValue, 10) || actionValue }
+      });
+    } else if (actionType === "PRODUCT" && actionValue) {
+      navigation.navigate("ProductDetail", {
+        product: { id: parseInt(actionValue, 10) || actionValue }
+      });
+    } else if (actionType === "OFFER") {
+      navigation.navigate("Trending");
+    } else if ((actionType === "EXTERNAL" && actionValue) || targetUrl) {
+      const url = actionValue || targetUrl;
+      if (url) {
+        Linking.openURL(url as string).catch((err) => console.error("Couldn't load page", err));
+      }
+    }
+  };
+
   return (
     <View>
       <Animated.FlatList
@@ -84,7 +108,11 @@ const BannerCarousel = () => {
           { useNativeDriver: false }
         )}
         renderItem={({ item }) => (
-          <TouchableOpacity activeOpacity={0.95} style={styles.bannerContainer}>
+          <TouchableOpacity 
+            activeOpacity={0.95} 
+            style={styles.bannerContainer}
+            onPress={() => handleBannerClick(item)}
+          >
             <Image
               source={{ uri: item.image }}
               style={styles.image}

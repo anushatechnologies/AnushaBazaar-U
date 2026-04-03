@@ -10,6 +10,8 @@ export interface Banner {
   targetUrl?: string | null;
   displayOrder?: number;
   isActive?: boolean;
+  actionType?: string;
+  actionValue?: string;
   
   // Legacy fields (kept for backward compatibility with UI components)
   tag?: string;
@@ -54,6 +56,8 @@ export const getActiveBanners = async (): Promise<Banner[]> => {
       targetUrl: item.targetUrl || item.link || null,
       displayOrder: item.displayOrder || item.order || 0,
       isActive: item.isActive !== undefined ? item.isActive : true,
+      actionType: item.actionType || null,
+      actionValue: String(item.actionValue || ""),
     })).filter((b: Banner) => b.image); // Only return banners that actually have an image
     
   } catch (error) {
