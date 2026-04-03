@@ -1,61 +1,149 @@
-
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { scale } from "../utils/responsive";
 import { useCart } from "../context/CartContext";
+import { Coupon } from "../services/api/coupons";
 
-const CouponCard = () => {
+interface CouponCardProps {
+  coupon: Coupon;
+}
 
-  const { applyCoupon } = useCart();
+const CouponCard: React.FC<CouponCardProps> = ({ coupon }) => {
+  const { applyCoupon, appliedCoupon } = useCart();
+  const isApplied = appliedCoupon?.toUpperCase() === coupon.code.toUpperCase();
 
   const handleApply = () => {
-    applyCoupon("SAVE50");
+    if (!isApplied) {
+      applyCoupon(coupon.code);
+    }
   };
 
   return (
-
-    <View style={styles.container}>
-
-      <Text style={styles.title}>
-        Save ₹50 on this order
-      </Text>
-
-      <Pressable style={styles.btn} onPress={handleApply}>
-        <Text style={styles.btnText}>
-          Apply Coupon
-        </Text>
-      </Pressable>
-
+    <View style={[styles.container, isApplied && styles.containerApplied]}>
+      <View style={styles.leftEdge} />
+      <View style={styles.rightEdge} />
+      
+      <View style={styles.content}>
+        <View style={styles.iconBox}>
+          <Ionicons name="pricetag" size={scale(18)} color={isApplied ? "#fff" : "#0A8754"} />
+        </View>
+        <View style={styles.details}>
+          <Text style={[styles.code, isApplied && styles.textApplied]}>{coupon.code}</Text>
+          <Text style={[styles.desc, isApplied && styles.textApplied]} numberOfLines={2}>
+            {coupon.description || `Save flat ₹${coupon.discountValue || ''}`}
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={[styles.applyBtn, isApplied && styles.applyBtnActive]} 
+          onPress={handleApply}
+          disabled={isApplied}
+        >
+          <Text style={[styles.applyBtnText, isApplied && styles.applyBtnTextActive]}>
+            {isApplied ? "APPLIED" : "APPLY"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
-
   );
 };
 
 export default CouponCard;
 
 const styles = StyleSheet.create({
-
   container: {
-    backgroundColor: "#eef7ff",
-    marginHorizontal: 15,
-    marginTop: 10,
-    padding: 15,
-    borderRadius: 12,
+    backgroundColor: "#EAF7F1",
+    borderRadius: scale(12),
+    borderWidth: 1,
+    borderColor: "#DCFCE7",
+    padding: scale(12),
+    width: scale(260),
+    marginRight: scale(12),
+    overflow: "hidden",
+    position: "relative",
   },
-
-  title: {
-    fontWeight: "600",
-  },
-
-  btn: {
-    marginTop: 10,
+  containerApplied: {
     backgroundColor: "#0A8754",
-    padding: 10,
-    borderRadius: 8,
+    borderColor: "#0A8754",
+  },
+  leftEdge: {
+    position: "absolute",
+    left: scale(-10),
+    top: "50%",
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
+    backgroundColor: "#fff",
+    transform: [{ translateY: scale(-10) }],
+    zIndex: 2,
+    borderRightWidth: 1,
+    borderColor: "#DCFCE7",
+  },
+  rightEdge: {
+    position: "absolute",
+    right: scale(-10),
+    top: "50%",
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
+    backgroundColor: "#fff",
+    transform: [{ translateY: scale(-10) }],
+    zIndex: 2,
+    borderLeftWidth: 1,
+    borderColor: "#DCFCE7",
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: scale(8),
+  },
+  iconBox: {
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
+    backgroundColor: "rgba(255,255,255,0.6)",
+    justifyContent: "center",
     alignItems: "center",
   },
-
-  btnText: {
+  details: {
+    flex: 1,
+    marginLeft: scale(12),
+    marginRight: scale(8),
+  },
+  code: {
+    fontSize: scale(14),
+    fontWeight: "900",
+    color: "#0A8754",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: scale(2),
+  },
+  desc: {
+    fontSize: scale(11),
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  textApplied: {
     color: "#fff",
-    fontWeight: "600",
+  },
+  applyBtn: {
+    backgroundColor: "#fff",
+    paddingHorizontal: scale(12),
+    paddingVertical: scale(6),
+    borderRadius: scale(8),
+    borderWidth: 1,
+    borderColor: "#0A8754",
+  },
+  applyBtnActive: {
+    backgroundColor: "#DCFCE7",
+    borderColor: "#DCFCE7",
+  },
+  applyBtnText: {
+    fontSize: scale(11),
+    fontWeight: "800",
+    color: "#0A8754",
+  },
+  applyBtnTextActive: {
+    color: "#065F3A",
   },
 });

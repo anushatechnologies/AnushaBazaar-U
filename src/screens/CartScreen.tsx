@@ -17,6 +17,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/RootStack";
 import { useWallet } from "../context/WalletContext";
 import { useCart } from "../context/CartContext";
+import { getActiveCoupons, Coupon } from "../services/api/coupons";
+import CouponCard from "../components/CouponCard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import LoginPromptModal from "../components/LoginPromptModal";
@@ -29,7 +31,7 @@ type NavigationProp = NativeStackNavigationProp<
 
 const CartScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { user } = useAuth();
+  const { user, jwtToken } = useAuth();
   const { 
     cart, 
     increaseQty, 
@@ -44,6 +46,17 @@ const CartScreen = () => {
   const insets = useSafeAreaInsets();
   const [couponInput, setCouponInput] = useState("");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
+
+  React.useEffect(() => {
+    if (jwtToken) {
+      getActiveCoupons(jwtToken).then(data => {
+        if (data && data.length > 0) {
+          setActiveCoupons(data);
+        }
+      });
+    }
+  }, [jwtToken]);
 
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) {
@@ -136,7 +149,25 @@ const CartScreen = () => {
               <Text style={styles.sectionHeader}>Your Items ({cart.length})</Text>
             }
             renderItem={renderCartItem}
-            ListFooterComponent={<View style={{ height: scale(350) }} />}
+            ListFooterComponent={
+              <View>
+                {activeCoupons.length > 0 && (
+                  <View style={{ marginTop: scale(20) }}>
+                    <Text style={styles.sectionHeader}>Available Coupons</Text>
+                    <ScrollView 
+                      horizontal 
+                      showsHorizontalScrollIndicator={false} 
+                      contentContainerStyle={{ paddingHorizontal: scale(16), paddingBottom: scale(10) }}
+                    >
+                      {activeCoupons.map((c) => (
+                        <CouponCard key={c.id || c.code} coupon={c} />
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+                <View style={{ height: scale(380) }} />
+              </View>
+            }
           />
 
           {/* --- PREMIUM STICKY FOOTER --- */}
