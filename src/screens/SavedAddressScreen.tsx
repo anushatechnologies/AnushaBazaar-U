@@ -239,7 +239,11 @@ const SavedAddressScreen = () => {
     }
     setIsSaving(true);
     try {
-      const payload = {
+      const existingAddress = editingAddressId 
+        ? addresses.find(a => a.id === editingAddressId) 
+        : null;
+
+      const payload: any = {
         addressType: newTag.toUpperCase(),
         addressLine1: newAddressLine1.trim(),
         addressLine2: newAddressLine2.trim(),
@@ -247,8 +251,12 @@ const SavedAddressScreen = () => {
         city: newCity.trim(),
         state: newState.trim(),
         postalCode: newPostalCode.trim(),
-        isDefault: editingAddressId ? undefined : (addresses.length === 0),
+        isDefault: editingAddressId 
+          ? (existingAddress?.isDefault ?? false) 
+          : (addresses.length === 0),
       };
+
+      console.log(`[SavedAddress] ${editingAddressId ? 'UPDATE' : 'ADD'} payload:`, JSON.stringify(payload));
 
       let result;
       if (editingAddressId) {
