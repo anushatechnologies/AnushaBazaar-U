@@ -18,6 +18,9 @@ import {
 } from "../services/api/products";
 import { validateCoupon } from "../services/api/coupons";
 import { normalizeImageUrl } from "../utils/image";
+import { View, Text, StyleSheet, Animated } from "react-native";
+import { scale } from "../utils/responsive";
+import { Ionicons } from "@expo/vector-icons";
 
 const AUTH_CART_STORAGE_KEY = "CART";
 const AUTH_WISHLIST_STORAGE_KEY = "WISHLIST";
@@ -249,6 +252,11 @@ export const CartProvider = ({ children }: any) => {
   const [discount, setDiscount] = useState<number>(0);
   const [usePoints, setUsePoints] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+
+  // Wishlist popup state
+  const [wishlistPopupVisible, setWishlistPopupVisible] = useState(false);
+  const popupOpacity = useRef(new Animated.Value(0)).current;
+  const popupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { points } = useWallet();
   const { jwtToken, loading: authLoading, user } = useAuth();
@@ -770,6 +778,25 @@ export const CartProvider = ({ children }: any) => {
       return [...previousWishlist, normalizedProduct];
     });
 
+    // Trigger Popup
+    setWishlistPopupVisible(true);
+    Animated.timing(popupOpacity, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+
+    if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current);
+    popupTimeoutRef.current = setTimeout(() => {
+      Animated.timing(popupOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setWishlistPopupVisible(false);
+      });
+    }, 500);
+
     if (!jwtToken) return;
 
     try {
@@ -820,8 +847,47 @@ export const CartProvider = ({ children }: any) => {
       }}
     >
       {children}
+      {wishlistPopupVisible && (
+        <Animated.View style={[styles.popupContainer, { opacity: popupOpacity }]} pointerEvents="none">
+          <View style={styles.popupBox}>
+            <Ionicons name="checkmark-circle" size={scale(24)} color="#10b981" />
+            <Text style={styles.popupText}>Product added to wishlist</Text>
+          </View>
+        </Animated.View>
+      )}
     </CartContext.Provider>
   );
 };
 
 export const useCart = () => useContext(CartContext);
+
+const styles = StyleSheet.create({
+  popupContainer: {
+    position: "absolute",
+    bottom: scale(100),
+    left: scale(20),
+    right: scale(20),
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 99999,
+  },
+  popupBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(31, 41, 55, 0.95)",
+    paddingVertical: scale(12),
+    paddingHorizontal: scale(20),
+    borderRadius: scale(30),
+    gap: scale(8),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  popupText: {
+    color: "#fff",
+    fontSize: scale(14),
+    fontWeight: "600",
+  },
+});
