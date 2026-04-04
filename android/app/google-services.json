@@ -1,0 +1,66 @@
+{
+  "project_info": {
+    "project_number": "64875938387",
+    "project_id": "anushabazaar-2288e",
+    "storage_bucket": "anushabazaar-2288e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:64875938387:android:4719553d0cf0c067ba7ca6",
+        "android_client_info": {
+          "package_name": "com.Anushadeliverypartner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5x2ucDW9LBMDvVY_g3dsQRkk2zgvBLWw"
+        },
+        {
+          "current_key": "AIzaSyA1boMLneteAG92WXtgzEOaLLzpBK7j1Lg"
+        },
+        {
+          "current_key": "AIzaSyBMZfGGMXsIOZYBpCRW7lVpPVhaRQnAnjo"
+        },
+        {
+          "current_key": "AIzaSyBwJqttG6psPpCl0Cl567V6aQWozcE6eZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:64875938387:android:92945e5b265d394aba7ca6",
+        "android_client_info": {
+          "package_name": "com.anusha.deliveryapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5x2ucDW9LBMDvVY_g3dsQRkk2zgvBLWw"
+        },
+        {
+          "current_key": "AIzaSyA1boMLneteAG92WXtgzEOaLLzpBK7j1Lg"
+        },
+        {
+          "current_key": "AIzaSyBMZfGGMXsIOZYBpCRW7lVpPVhaRQnAnjo"
+        },
+        {
+          "current_key": "AIzaSyBwJqttG6psPpCl0Cl567V6aQWozcE6eZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -4,7 +4,7 @@
 node_modules/
 
 # Expo
-.expo/
+# .expo/
 dist/
 web-build/
 expo-env.d.ts
@@ -37,8 +37,8 @@ yarn-error.*
 *.tsbuildinfo
 
 # generated native folders
-/ios
-/android
+# /ios
+# /android
 
 # Gradle cache
 .gradle/
