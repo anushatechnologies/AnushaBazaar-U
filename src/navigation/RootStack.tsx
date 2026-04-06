@@ -55,7 +55,15 @@ export type RootStackParamList = {
   /* Address Flow */
   Address: undefined;
   AddAddress: undefined;
-  OrderSuccess: undefined;
+  OrderSuccess:
+    | {
+        orderId?: string | number;
+        orderNumber?: string;
+        totalPaid?: string;
+        pointsEarned?: number;
+        items?: any[];
+      }
+    | undefined;
 
   /* Core */
   Wallet: undefined;
@@ -88,7 +96,7 @@ export type RootStackParamList = {
   Help: undefined;
 
   /* Tracking */
-  OrderTracking: { orderId: string | number };
+  OrderTracking: { orderId: string | number; orderNumber?: string };
   Permission: undefined;
 };
 

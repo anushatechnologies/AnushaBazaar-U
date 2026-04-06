@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { useAuth } from "../context/AuthContext";
-import { getOrderById, cancelOrder } from "../services/api/orders";
+import { getOrderById, cancelOrder, getOrderTracking } from "../services/api/orders";
 import AppLoader from "../components/AppLoader";
 import { resolveImageSource } from "../utils/image";
 import { scale } from "../utils/responsive";
@@ -37,6 +37,7 @@ const OrderTrackingScreen = () => {
     const mapRef = useRef<MapView>(null);
 
     const orderId = route.params?.orderId || "AB-1024";
+    const routeOrderNumber = route.params?.orderNumber;
     const { jwtToken, user } = useAuth();
     const [isCancelling, setIsCancelling] = useState(false);
     const [isCancelled, setIsCancelled] = useState(false);
@@ -46,6 +47,7 @@ const OrderTrackingScreen = () => {
     const [orderStatus, setOrderStatus] = useState("pending");
     const [deliveryPartner, setDeliveryPartner] = useState<any>(null);
     const [orderItems, setOrderItems] = useState<any[]>([]);
+    const [trackingData, setTrackingData] = useState<any>(null);
 
     // Dynamic Locations
     const [customerLocation, setCustomerLocation] = useState<{latitude: number; longitude: number} | null>(null);
@@ -87,6 +89,16 @@ const OrderTrackingScreen = () => {
                     setOrderItems(data.items || data.orderItems || []);
                 }
                 if (status === "cancelled") setIsCancelled(true);
+
+                const orderNumber = data.orderNumber || routeOrderNumber;
+                if (orderNumber) {
+                    try {
+                        const liveTracking = await getOrderTracking(jwtToken, orderNumber);
+                        setTrackingData(liveTracking);
+                    } catch (trackingError) {
+                        console.error("Failed to fetch tracking data:", trackingError);
+                    }
+                }
             }
         } catch (err) {
             console.error("Failed to fetch order:", err);
@@ -97,7 +109,7 @@ const OrderTrackingScreen = () => {
         fetchOrderDetails();
         const poller = setInterval(fetchOrderDetails, 10000); // Poll every 10 seconds
         return () => clearInterval(poller);
-    }, [jwtToken, orderId]);
+    }, [jwtToken, orderId, routeOrderNumber]);
 
     // 1. Fetch User's Real Location
     useEffect(() => {
@@ -146,8 +158,8 @@ const OrderTrackingScreen = () => {
         }
     }, [customerLocation]);
 
-    const riderLat = orderData?.deliveryPartner?.latitude || orderData?.rider?.latitude;
-    const riderLng = orderData?.deliveryPartner?.longitude || orderData?.rider?.longitude;
+    const riderLat = trackingData?.lat || trackingData?.latitude || orderData?.deliveryPartner?.latitude || orderData?.rider?.latitude;
+    const riderLng = trackingData?.lng || trackingData?.longitude || orderData?.deliveryPartner?.longitude || orderData?.rider?.longitude;
     const isRiderLive = !!(riderLat && riderLng);
     
     const riderPosition = isRiderLive 
@@ -182,7 +194,16 @@ const OrderTrackingScreen = () => {
 
     // ── Build timeline from real order status ──
     const STATUS_FLOW = ["pending", "confirmed", "packed", "picked_up", "out_for_delivery", "delivered"];
-    const currentIdx = STATUS_FLOW.indexOf(orderStatus);
+    const trackingStatus = String(trackingData?.status || "").toLowerCase();
+    const normalizedStatus = (() => {
+        if (trackingStatus.includes("out_for_delivery")) return "out_for_delivery";
+        if (trackingStatus.includes("picked_up")) return "picked_up";
+        if (trackingStatus.includes("rider_assigned") || trackingStatus.includes("reached_store") || trackingStatus.includes("pickup_otp")) return "confirmed";
+        if (trackingStatus.includes("store_notified") || trackingStatus.includes("store_accepted") || trackingStatus.includes("broadcasted")) return "packed";
+        if (trackingStatus.includes("placed")) return "pending";
+        return orderStatus;
+    })();
+    const currentIdx = STATUS_FLOW.indexOf(normalizedStatus);
 
     const getStepStatus = (stepIdx: number) => {
         if (isCancelled) return stepIdx <= currentIdx ? "completed" : "pending";
@@ -332,7 +353,7 @@ const OrderTrackingScreen = () => {
                 <View style={styles.handle} />
                 <View style={styles.headerRow}>
                     <View>
-                        <Text style={styles.orderId}>Order #{orderId}</Text>
+                        <Text style={styles.orderId}>Order #{routeOrderNumber || orderData?.orderNumber || orderId}</Text>
                         <View style={styles.statusRow}>
                             <View style={[styles.statusDot, isCancelled && { backgroundColor: "#EF4444" }]} />
                             <Text style={[styles.statusLabel, isCancelled && { color: "#EF4444" }]}>{displayStatus}</Text>
@@ -343,13 +364,13 @@ const OrderTrackingScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                {deliveryPartner?.name && (
+                {(deliveryPartner?.name || trackingData?.deliveryPersonName) && (
                     <>
                         <View style={styles.partnerCard}>
                             <View style={styles.partnerAvatar}><MaterialCommunityIcons name="account" size={26} color="#0A8754" /></View>
                             <View style={styles.partnerInfo}>
                                 <Text style={styles.partnerLabel}>DELIVERY PARTNER</Text>
-                                <Text style={styles.partnerName}>{deliveryPartner.name}</Text>
+                                <Text style={styles.partnerName}>{deliveryPartner?.name || trackingData?.deliveryPersonName}</Text>
                             </View>
                             <View style={styles.ratingBox}>
                                 <Ionicons name="star" size={12} color="#FFA800" />
@@ -491,7 +512,10 @@ const OrderTrackingScreen = () => {
                             <View style={[styles.detailsSection, { borderBottomWidth: 0 }]}>
                                 <Text style={styles.sectionHeading}>Payment Summary</Text>
                                 <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Item Total</Text><Text style={styles.pricingValue}>₹{(orderData?.grandTotal || orderData?.totalAmount || orderData?.totalPrice || orderData?.amount || 0).toFixed(2)}</Text></View>
-                                <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Delivery Fee</Text><Text style={[styles.pricingValue, { color: "#0A8754" }]}>FREE</Text></View>
+                                <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Delivery Fee</Text><Text style={styles.pricingValue}>{Number(orderData?.deliveryCharge || 0).toFixed(2)}</Text></View>
+                                {Number(orderData?.discount || 0) > 0 && (
+                                    <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Discount</Text><Text style={[styles.pricingValue, { color: "#0A8754" }]}>-{Number(orderData?.discount || 0).toFixed(2)}</Text></View>
+                                )}
                                 <View style={[styles.pricingRow, { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
                                     <Text style={[styles.pricingLabel, { fontWeight: "800", color: "#111" }]}>Total Paid</Text>
                                     <Text style={[styles.pricingValue, { fontWeight: "800", color: "#111", fontSize: 18 }]}>₹{(orderData?.grandTotal || orderData?.totalAmount || orderData?.totalPrice || orderData?.amount || 0).toFixed(2)}</Text>

@@ -57,6 +57,8 @@ export type CartItem = Product & {
 type CartContextType = {
   cart: CartItem[];
   wishlist: Product[];
+  subtotal: number;
+  deliveryCharge: number;
   total: number;
   appliedCoupon: string | null;
   discount: number;
@@ -248,6 +250,8 @@ const mapServerCartItem = (item: any): CartItem => {
 export const CartProvider = ({ children }: any) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [serverSubtotal, setServerSubtotal] = useState<number | null>(null);
+  const [serverDeliveryCharge, setServerDeliveryCharge] = useState<number>(0);
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discount, setDiscount] = useState<number>(0);
   const [usePoints, setUsePoints] = useState(false);
@@ -334,6 +338,26 @@ export const CartProvider = ({ children }: any) => {
       console.log("[refreshCart] Raw server items:", JSON.stringify(serverItems.slice(0, 2), null, 2));
 
       setCart(serverItems.map(mapServerCartItem));
+      setServerSubtotal(
+        Number(
+          serverCart?.subtotal ??
+            serverCart?.data?.subtotal ??
+            serverItems.reduce(
+              (sum: number, item: any) =>
+                sum + Number(item?.unitPrice || item?.price || 0) * Number(item?.quantity || 1),
+              0
+            )
+        )
+      );
+      setServerDeliveryCharge(
+        Number(
+          serverCart?.estimatedDeliveryCharge ??
+            serverCart?.deliveryCharge ??
+            serverCart?.data?.estimatedDeliveryCharge ??
+            serverCart?.data?.deliveryCharge ??
+            0
+        )
+      );
     } catch (error) {
       console.log("Cart refresh error:", error);
     }
@@ -509,6 +533,13 @@ export const CartProvider = ({ children }: any) => {
   }, [authLoading, cart.length, jwtToken, storageReady, wishlist.length]);
 
   useEffect(() => {
+    if (!jwtToken) {
+      setServerSubtotal(null);
+      setServerDeliveryCharge(0);
+    }
+  }, [jwtToken]);
+
+  useEffect(() => {
     const rawTotal = cart.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
@@ -565,9 +596,11 @@ export const CartProvider = ({ children }: any) => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const totalAfterCoupon = rawTotal - discount;
+  const subtotal = serverSubtotal ?? rawTotal;
+  const totalAfterCoupon = subtotal - discount;
   const pointsDiscount = usePoints ? Math.min(points, totalAfterCoupon) : 0;
-  const total = totalAfterCoupon - pointsDiscount;
+  const deliveryCharge = cart.length > 0 ? serverDeliveryCharge : 0;
+  const total = totalAfterCoupon + deliveryCharge - pointsDiscount;
 
   const addToCart = async (
     product: Product & { productVariants?: any[] },
@@ -633,15 +666,24 @@ export const CartProvider = ({ children }: any) => {
     if (!jwtToken) return;
 
     try {
-      const addedItem = await CartAPI.addCartItem(jwtToken, Number(variantId), 1, user?.customerId);
+      const addResponse = await CartAPI.addCartItem(jwtToken, Number(variantId), 1, user?.customerId);
+      const responseItems = Array.isArray(addResponse?.items)
+        ? addResponse.items
+        : Array.isArray(addResponse?.data?.items)
+          ? addResponse.data.items
+          : Array.isArray(addResponse)
+            ? addResponse
+            : [];
+      const addedServerItem = responseItems.find(
+        (item: any) => String(item?.variantId) === String(variantId)
+      );
 
-      // If server returns an ID, attach it
-      if (addedItem && (addedItem.id || addedItem.cartItemId)) {
-        const serverId = addedItem.id || addedItem.cartItemId;
+      if (addedServerItem?.id) {
+        const mappedServerItem = mapServerCartItem(addedServerItem);
         setCart((previousCart) =>
           previousCart.map((item) =>
             String(item.variantId || item.id) === cartKey
-              ? { ...item, cartItemId: serverId }
+              ? { ...item, ...mappedServerItem, id: cartKey }
               : item
           )
         );
@@ -828,6 +870,8 @@ export const CartProvider = ({ children }: any) => {
       value={{
         cart,
         wishlist,
+        subtotal,
+        deliveryCharge,
         total,
         appliedCoupon,
         discount,

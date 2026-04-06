@@ -155,7 +155,7 @@ const OrdersScreen = () => {
           {(item.orderStatus || item.status || "").toLowerCase() !== "delivered" && (item.orderStatus || item.status || "").toLowerCase() !== "cancelled" && (
             <TouchableOpacity
               style={styles.trackBtn}
-              onPress={() => navigation.navigate("OrderTracking", { orderId })}
+              onPress={() => navigation.navigate("OrderTracking", { orderId, orderNumber })}
             >
               <View style={styles.trackDot} />
               <Text style={styles.trackText}>Track Order</Text>

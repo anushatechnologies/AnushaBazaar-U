@@ -29,7 +29,7 @@ import LoginPromptModal from "../components/LoginPromptModal";
 import { scale } from "../utils/responsive";
 
 const CheckoutScreen = ({ navigation }: any) => {
-  const { cart, total, discount, appliedCoupon, clearCart, usePoints, pointsDiscount } = useCart();
+  const { cart, subtotal, deliveryCharge, total, discount, appliedCoupon, clearCart, usePoints, pointsDiscount } = useCart();
   const { user, jwtToken } = useAuth();
   const { addPoints, spendPoints } = useWallet();
   const insets = useSafeAreaInsets();
@@ -172,7 +172,9 @@ const CheckoutScreen = ({ navigation }: any) => {
 
   const finalizeSuccessfulOrder = async (
     orderId: number | string,
-    orderedItems: any[]
+    orderedItems: any[],
+    orderNumber?: string,
+    totalPaid?: number | string
   ) => {
     const pointsEarned = await applyWalletChanges();
 
@@ -181,7 +183,8 @@ const CheckoutScreen = ({ navigation }: any) => {
 
     navigation.replace("OrderSuccess", {
       orderId,
-      totalPaid: total.toFixed(2),
+      orderNumber,
+      totalPaid: totalPaid != null ? String(totalPaid) : total.toFixed(2),
       pointsEarned,
       items: orderedItems,
     });
@@ -189,6 +192,7 @@ const CheckoutScreen = ({ navigation }: any) => {
 
   const handleExistingOnlineOrder = (
     orderId: number | string,
+    orderNumber: string | undefined,
     title: string,
     message: string
   ) => {
@@ -198,7 +202,7 @@ const CheckoutScreen = ({ navigation }: any) => {
     Alert.alert(title, message, [
       {
         text: "Track Order",
-        onPress: () => navigation.replace("OrderTracking", { orderId }),
+        onPress: () => navigation.replace("OrderTracking", { orderId, orderNumber }),
       },
       {
         text: "OK",
@@ -310,12 +314,13 @@ const CheckoutScreen = ({ navigation }: any) => {
           const paymentResult = await startEasebuzzCheckout(paymentInit.access_key);
 
           if (isEasebuzzSuccess(paymentResult.result)) {
-            await finalizeSuccessfulOrder(orderId, orderedItems);
+            await finalizeSuccessfulOrder(orderId, orderedItems, orderResult?.orderNumber, orderResult?.grandTotal);
             return;
           }
 
           handleExistingOnlineOrder(
             orderId,
+            orderResult?.orderNumber,
             "Payment not completed",
             `${getEasebuzzResultMessage(paymentResult.result)} Your order was created, so please check My Orders before trying again.`
           );
@@ -324,6 +329,7 @@ const CheckoutScreen = ({ navigation }: any) => {
           console.error("Online payment flow error:", paymentError);
           handleExistingOnlineOrder(
             orderId,
+            orderResult?.orderNumber,
             "Payment pending",
             `${paymentError?.message || "We could not complete the Easebuzz payment flow."} Your order was created, so please verify its latest status in My Orders.`
           );
@@ -331,7 +337,7 @@ const CheckoutScreen = ({ navigation }: any) => {
         }
       }
 
-      await finalizeSuccessfulOrder(orderId, orderedItems);
+      await finalizeSuccessfulOrder(orderId, orderedItems, orderResult?.orderNumber, orderResult?.grandTotal);
       return;
 
     } catch (error: any) {
@@ -651,7 +657,7 @@ const CheckoutScreen = ({ navigation }: any) => {
 
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Delivery Charge</Text>
-            <Text style={styles.freeText}>FREE</Text>
+            <Text style={styles.priceValue}>{deliveryCharge.toFixed(2)}</Text>
           </View>
           <View style={[styles.priceRow, styles.grandTotalRow]}>
             <Text style={styles.grandTotalLabel}>Grand Total</Text>

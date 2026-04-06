@@ -13,6 +13,7 @@ const OrderSuccessScreen = () => {
   const opacityAnim = new Animated.Value(0);
 
   const orderId = route.params?.orderId || "AB-" + Math.floor(1000 + Math.random() * 9000);
+  const orderNumber = route.params?.orderNumber;
   const totalPaid = route.params?.totalPaid || "0";
   const items = route.params?.items || [];
 
@@ -52,7 +53,7 @@ const OrderSuccessScreen = () => {
         <Animated.View style={[styles.orderCard, { opacity: opacityAnim }]}>
           <View style={styles.orderDetail}>
             <Text style={styles.detailLabel}>Order ID</Text>
-            <Text style={styles.detailValue}>#{orderId}</Text>
+            <Text style={styles.detailValue}>#{orderNumber || orderId}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.orderDetail}>
@@ -91,7 +92,7 @@ const OrderSuccessScreen = () => {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, scale(20)) }]}>
         <TouchableOpacity 
           style={styles.trackBtn} 
-          onPress={() => navigation.navigate("OrderTracking", { orderId })}
+          onPress={() => navigation.navigate("OrderTracking", { orderId, orderNumber })}
         >
           <Text style={styles.trackBtnText}>Track Your Order</Text>
         </TouchableOpacity>

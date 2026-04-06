@@ -3,8 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    ActivityIndicator,
-    TouchableOpacity,
 } from "react-native";
 import { getProducts } from "../services/api/products";
 import ProductCard from "./ProductCard";
@@ -21,7 +19,6 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
     const [loading, setLoading] = useState(true);
     const [sortBy, setSort] = useState<SortOption>("default");
     const [priceRange, setPrice] = useState(PRICE_RANGES[0]);
-    const [displayLimit, setDisplayLimit] = useState(12);
 
     useEffect(() => {
         loadProducts();
@@ -34,6 +31,7 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
 
     const loadProducts = async () => {
         setLoading(true);
+        const startedAt = Date.now();
         try {
             const data = await getProducts();
             const shuffled = data.sort(() => Math.random() - 0.5);
@@ -42,7 +40,9 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
         } catch (e) {
             console.error("Error loading products feed:", e);
         } finally {
-            setLoading(false);
+            const elapsed = Date.now() - startedAt;
+            const remainingDelay = Math.max(0, 1000 - elapsed);
+            setTimeout(() => setLoading(false), remainingDelay);
         }
     };
 
@@ -80,7 +80,6 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
         if (sort === "name_asc") result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
         setDisplayed(result);
-        setDisplayLimit(12); // Reset count on filter change
     }, []);
 
     if (loading && allProducts.length === 0) {
@@ -119,7 +118,7 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
                 </View>
             ) : (
                 <View style={styles.grid}>
-                    {displayed.slice(0, displayLimit).map((item, index) => (
+                    {displayed.map((item, index) => (
                         <View 
                             key={item.id?.toString() || index} 
                             style={{ 
@@ -131,14 +130,6 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
                             <ProductCard product={item} />
                         </View>
                     ))}
-                    {displayLimit < displayed.length && (
-                        <TouchableOpacity 
-                            style={styles.loadMoreBtn} 
-                            onPress={() => setDisplayLimit((prev) => prev + 12)}
-                        >
-                            <Text style={styles.loadMoreText}>Load More</Text>
-                        </TouchableOpacity>
-                    )}
                 </View>
             )}
         </View>
@@ -185,19 +176,5 @@ const styles = StyleSheet.create({
         color: "#0A8754",
         fontWeight: "700",
         marginTop: 4,
-    },
-    loadMoreBtn: {
-        width: "100%",
-        paddingVertical: 14,
-        marginTop: 10,
-        marginBottom: 20,
-        alignItems: "center",
-        backgroundColor: "#E2F2E9",
-        borderRadius: 12,
-    },
-    loadMoreText: {
-        color: "#0A8754",
-        fontSize: 15,
-        fontWeight: "800",
     },
 });

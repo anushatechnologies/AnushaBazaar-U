@@ -37,6 +37,8 @@ const CartScreen = () => {
     increaseQty, 
     decreaseQty, 
     clearCart,
+    subtotal,
+    deliveryCharge,
     total, 
     discount, 
     appliedCoupon, 
@@ -198,7 +200,7 @@ const CartScreen = () => {
             {/* Summary & Checkout */}
             <View style={styles.summaryBox}>
               <View style={styles.billLine}>
-                <Text style={styles.billKey}>Basket Total</Text>
+                <Text style={styles.billKey}>Estimated Total</Text>
                 <Text style={styles.billValue}>₹{(total + discount).toFixed(2)}</Text>
               </View>
               {discount > 0 && (
@@ -207,7 +209,11 @@ const CartScreen = () => {
                   <Text style={[styles.billValue, { color: "#0A8754" }]}>-₹{discount.toFixed(2)}</Text>
                 </View>
               )}
-              
+              <View style={styles.billLine}>
+                <Text style={styles.billKey}>Delivery Charge</Text>
+                <Text style={styles.billValue}>{deliveryCharge.toFixed(2)}</Text>
+              </View>
+
               <TouchableOpacity
                 style={styles.primaryCheckoutBtn}
                 activeOpacity={0.9}
