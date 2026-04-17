@@ -1,57 +1,95 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   Pressable,
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { scale } from "../utils/responsive";
 
 const tabs = [
-  { name: "All", icon: "apps-outline" },
-  { name: "Fresh", icon: "leaf-outline" },
-  { name: "Electronics", icon: "phone-portrait-outline" },
-  { name: "Organic", icon: "nutrition-outline" },
-  { name: "Deals", icon: "pricetag-outline" },
-  { name: "Beauty", icon: "sparkles-outline" },
+  { name: "All", iconOutline: "apps-outline", iconFilled: "apps" },
+  { name: "Fresh", iconOutline: "leaf-outline", iconFilled: "leaf" },
+  { name: "Electronics", iconOutline: "phone-portrait-outline", iconFilled: "phone-portrait" },
+  { name: "Organic", iconOutline: "nutrition-outline", iconFilled: "nutrition" },
+  { name: "Deals", iconOutline: "pricetag-outline", iconFilled: "pricetag", badge: "🔥" },
+  { name: "Beauty", iconOutline: "sparkles-outline", iconFilled: "sparkles" },
 ];
 
-const CategoryTabs = ({ onChange }: any) => {
-  const [activeTab, setActiveTab] = useState("All");
+const TabItem = React.memo(({ item, isActive, onPress }: any) => {
+  const scaleValue = useRef(new Animated.Value(isActive ? 1.05 : 1)).current;
 
-  const handlePress = (tab: string) => {
-    setActiveTab(tab);
-    onChange(tab);
+  // Animate on active state change
+  useEffect(() => {
+    Animated.spring(scaleValue, {
+      toValue: isActive ? 1.05 : 1,
+      useNativeDriver: true,
+      friction: 5,
+      tension: 100,
+    }).start();
+  }, [isActive]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleValue }], marginRight: scale(10) }}>
+      <Pressable
+        onPress={() => onPress(item.name)}
+        style={[styles.tab, isActive && styles.activeTab]}
+        android_ripple={{ color: 'rgba(0,0,0,0.05)', radius: 24 }}
+      >
+        <Ionicons
+          name={isActive ? item.iconFilled : item.iconOutline}
+          size={scale(16)}
+          color={isActive ? "#16A34A" : "#555555"}
+        />
+        <Text style={[styles.text, isActive && styles.activeText]}>
+          {item.name}
+        </Text>
+        {item.badge && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{item.badge}</Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+});
+
+const CategoryTabs = ({ onChange, defaultTab = "All" }: any) => {
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  const handlePress = useCallback((tabName: string) => {
+    if (activeTab === tabName) return;
+    setActiveTab(tabName);
+    onChange(tabName);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
+  }, [activeTab, onChange]);
+
+  const renderItem = useCallback(({ item }: any) => (
+    <TabItem 
+      item={item} 
+      isActive={item.name === activeTab} 
+      onPress={handlePress} 
+    />
+  ), [activeTab, handlePress]);
 
   return (
     <View style={styles.wrapper}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {tabs.map((tab) => {
-          const active = tab.name === activeTab;
-
-          return (
-            <Pressable
-              key={tab.name}
-              onPress={() => handlePress(tab.name)}
-              style={[styles.tab, active && styles.activeTab]}
-            >
-              <Ionicons
-                name={tab.icon as any}
-                size={18}
-                color={active ? "#0A8754" : "#64748B"}
-              />
-              <Text style={[styles.text, active && styles.activeText]}>
-                {tab.name}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <FlatList
+        data={tabs}
+        keyExtractor={(item) => item.name}
+        renderItem={renderItem}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        initialNumToRender={6}
+        windowSize={5}
+        // Improve scrolling performance
+        removeClippedSubviews={false}
+      />
     </View>
   );
 };
@@ -60,41 +98,57 @@ export default CategoryTabs;
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingVertical: 10,
-    paddingLeft: 15,
-    backgroundColor: "#f3f5f7",
+    paddingVertical: scale(12),
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
   },
-
+  listContent: {
+    paddingHorizontal: scale(16),
+  },
   tab: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    marginRight: 10,
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+    backgroundColor: "#F3F4F6",
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(16),
+    borderRadius: scale(24),
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  activeTab: {
+    backgroundColor: "#E6F4EA",
+    borderColor: "#22C55E",
+    elevation: 2, // Slight elevation
+    shadowColor: "#22C55E",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-
-  activeTab: {
-    backgroundColor: "#ECFDF5",
-    borderColor: "#0A8754",
-  },
-
   text: {
-    marginLeft: 6,
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#64748B",
+    marginLeft: scale(6),
+    fontSize: scale(13),
+    fontWeight: "500",
+    color: "#555",
   },
-
   activeText: {
-    color: "#0A8754",
+    color: "#16A34A",
+    fontWeight: "700",
   },
+  badge: {
+    position: 'absolute',
+    top: -scale(4),
+    right: -scale(4),
+    backgroundColor: '#FFE4E6',
+    borderRadius: scale(10),
+    paddingHorizontal: scale(4),
+    paddingVertical: scale(2),
+    borderWidth: 1,
+    borderColor: '#FFF',
+    elevation: 3,
+  },
+  badgeText: {
+    fontSize: scale(8),
+    lineHeight: scale(10),
+  }
 });

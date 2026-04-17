@@ -1,0 +1,56 @@
+src/screens/CartScreen.tsx(18,27): error TS2307: Cannot find module '../context/WalletContext' or its corresponding type declarations.
+src/screens/CartScreen.tsx(36,5): error TS2339: Property 'appliedCoupon' does not exist on type 'CartContextType'.
+src/screens/CartScreen.tsx(38,5): error TS2339: Property 'removeCoupon' does not exist on type 'CartContextType'.
+src/screens/CartScreen.tsx(39,5): error TS2339: Property 'pointsDiscount' does not exist on type 'CartContextType'.
+src/screens/CartScreen.tsx(40,5): error TS2339: Property 'usePoints' does not exist on type 'CartContextType'.
+src/screens/CartScreen.tsx(41,5): error TS2339: Property 'setUsePoints' does not exist on type 'CartContextType'.
+src/screens/CartScreen.tsx(52,32): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/screens/CartScreen.tsx(53,16): error TS2339: Property 'success' does not exist on type 'void'.
+src/screens/CartScreen.tsx(55,37): error TS2339: Property 'message' does not exist on type 'void'.
+src/screens/CartScreen.tsx(57,35): error TS2339: Property 'message' does not exist on type 'void'.
+src/screens/CartScreen.tsx(62,32): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/screens/CartScreen.tsx(63,16): error TS2339: Property 'success' does not exist on type 'void'.
+src/screens/CartScreen.tsx(64,37): error TS2339: Property 'message' does not exist on type 'void'.
+src/screens/CartScreen.tsx(66,35): error TS2339: Property 'message' does not exist on type 'void'.
+src/screens/CategoriesScreen.tsx(16,27): error TS2307: Cannot find module '../context/TabBarContext' or its corresponding type declarations.
+src/screens/CategoriesScreen.tsx(173,9): error TS2322: Type '{ value: string; onChangeText: Dispatch<SetStateAction<string>>; onSearch: Dispatch<SetStateAction<string>>; placeholder: string; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'value' does not exist on type 'IntrinsicAttributes'.
+src/screens/CheckoutScreen.tsx(14,27): error TS2307: Cannot find module '../context/WalletContext' or its corresponding type declarations.
+src/screens/CheckoutScreen.tsx(24,34): error TS2339: Property 'appliedCoupon' does not exist on type 'CartContextType'.
+src/screens/CheckoutScreen.tsx(24,60): error TS2339: Property 'usePoints' does not exist on type 'CartContextType'.
+src/screens/CheckoutScreen.tsx(24,71): error TS2339: Property 'pointsDiscount' does not exist on type 'CartContextType'.
+src/screens/CheckoutScreen.tsx(25,17): error TS2339: Property 'jwtToken' does not exist on type 'AuthContextType'.
+src/screens/CheckoutScreen.tsx(208,39): error TS2339: Property 'variantId' does not exist on type 'CartItem'.
+src/screens/CheckoutScreen.tsx(209,39): error TS2339: Property 'productId' does not exist on type 'CartItem'.
+src/screens/EditProfileScreen.tsx(17,17): error TS2339: Property 'jwtToken' does not exist on type 'AuthContextType'.
+src/screens/EditProfileScreen.tsx(22,44): error TS2339: Property 'email' does not exist on type 'UserType'.
+src/screens/EditProfileScreen.tsx(49,46): error TS2339: Property 'customerId' does not exist on type 'UserType'.
+src/screens/EditProfileScreen.tsx(51,13): error TS2554: Expected 1 arguments, but got 2.
+src/screens/EditProfileScreen.tsx(65,29): error TS2339: Property 'customerId' does not exist on type 'UserType'.
+src/screens/EditProfileScreen.tsx(67,9): error TS2554: Expected 1 arguments, but got 2.
+src/screens/HomeScreen.tsx(16,26): error TS2307: Cannot find module '../components/TrendingList' or its corresponding type declarations.
+src/screens/HomeScreen.tsx(19,29): error TS2307: Cannot find module '../components/AllProductsFeed' or its corresponding type declarations.
+src/screens/HomeScreen.tsx(27,31): error TS2307: Cannot find module '../components/SearchSuggestions' or its corresponding type declarations.
+src/screens/HomeScreen.tsx(28,27): error TS2307: Cannot find module '../context/TabBarContext' or its corresponding type declarations.
+src/screens/HomeScreen.tsx(95,50): error TS2769: No overload matches this call.
+  Argument of type '["Trending"]' is not assignable to parameter of type '[screen: "Home", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Categories", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 24 more ... | [screen: ...]'.
+    Type '["Trending"]' is not assignable to type '[screen: "Home", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | [screen: "Categories", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined] | ... 21 more ... | [screen: ...]'.
+      Type '["Trending"]' is not assignable to type '[screen: "Help", params?: undefined, options?: { merge?: boolean | undefined; pop?: boolean | undefined; } | undefined]'.
+        Type at position 0 in source is not compatible with type at position 0 in target.
+          Type '"Trending"' is not assignable to type '"Help"'.
+  Overload 2 of 2, '(options: { name: "Home"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "Categories"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | ... 24 more ... | { ...; }): void', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '{ name: "Home"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | { name: "Categories"; params: undefined; path?: string | undefined; merge?: boolean | undefined; pop?: boolean | undefined; } | ... 24 more ... | { ...; }'.
+src/screens/HomeScreen.tsx(166,15): error TS2322: Type '{ value: string; onChangeText: (text: string) => void; onSuggestions: Dispatch<SetStateAction<any[]>>; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'value' does not exist on type 'IntrinsicAttributes'.
+src/screens/OrderAgainScreen.tsx(148,11): error TS2339: Property 'jwtToken' does not exist on type 'AuthContextType'.
+src/screens/OrdersScreen.tsx(20,11): error TS2339: Property 'jwtToken' does not exist on type 'AuthContextType'.
+src/screens/OtpScreen.tsx(100,11): error TS2554: Expected 1 arguments, but got 2.
+src/screens/ProductDetailScreen.tsx(168,49): error TS2554: Expected 1 arguments, but got 2.
+src/screens/ProfileScreen.tsx(14,27): error TS2307: Cannot find module '../context/WalletContext' or its corresponding type declarations.
+src/screens/SavedAddressScreen.tsx(26,17): error TS2339: Property 'jwtToken' does not exist on type 'AuthContextType'.
+src/screens/SelectLocationScreen.tsx(10,32): error TS2307: Cannot find module '../hooks/useMapLocation' or its corresponding type declarations.
+src/screens/SelectLocationScreen.tsx(11,20): error TS2307: Cannot find module '../components/map/MapPin' or its corresponding type declarations.
+src/screens/SelectLocationScreen.tsx(12,23): error TS2307: Cannot find module '../components/map/GpsButton' or its corresponding type declarations.
+src/screens/SelectLocationScreen.tsx(13,27): error TS2307: Cannot find module '../components/map/MapBottomCard' or its corresponding type declarations.
+src/screens/TrendingScreen.tsx(23,27): error TS2307: Cannot find module '../context/TabBarContext' or its corresponding type declarations.
+src/screens/WalletScreen.tsx(18,27): error TS2307: Cannot find module '../context/WalletContext' or its corresponding type declarations.

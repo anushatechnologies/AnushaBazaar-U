@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,10 +46,9 @@ const AnimatedSearchTrigger = ({ onPress, onMicPress }: AnimatedSearchTriggerPro
   const next = placeholders[(currentIndex + 1) % placeholders.length];
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={styles.searchTrigger}
       onPress={onPress}
-      activeOpacity={0.8}
     >
       <Ionicons name="search" size={scale(17)} color="#9CA3AF" style={styles.icon} />
       
@@ -65,14 +64,17 @@ const AnimatedSearchTrigger = ({ onPress, onMicPress }: AnimatedSearchTriggerPro
       </View>
 
       <View style={styles.divider} />
-      <TouchableOpacity onPress={onMicPress || onPress} activeOpacity={0.7}>
+      <Pressable
+        onPress={onMicPress || onPress}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <Ionicons name="mic-outline" size={scale(18)} color="#EF4444" />
-      </TouchableOpacity>
-    </TouchableOpacity>
+      </Pressable>
+    </Pressable>
   );
 };
 
-export default AnimatedSearchTrigger;
+export default React.memo(AnimatedSearchTrigger);
 
 const styles = StyleSheet.create({
   searchTrigger: {

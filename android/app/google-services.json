@@ -7,40 +7,29 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:64875938387:android:4719553d0cf0c067ba7ca6",
-        "android_client_info": {
-          "package_name": "com.Anushadeliverypartner"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA5x2ucDW9LBMDvVY_g3dsQRkk2zgvBLWw"
-        },
-        {
-          "current_key": "AIzaSyA1boMLneteAG92WXtgzEOaLLzpBK7j1Lg"
-        },
-        {
-          "current_key": "AIzaSyBMZfGGMXsIOZYBpCRW7lVpPVhaRQnAnjo"
-        },
-        {
-          "current_key": "AIzaSyBwJqttG6psPpCl0Cl567V6aQWozcE6eZo"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:64875938387:android:92945e5b265d394aba7ca6",
         "android_client_info": {
           "package_name": "com.anusha.deliveryapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "64875938387-test1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anusha.deliveryapp",
+            "certificate_hash": "232d121634a271229244a7de24bc84b066d6f7b8"
+          }
+        },
+        {
+          "client_id": "64875938387-test2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anusha.deliveryapp",
+            "certificate_hash": "a5ca9ec38c2b7d723138e71eb453720f51e1c30df66875a8dc8ac7fe46fedab1"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA5x2ucDW9LBMDvVY_g3dsQRkk2zgvBLWw"

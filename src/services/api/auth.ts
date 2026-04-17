@@ -123,3 +123,22 @@ export const checkPhoneExists = async (phone: string): Promise<{ exists: boolean
     return { exists: false };
   }
 };
+
+/**
+ * Save the user's FCM token to the backend for notifications.
+ * POST /api/save-token
+ */
+export const saveFcmToken = async (phone: string, fcmToken: string): Promise<boolean> => {
+  try {
+    const response = await fetchWithTimeout(API_CONFIG.ENDPOINTS.SAVE_TOKEN, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, fcmToken }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Error saving FCM token:", error);
+    return false;
+  }
+};
+

@@ -8,6 +8,7 @@ import {
   Animated,
   ToastAndroid,
   Platform,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, Modal } from "react-native";
@@ -34,13 +35,13 @@ const placeholders = [
   "Search 'atta & dal'",
 ];
 
-const SearchBar = ({
+const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   onSuggestions,
   onLoading,
   value,
   onChangeText,
-}: SearchBarProps) => {
+}) => {
   const [internalText, setInternalText] = useState(value || "");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -134,7 +135,17 @@ const SearchBar = ({
     }
   };
 
-  const { isListening, startListening, stopListening } = useVoiceSearch(handleVoiceResult);
+  const { isListening, startListening, stopListening, error: voiceError } = useVoiceSearch(handleVoiceResult);
+
+  useEffect(() => {
+    if (voiceError) {
+      if (Platform.OS === "android") {
+        ToastAndroid.show(voiceError, ToastAndroid.SHORT);
+      } else {
+        Alert.alert("Error", voiceError);
+      }
+    }
+  }, [voiceError]);
 
   const handleMicPress = () => {
     Animated.sequence([
@@ -214,7 +225,7 @@ export default SearchBar;
 const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: scale(16),
-    paddingVertical: scale(12),
+    paddingVertical: scale(6),
     backgroundColor: "#FFFFFF",
   },
   container: {
@@ -224,6 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(14),
     paddingHorizontal: scale(16),
     paddingVertical: scale(12),
+    marginBottom: scale(4),
     borderWidth: 1,
     borderColor: "#E2E8F0",
     shadowColor: "#000",
@@ -233,12 +245,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchIcon: {
-    marginRight: scale(10),
-    color: "#64748B",
+    marginRight: scale(8),
+    color: "#9CA3AF",
   },
   inputWrapper: {
     flex: 1,
-    height: scale(38),
+    height: scale(20),
     justifyContent: "center",
   },
   placeholderContainer: {
@@ -251,7 +263,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     fontSize: scale(15),
-    color: "#94A3B8",
+    color: "#64748B",
     fontWeight: "500",
     lineHeight: scale(20),
   },
@@ -261,6 +273,8 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     fontWeight: "500",
     backgroundColor: "transparent",
+    padding: 0,
+    margin: 0,
   },
   clearBtn: {
     marginRight: scale(4),

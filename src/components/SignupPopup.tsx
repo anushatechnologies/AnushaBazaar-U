@@ -13,11 +13,10 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface SignupPopupProps {
   visible: boolean;
@@ -62,11 +61,7 @@ const SignupPopup: React.FC<SignupPopupProps> = ({ visible, onClose, onSignup, p
 
             <View style={styles.content}>
               <View style={styles.logoContainer}>
-                <Image 
-                  source={require("../../assets/company-logo.png")} 
-                  style={styles.logo}
-                  resizeMode="cover"
-                />
+                <Image source={require('../../assets/splash.png')} style={styles.logo} resizeMode="contain" />
               </View>
 
               <Text style={styles.title}>New to Anusha Bazaar?</Text>

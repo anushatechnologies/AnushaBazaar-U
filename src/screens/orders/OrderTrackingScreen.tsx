@@ -1,0 +1,837 @@
+import React, { useState, useEffect, useRef } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    Dimensions,
+    Animated,
+    Linking,
+    Platform,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    TextInput,
+    KeyboardAvoidingView,
+    Image,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import * as Location from "expo-location";
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+import { useAuth } from "../context/AuthContext";
+import { getOrderById, cancelOrder, getOrderTracking } from "../services/api/orders";
+import AppLoader from "../components/AppLoader";
+import { resolveImageSource } from "../utils/image";
+import { scale } from "../utils/responsive";
+=======
+import { useAuth } from "../../context/AuthContext";
+import { getOrderById, cancelOrder, getOrderTracking } from "../../services/api/orders";
+
+import { resolveImageSource } from "../../utils/image";
+import { scale } from "../../utils/responsive";
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+
+const { height } = Dimensions.get("window");
+const MAP_HEIGHT = scale(350);
+
+const OrderTrackingScreen = () => {
+    const navigation = useNavigation<any>();
+    const route = useRoute<any>();
+    const insets = useSafeAreaInsets();
+    const mapRef = useRef<MapView>(null);
+
+    const orderId = route.params?.orderId || "AB-1024";
+    const routeOrderNumber = route.params?.orderNumber;
+    const { jwtToken, user } = useAuth();
+    const [trackingData, setTrackingData] = useState<any>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [isCancelled, setIsCancelled] = useState(false);
+
+    // Real-time order data from API
+    const [orderData, setOrderData] = useState<any>(null);
+    const [orderStatus, setOrderStatus] = useState("pending");
+    const [deliveryPartner, setDeliveryPartner] = useState<any>(null);
+    const [orderItems, setOrderItems] = useState<any[]>([]);
+    const [trackingData, setTrackingData] = useState<any>(null);
+
+    // Dynamic Locations
+    const [customerLocation, setCustomerLocation] = useState<{latitude: number; longitude: number} | null>(null);
+    const [storeLocation, setStoreLocation] = useState<{latitude: number; longitude: number} | null>(null);
+    const [routeCoords, setRouteCoords] = useState<{latitude: number; longitude: number}[]>([]);
+    const [loadingLocation, setLoadingLocation] = useState(true);
+
+    // Animated rider position along the route
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+
+    // Modals State
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [selectedReason, setSelectedReason] = useState("");
+    const [otherReason, setOtherReason] = useState("");
+
+    const CANCEL_REASONS = [
+        "Changed my mind",
+        "Delivery taking too long",
+        "Item price too high",
+        "Ordered by mistake / Double order",
+        "Need to add/change items",
+        "Other",
+    ];
+
+    // ── Fetch order details from API & poll every 10s ──
+    const fetchOrderDetails = async () => {
+        if (!jwtToken) return;
+        try {
+            const data = await getOrderById(jwtToken, orderId);
+            if (data) {
+                setOrderData(data);
+                const rawStatus = (data.status || data.orderStatus || "pending").toLowerCase().trim().replace(/[\s-]+/g, "_");
+                // Normalize backend statuses to match our STATUS_FLOW
+                const statusMap: Record<string, string> = {
+                    "placed": "pending",
+                    "order_placed": "pending",
+                    "new": "pending",
+                    "accepted": "confirmed",
+                    "processing": "confirmed",
+                    "preparing": "packed",
+                    "ready": "packed",
+                    "ready_for_pickup": "packed",
+                    "shipped": "out_for_delivery",
+                    "in_transit": "out_for_delivery",
+                    "on_the_way": "out_for_delivery",
+                    "completed": "delivered",
+                    "canceled": "cancelled",
+                };
+                const status = statusMap[rawStatus] || rawStatus;
+                setOrderStatus(status);
+                if (data.deliveryPartner || data.rider) {
+                    setDeliveryPartner(data.deliveryPartner || data.rider);
+                }
+                if (data.items || data.orderItems) {
+                    setOrderItems(data.items || data.orderItems || []);
+                }
+                if (status === "cancelled") setIsCancelled(true);
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+
+=======
+                
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+                const orderNumber = data.orderNumber || routeOrderNumber;
+                if (orderNumber) {
+                    try {
+                        const liveTracking = await getOrderTracking(jwtToken, orderNumber);
+                        setTrackingData(liveTracking);
+                    } catch (trackingError) {
+                        console.error("Failed to fetch tracking data:", trackingError);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch order:", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchOrderDetails();
+        const poller = setInterval(fetchOrderDetails, 10000); // Poll every 10 seconds
+        return () => clearInterval(poller);
+    }, [jwtToken, orderId, routeOrderNumber]);
+
+    // 1. Update Customer & Store Locations based on Order Data or defaults
+    useEffect(() => {
+        const setupLocations = async () => {
+            let userLoc = null;
+            
+            // Try to get customer location from order address
+            const addrLat = orderData?.address?.latitude || orderData?.deliveryAddress?.latitude;
+            const addrLng = orderData?.address?.longitude || orderData?.deliveryAddress?.longitude;
+            
+            if (addrLat && addrLng) {
+                userLoc = { latitude: Number(addrLat), longitude: Number(addrLng) };
+            } else {
+                // Fallback to device GPS
+                try {
+                    let { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status === 'granted') {
+                        let location = await Location.getLastKnownPositionAsync() || await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+                        if (location) {
+                            userLoc = { latitude: location.coords.latitude, longitude: location.coords.longitude };
+                        }
+                    }
+                } catch (error) {
+                    console.log("GPS Location error:", error);
+                }
+            }
+
+            // Default fallback if everything fails
+            if (!userLoc) {
+                userLoc = { latitude: 17.4400, longitude: 78.3489 }; 
+            }
+            setCustomerLocation(userLoc);
+
+            // Fetch Store/Branch location from order, or fallback
+            const sLat = orderData?.store?.latitude || orderData?.branch?.latitude || 17.48995;
+            const sLng = orderData?.store?.longitude || orderData?.branch?.longitude || 78.393127;
+            const finalStore = { latitude: Number(sLat), longitude: Number(sLng) };
+            
+            setStoreLocation(finalStore);
+
+            // Generate a simple straight-line route for visualization if backend hasn't provided one
+            const pts = 8;
+            const coords = [];
+            for (let i = 0; i <= pts; i++) {
+                coords.push({
+                    latitude: finalStore.latitude + (userLoc.latitude - finalStore.latitude) * (i / pts),
+                    longitude: finalStore.longitude + (userLoc.longitude - finalStore.longitude) * (i / pts),
+                });
+            }
+            setRouteCoords(coords);
+            setLoadingLocation(false);
+            
+            setTimeout(fitMap, 800);
+        };
+
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+    const riderLat = trackingData?.lat || trackingData?.latitude || orderData?.deliveryPartner?.latitude || orderData?.rider?.latitude;
+    const riderLng = trackingData?.lng || trackingData?.longitude || orderData?.deliveryPartner?.longitude || orderData?.rider?.longitude;
+    const isRiderLive = !!(riderLat && riderLng);
+=======
+        setupLocations();
+    }, [orderData?.id]); // update when order data loads
+
+    const riderLat =
+        trackingData?.location?.latitude ||
+        trackingData?.location?.lat ||
+        trackingData?.lat ||
+        trackingData?.latitude ||
+        orderData?.deliveryPartner?.latitude ||
+        orderData?.rider?.latitude;
+
+    const riderLng =
+        trackingData?.location?.longitude ||
+        trackingData?.location?.lng ||
+        trackingData?.lng ||
+        trackingData?.longitude ||
+        orderData?.deliveryPartner?.longitude ||
+        orderData?.rider?.longitude;
+        
+    const isRiderLive = Boolean(riderLat && riderLng);
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+    
+    const riderPosition = isRiderLive 
+        ? { latitude: Number(riderLat), longitude: Number(riderLng) }
+        : storeLocation;
+
+    // Pulsing animation for rider
+    useEffect(() => {
+        if (loadingLocation) return;
+        const pulse = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1.4,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        pulse.start();
+        return () => pulse.stop();
+    }, [loadingLocation]);
+
+    // Calculate ETA based on backend estimate
+    const etaMinutes = orderData?.estimatedDeliveryTime
+        ? Math.max(0, Math.round((new Date(orderData.estimatedDeliveryTime).getTime() - Date.now()) / 60000))
+        : (orderStatus === "delivered" ? 0 : 45);
+
+    // ── Build timeline from real order status ──
+    const STATUS_FLOW = ["pending", "confirmed", "packed", "picked_up", "out_for_delivery", "delivered"];
+    const trackingStatus = String(trackingData?.status || "").toLowerCase();
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+=======
+
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+    const normalizedStatus = (() => {
+        if (trackingStatus.includes("out_for_delivery")) return "out_for_delivery";
+        if (trackingStatus.includes("picked_up")) return "picked_up";
+        if (trackingStatus.includes("rider_assigned") || trackingStatus.includes("reached_store") || trackingStatus.includes("pickup_otp")) return "confirmed";
+        if (trackingStatus.includes("store_notified") || trackingStatus.includes("store_accepted") || trackingStatus.includes("broadcasted")) return "packed";
+        if (trackingStatus.includes("placed")) return "pending";
+        return orderStatus;
+    })();
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+=======
+
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+    const currentIdx = STATUS_FLOW.indexOf(normalizedStatus);
+
+    const getStepStatus = (stepIdx: number) => {
+        if (isCancelled) return stepIdx <= currentIdx ? "completed" : "pending";
+        if (stepIdx < currentIdx) return "completed";
+        if (stepIdx === currentIdx) return "active";
+        return "pending";
+    };
+
+    const formatTime = (dateStr?: string) => {
+        if (!dateStr) return "—";
+        const d = new Date(dateStr);
+        const datePart = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        const timePart = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+        return `${datePart}, ${timePart}`;
+    };
+
+    // Fallback timestamp for active statuses if specific timestamp missing
+    const latestTime = trackingData?.updatedAt || orderData?.updatedAt || trackingData?.createdAt;
+
+    const timeline = [
+        { title: "Order Placed", time: formatTime(orderData?.createdAt), status: getStepStatus(0), icon: "checkmark-circle" },
+        { title: "Order Confirmed", time: (getStepStatus(1) === "completed" || getStepStatus(1) === "active") ? formatTime(orderData?.confirmedAt || (getStepStatus(1) === "active" ? latestTime : undefined)) : "—", status: getStepStatus(1), icon: "shield-checkmark" },
+        { title: "Order Packed", time: (getStepStatus(2) === "completed" || getStepStatus(2) === "active") ? formatTime(orderData?.packedAt || (getStepStatus(2) === "active" ? latestTime : undefined)) : "—", status: getStepStatus(2), icon: "cube" },
+        { title: "Picked Up", time: (getStepStatus(3) === "completed" || getStepStatus(3) === "active") ? formatTime(orderData?.pickedUpAt || (getStepStatus(3) === "active" ? latestTime : undefined)) : "—", status: getStepStatus(3), icon: "bag-check" },
+        { title: "Out for Delivery", time: getStepStatus(4) === "active" ? (etaMinutes > 0 ? `Arriving in ~${etaMinutes} mins` : formatTime(orderData?.outForDeliveryAt || latestTime)) : getStepStatus(4) === "completed" ? formatTime(orderData?.outForDeliveryAt) : "—", status: getStepStatus(4), icon: "bicycle" },
+        { title: "Delivered", time: getStepStatus(5) === "completed" ? formatTime(orderData?.deliveredAt || latestTime) : "—", status: getStepStatus(5), icon: "home" },
+    ];
+
+    const statusDisplayMap: Record<string, string> = {
+        pending: "Order Pending",
+        confirmed: "Order Confirmed",
+        packed: "Order Packed",
+        picked_up: "Picked Up",
+        out_for_delivery: "Out for Delivery",
+        delivered: "Delivered",
+        cancelled: "Cancelled",
+    };
+    const displayStatus = statusDisplayMap[orderStatus] || orderStatus;
+
+    // Resolve the delivery partner's real phone from API data
+    const riderPhone =
+        deliveryPartner?.phone ||
+        deliveryPartner?.phoneNumber ||
+        deliveryPartner?.mobile ||
+        trackingData?.deliveryPersonPhone ||
+        trackingData?.riderPhone ||
+        orderData?.rider?.phone ||
+        orderData?.deliveryPartner?.phone ||
+        null;
+
+    const riderName =
+        deliveryPartner?.name ||
+        trackingData?.deliveryPersonName ||
+        orderData?.rider?.name ||
+        orderData?.deliveryPartner?.name ||
+        "Delivery Partner";
+
+    const handleCallRider = () => {
+        if (!riderPhone) {
+            Alert.alert("Not Available", "Delivery partner's phone number is not available yet. Please try again once a rider is assigned.");
+            return;
+        }
+        const phone = riderPhone.startsWith("+") ? riderPhone : `+91${riderPhone}`;
+        Linking.openURL(`tel:${phone}`);
+    };
+
+
+    const handleCancelOrder = () => {
+        setShowCancelModal(true);
+    };
+
+    const confirmCancellation = async () => {
+        const finalReason = selectedReason === "Other" ? otherReason : selectedReason;
+        if (!finalReason) {
+            Alert.alert("Reason Required", "Please select a reason for cancellation.");
+            return;
+        }
+
+        setIsCancelling(true);
+        setShowCancelModal(false);
+        try {
+            if (jwtToken) {
+                await cancelOrder(jwtToken, orderId, finalReason);
+            }
+            setIsCancelled(true);
+            setOrderStatus("cancelled");
+            Alert.alert(
+                "Order Cancelled",
+                "Your order has been cancelled successfully.",
+                [{ text: "OK", onPress: () => navigation.navigate("MainTabs") }]
+            );
+        } catch (error) {
+            Alert.alert("Error", "Could not cancel the order.");
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    const fitMap = () => {
+        if (mapRef.current && storeLocation && customerLocation && riderPosition) {
+            mapRef.current.fitToCoordinates(
+                [storeLocation, customerLocation, riderPosition],
+                { edgePadding: { top: 80, right: 60, bottom: 60, left: 60 }, animated: true }
+            );
+        }
+    };
+
+    return (
+        <View style={styles.root}>
+            <View style={styles.mapContainer}>
+                {loadingLocation || !storeLocation || !customerLocation || !riderPosition ? (
+                    <View style={styles.loaderCenter}>
+                        <ActivityIndicator color="#0A8754" size="large" />
+                        <Text style={{ marginTop: 10, color: "#666", fontWeight: "600" }}>Locating your order...</Text>
+                    </View>
+                ) : (
+                    <MapView
+                        ref={mapRef}
+                        style={styles.map}
+                        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+                        initialRegion={{
+                            latitude: (storeLocation.latitude + customerLocation.latitude) / 2,
+                            longitude: (storeLocation.longitude + customerLocation.longitude) / 2,
+                            latitudeDelta: 0.05,
+                            longitudeDelta: 0.05,
+                        }}
+                        showsUserLocation={false}
+                        showsMyLocationButton={false}
+                        showsCompass={false}
+                        toolbarEnabled={false}
+                    >
+                        <Polyline coordinates={routeCoords} strokeColor="#ccc" strokeWidth={3} lineDashPattern={[8, 6]} />
+                        <Marker coordinate={storeLocation} anchor={{ x: 0.5, y: 0.5 }}>
+                            <View style={styles.storeMarker}><Ionicons name="storefront" size={16} color="#fff" /></View>
+                        </Marker>
+                        <Marker coordinate={customerLocation} anchor={{ x: 0.5, y: 1 }}>
+                            <View style={styles.homeMarkerWrap}>
+                                <View style={styles.homeMarker}><Ionicons name="home" size={14} color="#fff" /></View>
+                                <View style={styles.homeMarkerTip} />
+                            </View>
+                        </Marker>
+                        <Marker coordinate={riderPosition} anchor={{ x: 0.5, y: 0.5 }}>
+                            <Animated.View style={[styles.riderOuter, { transform: [{ scale: pulseAnim }] }]}>
+                                <View style={styles.riderInner}><MaterialCommunityIcons name="motorbike" size={18} color="#fff" /></View>
+                            </Animated.View>
+                        </Marker>
+                    </MapView>
+                )}
+
+                <TouchableOpacity style={[styles.floatingBack, { top: insets.top + 10 }]} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={22} color="#333" />
+                </TouchableOpacity>
+
+                {!loadingLocation && (
+                    <TouchableOpacity style={[styles.recenterBtn, { top: insets.top + 10 }]} onPress={fitMap}>
+                        <Ionicons name="locate" size={20} color="#0A8754" />
+                    </TouchableOpacity>
+                )}
+
+                {!loadingLocation && !["delivered", "cancelled", "pending", "confirmed"].includes(orderStatus) && (
+                    <View style={styles.etaPill}>
+                        <View style={styles.pulsingDot} />
+                        <Text style={styles.etaText}>
+                            {etaMinutes > 0 ? `Your rider is ~${etaMinutes} min away` : "Arriving shortly!"}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Map Overlay Dimmer */}
+                <LinearGradient
+                    colors={["transparent", "rgba(0,0,0,0.05)", "rgba(0,0,0,0.15)"]}
+                    style={styles.mapDimmer}
+                    pointerEvents="none"
+                />
+            </View>
+
+            <ScrollView 
+                style={styles.sheet} 
+                showsVerticalScrollIndicator={false} 
+                contentContainerStyle={{ paddingBottom: 40 }}
+                bounces={false}
+            >
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+                <View style={styles.handle} />
+                <View style={styles.headerRow}>
+                    <View>
+                        <Text style={styles.orderId}>Order #{routeOrderNumber || orderData?.orderNumber || orderId}</Text>
+                        <View style={styles.statusRow}>
+                            <View style={[styles.statusDot, isCancelled && { backgroundColor: "#EF4444" }]} />
+                            <Text style={[styles.statusLabel, isCancelled && { color: "#EF4444" }]}>{displayStatus}</Text>
+=======
+                {/* ─── Modern Delivery Header ─── */}
+                <View style={styles.headerContainer}>
+                    <View style={styles.headerTop}>
+                        <View>
+                            {orderStatus === "delivered" ? (
+                                <Text style={styles.headerMainTitle}>Order Delivered</Text>
+                            ) : isCancelled ? (
+                                <Text style={styles.headerMainTitle}>Order Cancelled</Text>
+                            ) : (
+                                <Text style={styles.headerMainTitle}>
+                                    {etaMinutes > 0 ? `Arriving in ${etaMinutes} mins` : "Arriving shortly"}
+                                </Text>
+                            )}
+                            <Text style={styles.headerSubTitle}>Order #{routeOrderNumber || orderData?.orderNumber || orderId}</Text>
+                        </View>
+                        <View style={[styles.statusBadge, 
+                            isCancelled ? styles.statusBadgeCancelled : 
+                            orderStatus === "delivered" ? styles.statusBadgeSuccess : 
+                            styles.statusBadgeActive]}>
+                            <View style={[styles.statusDotSmall, isCancelled && { backgroundColor: "#fff" }]} />
+                            <Text style={[styles.statusBadgeText, isCancelled && { color: "#fff" }]}>
+                                {displayStatus}
+                            </Text>
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+                        </View>
+                    </View>
+                </View>
+
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+                {(deliveryPartner?.name || trackingData?.deliveryPersonName) && (
+                    <>
+                        <View style={styles.partnerCard}>
+                            <View style={styles.partnerAvatar}><MaterialCommunityIcons name="account" size={26} color="#0A8754" /></View>
+                            <View style={styles.partnerInfo}>
+                                <Text style={styles.partnerLabel}>DELIVERY PARTNER</Text>
+                                <Text style={styles.partnerName}>{deliveryPartner?.name || trackingData?.deliveryPersonName}</Text>
+=======
+                {/* ─── Modern Delivery Partner Card ─── */}
+                {(riderName && riderName !== "Delivery Partner" || riderPhone) && (
+                    <>
+                        <View style={styles.modernPartnerCard}>
+                            <View style={styles.partnerAvatarBig}>
+                                <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: '#EAF7F1', borderRadius: scale(25), justifyContent: 'center', alignItems: 'center' }}>
+                                    <MaterialCommunityIcons name="moped" size={scale(26)} color="#0A8754" />
+                                </View>
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+                            </View>
+                            
+                            <View style={styles.partnerDetailsCenter}>
+                                <Text style={styles.partnerNameText}>{riderName}</Text>
+                                <Text style={styles.partnerRoleText}>Delivery Partner</Text>
+                            </View>
+                            
+                            {riderPhone && (
+                                <TouchableOpacity style={styles.actionCallBtn} onPress={handleCallRider} activeOpacity={0.8}>
+                                    <Ionicons name="call" size={scale(18)} color="#fff" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {/* Delivery OTP Box */}
+                        {(orderData?.deliveryOtp || trackingData?.deliveryOtp || orderData?.otp) && ["out_for_delivery", "reached_store", "picked_up"].includes(orderStatus) && (
+                            <View style={{ marginTop: scale(16), padding: scale(16), backgroundColor: '#EAF7F1', borderRadius: scale(16), alignItems: 'center', borderWidth: 1, borderColor: '#D1FAE5' }}>
+                                <Text style={{ fontSize: scale(12), color: '#0A8754', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: scale(4) }}>Delivery OTP</Text>
+                                <Text style={{ fontSize: scale(32), color: '#045935', fontWeight: '900', letterSpacing: scale(6) }}>{orderData?.deliveryOtp || trackingData?.deliveryOtp || orderData?.otp}</Text>
+                                <Text style={{ fontSize: scale(12), color: '#0A8754', marginTop: scale(4), textAlign: "center" }}>Share this PIN securely with your rider to receive your package</Text>
+                            </View>
+                        )}
+
+                        <View style={styles.divider} />
+                    </>
+                )}
+
+                <View style={styles.modernTimelineContainer}>
+                    {timeline.map((step, index) => (
+                        <View key={index} style={styles.modernTimelineRow}>
+                            <View style={styles.timelineTrack}>
+                                <View style={[
+                                    styles.trackDot,
+                                    step.status === "completed" && styles.trackDotCompleted,
+                                    step.status === "active" && styles.trackDotActive,
+                                    step.status === "pending" && styles.trackDotPending
+                                ]}>
+                                    {step.status === "completed" ? (
+                                        <Ionicons name="checkmark" size={scale(12)} color="#fff" />
+                                    ) : step.status === "active" ? (
+                                        <View style={styles.innerActiveDot} />
+                                    ) : null}
+                                </View>
+                                {index < timeline.length - 1 && (
+                                    <View style={[
+                                        styles.trackLine,
+                                        step.status === "completed" && styles.trackLineCompleted
+                                    ]} />
+                                )}
+                            </View>
+                            <View style={styles.timelineContent}>
+                                <Text style={[
+                                    styles.modernStepTitle,
+                                    step.status === "active" && styles.modernStepTitleActive,
+                                    step.status === "pending" && styles.modernStepTitlePending
+                                ]}>{step.title}</Text>
+                                <Text style={styles.modernStepTime}>{step.time}</Text>
+                            </View>
+                        </View>
+                    ))}
+                </View>
+
+                <TouchableOpacity style={styles.detailsBtn} activeOpacity={0.7} onPress={() => setShowDetailsModal(true)}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Ionicons name="receipt-outline" size={18} color="#333" style={{ marginRight: 10 }} />
+                        <Text style={styles.detailsBtnText}>View Full Order Details</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#888" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.detailsBtn, { marginTop: 10, borderColor: "#FECACA" }]} activeOpacity={0.7} onPress={() => navigation.navigate("Help")}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <Ionicons name="help-circle-outline" size={18} color="#EF4444" style={{ marginRight: 10 }} />
+                        <Text style={[styles.detailsBtnText, { color: "#EF4444" }]}>Need Help?</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+                </TouchableOpacity>
+
+                {!isCancelled && !["delivered", "cancelled", "picked_up", "out_for_delivery"].includes(orderStatus) && (
+                    <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelOrder} disabled={isCancelling} activeOpacity={0.7}>
+                        {isCancelling ? <ActivityIndicator size="small" color="#EF4444" /> : (
+                            <>
+                                <Ionicons name="close-circle-outline" size={18} color="#EF4444" style={{ marginRight: 8 }} />
+                                <Text style={styles.cancelBtnText}>Cancel Order</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                )}
+                {!isCancelled && ["picked_up", "out_for_delivery"].includes(orderStatus) && (
+                    <View style={[styles.cancelBtn, { borderColor: "#E5E7EB", backgroundColor: "#F9FAFB", opacity: 0.6 }]}>
+                        <Ionicons name="information-circle-outline" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+                        <Text style={[styles.cancelBtnText, { color: "#9CA3AF" }]}>Order picked up — cancellation not available</Text>
+                    </View>
+                )}
+            </ScrollView>
+
+            {/* Cancellation Reason Modal */}
+            <Modal visible={showCancelModal} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Cancel Order?</Text>
+                            <TouchableOpacity onPress={() => setShowCancelModal(false)}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
+                        </View>
+                        <Text style={styles.modalSubtitle}>Please select a reason for cancellation</Text>
+                        {CANCEL_REASONS.map((reason) => (
+                            <TouchableOpacity key={reason} style={styles.reasonOption} onPress={() => setSelectedReason(reason)}>
+                                <View style={[styles.radio, selectedReason === reason && styles.radioSelected]}>{selectedReason === reason && <View style={styles.radioInner} />}</View>
+                                <Text style={[styles.reasonText, selectedReason === reason && styles.reasonTextActive]}>{reason}</Text>
+                            </TouchableOpacity>
+                        ))}
+                        {selectedReason === "Other" && (
+                            <TextInput style={styles.otherInput} placeholder="Tell us more (optional)" value={otherReason} onChangeText={setOtherReason} multiline />
+                        )}
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity style={styles.keepBtn} onPress={() => setShowCancelModal(false)}><Text style={styles.keepBtnText}>Keep Order</Text></TouchableOpacity>
+                            <TouchableOpacity style={[styles.confirmCancelBtn, !selectedReason && { opacity: 0.5 }]} onPress={confirmCancellation} disabled={!selectedReason || isCancelling}>
+                                {isCancelling ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.confirmCancelBtnText}>Cancel Order</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </KeyboardAvoidingView>
+                </View>
+            </Modal>
+
+            {/* Order Details Modal */}
+            <Modal visible={showDetailsModal} transparent animationType="slide" onRequestClose={() => setShowDetailsModal(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { maxHeight: height * 0.8 }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Order Details</Text>
+                            <TouchableOpacity onPress={() => setShowDetailsModal(false)}><Ionicons name="close" size={24} color="#666" /></TouchableOpacity>
+                        </View>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.sectionHeading}>Items</Text>
+                                {orderItems.map((item: any, idx: number) => {
+                                    const imgUrl = item.productImage || item.image || item.imageUrl || item.thumb || item.product?.image || item.product?.imageUrl || item.product?.icon;
+                                    const imgSource = resolveImageSource(imgUrl, { width: 40, height: 40 });
+                                    return (
+                                        <View key={idx} style={styles.orderItemRow}>
+                                            <View style={styles.itemImgBox}>
+                                                {imgSource ? (
+                                                    <Image source={imgSource as any} style={styles.itemImg} resizeMode="contain" />
+                                                ) : (
+                                                    <Ionicons name="basket-outline" size={20} color="#ccc" />
+                                                )}
+                                            </View>
+                                            <View style={styles.itemQuantityBadge}><Text style={styles.itemQuantityText}>{item.quantity}x</Text></View>
+                                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                                <Text style={styles.itemNameText}>{item.productName || item.name || item.product?.name || item.product?.productName || "Product"}</Text>
+                                                <Text style={styles.itemVariantText}>{item.variantName || item.variant?.name || ""}</Text>
+                                            </View>
+                                            <Text style={styles.itemPriceText}>₹{((item.unitPrice || item.price || item.productVariant?.price || item.productVariant?.sellingPrice || 0) * item.quantity).toFixed(2)}</Text>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.sectionHeading}>Delivery Address</Text>
+                                <View style={styles.addressBox}>
+                                    <Ionicons name="location" size={18} color="#6B7280" />
+                                    <Text style={styles.addressValueText}>
+                                        {(() => {
+                                            const addr = orderData?.address || orderData?.deliveryAddress || orderData?.shippingAddress;
+                                            if (!addr) return "Delivery Address unavailable";
+                                            if (typeof addr === "string") return addr;
+                                            return [addr.addressLine1 || addr.street, addr.addressLine2, addr.landmark, addr.city, addr.postalCode || addr.pincode].filter(Boolean).join(", ") || "Delivery Address";
+                                        })()}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={[styles.detailsSection, { borderBottomWidth: 0 }]}>
+                                <Text style={styles.sectionHeading}>Payment Summary</Text>
+                                <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Item Total</Text><Text style={styles.pricingValue}>₹{(orderData?.grandTotal || orderData?.totalAmount || orderData?.totalPrice || orderData?.amount || 0).toFixed(2)}</Text></View>
+<<<<<<< HEAD:src/screens/OrderTrackingScreen.tsx
+                                <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Delivery Fee</Text><Text style={styles.pricingValue}>{Number(orderData?.deliveryCharge || 0).toFixed(2)}</Text></View>
+                                {Number(orderData?.discount || 0) > 0 && (
+                                    <View style={styles.pricingRow}><Text style={styles.pricingLabel}>Discount</Text><Text style={[styles.pricingValue, { color: "#0A8754" }]}>-{Number(orderData?.discount || 0).toFixed(2)}</Text></View>
+=======
+                                <View style={styles.pricingRow}>
+                                    <Text style={styles.pricingLabel}>Delivery Fee</Text>
+                                    <Text style={styles.pricingValue}>₹{Number(orderData?.deliveryCharge || 0).toFixed(2)}</Text>
+                                </View>
+
+                                {Number(orderData?.discount || 0) > 0 && (
+                                    <View style={styles.pricingRow}>
+                                        <Text style={[styles.pricingLabel, { color: "#0A8754" }]}>Total Savings</Text>
+                                        <Text style={[styles.pricingValue, { color: "#0A8754" }]}>
+                                            -₹{Number(orderData?.discount || 0).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {Number(orderData?.handlingCharge || 0) > 0 && (
+                                    <View style={styles.pricingRow}>
+                                        <Text style={styles.pricingLabel}>Handling Charges</Text>
+                                        <Text style={styles.pricingValue}>
+                                            ₹{Number(orderData?.handlingCharge).toFixed(2)}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {Number(orderData?.smallCartFee || 0) > 0 && (
+                                    <View style={styles.pricingRow}>
+                                        <Text style={styles.pricingLabel}>Small Cart Fee</Text>
+                                        <Text style={styles.pricingValue}>₹{Number(orderData?.smallCartFee).toFixed(2)}</Text>
+                                    </View>
+>>>>>>> 8f07c6e (hello):src/screens/orders/OrderTrackingScreen.tsx
+                                )}
+                                <View style={[styles.pricingRow, { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F3F4F6" }]}>
+                                    <Text style={[styles.pricingLabel, { fontWeight: "800", color: "#111" }]}>Total Paid</Text>
+                                    <Text style={[styles.pricingValue, { fontWeight: "800", color: "#111", fontSize: 18 }]}>₹{(orderData?.grandTotal || orderData?.totalAmount || orderData?.totalPrice || orderData?.amount || 0).toFixed(2)}</Text>
+                                </View>
+                            </View>
+                        </ScrollView>
+                        <TouchableOpacity style={styles.closeDetailsBtn} onPress={() => setShowDetailsModal(false)}><Text style={styles.closeDetailsBtnText}>Close</Text></TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: "#fff" },
+    loaderCenter: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#f9f9f9" },
+    mapContainer: { height: MAP_HEIGHT, width: "100%", backgroundColor: "#f9f9f9" },
+    map: { ...StyleSheet.absoluteFillObject },
+    mapDimmer: { position: "absolute", bottom: 0, left: 0, right: 0, height: scale(100) },
+    floatingBack: { position: "absolute", left: scale(16), width: scale(44), height: scale(44), borderRadius: scale(22), backgroundColor: "#fff", justifyContent: "center", alignItems: "center", elevation: 6, shadowColor: "#000", shadowOffset: { width: 0, height: scale(2) }, shadowOpacity: 0.15, shadowRadius: scale(6) },
+    recenterBtn: { position: "absolute", right: scale(16), width: scale(44), height: scale(44), borderRadius: scale(22), backgroundColor: "#fff", justifyContent: "center", alignItems: "center", elevation: 6, shadowColor: "#000", shadowOffset: { width: 0, height: scale(2) }, shadowOpacity: 0.15, shadowRadius: scale(6) },
+    etaPill: { position: "absolute", bottom: scale(30), alignSelf: "center", backgroundColor: "#fff", paddingHorizontal: scale(18), paddingVertical: scale(12), borderRadius: scale(30), flexDirection: "row", alignItems: "center", elevation: 8, shadowColor: "#000", shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.12, shadowRadius: scale(10) },
+    pulsingDot: { width: scale(10), height: scale(10), borderRadius: scale(5), backgroundColor: "#0A8754", marginRight: scale(10) },
+    etaText: { fontSize: scale(14), fontWeight: "700", color: "#222" },
+    storeMarker: { backgroundColor: "#FF6B35", width: scale(32), height: scale(32), borderRadius: scale(16), justifyContent: "center", alignItems: "center", borderWidth: scale(2.5), borderColor: "#fff", elevation: 4 },
+    homeMarkerWrap: { alignItems: "center" },
+    homeMarker: { backgroundColor: "#3B82F6", width: scale(30), height: scale(30), borderRadius: scale(15), justifyContent: "center", alignItems: "center", borderWidth: scale(2.5), borderColor: "#fff", elevation: 4 },
+    homeMarkerTip: { width: 0, height: 0, borderLeftWidth: scale(6), borderRightWidth: scale(6), borderTopWidth: scale(8), borderLeftColor: "transparent", borderRightColor: "transparent", borderTopColor: "#3B82F6", marginTop: scale(-2) },
+    riderOuter: { width: scale(44), height: scale(44), borderRadius: scale(22), backgroundColor: "rgba(10, 135, 84, 0.15)", justifyContent: "center", alignItems: "center" },
+    riderInner: { width: scale(32), height: scale(32), borderRadius: scale(16), backgroundColor: "#0A8754", justifyContent: "center", alignItems: "center", borderWidth: scale(2.5), borderColor: "#fff", elevation: 6 },
+    
+    // Bottom Sheet
+    sheet: { flex: 1, backgroundColor: "#fff", marginTop: scale(-30), borderTopLeftRadius: scale(28), borderTopRightRadius: scale(28), paddingHorizontal: scale(20), elevation: 12, shadowColor: "#000", shadowOffset: { width: 0, height: scale(-4) }, shadowOpacity: 0.1, shadowRadius: scale(12) },
+    
+    // Modern Header
+    headerContainer: { marginTop: scale(24), marginBottom: scale(20) },
+    headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+    headerMainTitle: { fontSize: scale(22), fontWeight: "800", color: "#111827", marginBottom: scale(4), letterSpacing: -0.5 },
+    headerSubTitle: { fontSize: scale(13), fontWeight: "600", color: "#6B7280" },
+    statusBadge: { flexDirection: "row", alignItems: "center", paddingHorizontal: scale(10), paddingVertical: scale(6), borderRadius: scale(20) },
+    statusBadgeActive: { backgroundColor: "#ECFDF5" },
+    statusBadgeSuccess: { backgroundColor: "#D1FAE5" },
+    statusBadgeCancelled: { backgroundColor: "#FEE2E2" },
+    statusBadgeText: { fontSize: scale(11), fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.5, color: "#0A8754" },
+    statusDotSmall: { width: scale(6), height: scale(6), borderRadius: scale(3), backgroundColor: "#0A8754", marginRight: scale(6) },
+
+    // Modern Delivery Partner Card
+    modernPartnerCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: scale(16), borderRadius: scale(20), marginBottom: scale(20), borderWidth: 1, borderColor: "#F3F4F6", shadowColor: "#000", shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.03, shadowRadius: scale(8), elevation: 2 },
+    partnerAvatarBig: { width: scale(50), height: scale(50), borderRadius: scale(25), backgroundColor: "#F9FAFB", justifyContent: "center", alignItems: "center", overflow: "hidden" },
+    partnerDetailsCenter: { flex: 1, marginLeft: scale(16) },
+    partnerNameText: { fontSize: scale(16), fontWeight: "700", color: "#111827", marginBottom: scale(2) },
+    partnerRoleText: { fontSize: scale(12), color: "#6B7280", fontWeight: "500" },
+    actionCallBtn: { width: scale(44), height: scale(44), borderRadius: scale(22), backgroundColor: "#0A8754", justifyContent: "center", alignItems: "center", shadowColor: "#0A8754", shadowOffset: { width: 0, height: scale(4) }, shadowOpacity: 0.2, shadowRadius: scale(6), elevation: 4 },
+
+    // Modern Timeline
+    modernTimelineContainer: { marginTop: scale(10), marginBottom: scale(10) },
+    modernTimelineRow: { flexDirection: "row", minHeight: scale(64) },
+    timelineTrack: { width: scale(30), alignItems: "center" },
+    trackDot: { width: scale(20), height: scale(20), borderRadius: scale(10), backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center", zIndex: 2 },
+    trackDotCompleted: { backgroundColor: "#0A8754" },
+    trackDotActive: { width: scale(24), height: scale(24), borderRadius: scale(12), backgroundColor: "#ECFDF5", borderWidth: scale(6), borderColor: "#0A8754" },
+    trackDotPending: { backgroundColor: "#F3F4F6", borderWidth: scale(2), borderColor: "#E5E7EB" },
+    innerActiveDot: { width: scale(8), height: scale(8), borderRadius: scale(4), backgroundColor: "#fff" },
+    trackLine: { width: scale(2), flex: 1, backgroundColor: "#F3F4F6", marginVertical: scale(-2) },
+    trackLineCompleted: { backgroundColor: "#0A8754" },
+    timelineContent: { flex: 1, marginLeft: scale(16), paddingBottom: scale(24) },
+    modernStepTitle: { fontSize: scale(15), fontWeight: "700", color: "#111827", marginBottom: scale(4) },
+    modernStepTitleActive: { color: "#0A8754", fontSize: scale(16), fontWeight: "800" },
+    modernStepTitlePending: { color: "#9CA3AF", fontWeight: "600" },
+    modernStepTime: { fontSize: scale(13), color: "#6B7280", fontWeight: "500" },
+
+    divider: { height: 1, backgroundColor: "#F3F4F6", marginVertical: scale(20) },
+
+    // Buttons
+    detailsBtn: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F9F9F9", padding: scale(16), borderRadius: scale(14), borderWidth: 1, borderColor: "#eee" },
+    detailsBtnText: { fontSize: scale(14), fontWeight: "700", color: "#333" },
+    cancelBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: scale(16), paddingVertical: scale(16), borderRadius: scale(14), borderWidth: scale(1.5), borderColor: "#FECACA", backgroundColor: "#FEF2F2" },
+    cancelBtnText: { fontSize: scale(14), fontWeight: "700", color: "#EF4444" },
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+    modalContent: { backgroundColor: "#fff", borderTopLeftRadius: scale(24), borderTopRightRadius: scale(24), padding: scale(20), paddingBottom: Platform.OS === "ios" ? scale(40) : scale(20) },
+    modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: scale(15) },
+    modalTitle: { fontSize: scale(18), fontWeight: "800", color: "#111" },
+    modalSubtitle: { fontSize: scale(14), color: "#666", marginBottom: scale(20) },
+    reasonOption: { flexDirection: "row", alignItems: "center", paddingVertical: scale(12), borderBottomWidth: 1, borderBottomColor: "#f1f1f1" },
+    radio: { width: scale(20), height: scale(20), borderRadius: scale(10), borderWidth: 2, borderColor: "#D1D5DB", justifyContent: "center", alignItems: "center", marginRight: scale(12) },
+    radioSelected: { borderColor: "#EF4444" },
+    radioInner: { width: scale(10), height: scale(10), borderRadius: scale(5), backgroundColor: "#EF4444" },
+    reasonText: { fontSize: scale(15), color: "#374151" },
+    reasonTextActive: { color: "#111", fontWeight: "600" },
+    otherInput: { borderWidth: 1, borderColor: "#E5E7EB", borderRadius: scale(12), padding: scale(12), marginTop: scale(15), height: scale(80), textAlignVertical: "top", fontSize: scale(14) },
+    modalFooter: { flexDirection: "row", marginTop: scale(25), gap: scale(12) },
+    keepBtn: { flex: 1, paddingVertical: scale(14), borderRadius: scale(12), backgroundColor: "#F3F4F6", alignItems: "center" },
+    keepBtnText: { fontSize: scale(15), fontWeight: "700", color: "#4B5563" },
+    confirmCancelBtn: { flex: 1, backgroundColor: "#EF4444", paddingVertical: scale(14), borderRadius: scale(12), alignItems: "center", justifyContent: "center" },
+    confirmCancelBtnText: { color: "#fff", fontSize: scale(16), fontWeight: "700" },
+    detailsSection: { paddingVertical: scale(16), borderBottomWidth: 1, borderBottomColor: "#F3F4F6" },
+    sectionHeading: { fontSize: scale(12), fontWeight: "800", color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: scale(12) },
+    orderItemRow: { flexDirection: "row", alignItems: "center", marginBottom: scale(10) },
+    itemQuantityBadge: { backgroundColor: "#F3F4F6", paddingHorizontal: scale(6), paddingVertical: scale(2), borderRadius: scale(4), borderWidth: 1, borderColor: "#E5E7EB" },
+    itemQuantityText: { fontSize: scale(12), fontWeight: "700", color: "#4B5563" },
+    itemNameText: { fontSize: scale(14), fontWeight: "600", color: "#111827" },
+    itemVariantText: { fontSize: scale(12), color: "#6B7280" },
+    itemPriceText: { fontSize: scale(14), fontWeight: "700", color: "#111827" },
+    addressBox: { flexDirection: "row", alignItems: "flex-start", backgroundColor: "#F9FAFB", padding: scale(12), borderRadius: scale(12) },
+    addressValueText: { flex: 1, marginLeft: scale(10), fontSize: scale(14), color: "#4B5563", lineHeight: scale(20) },
+    pricingRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: scale(8) },
+    pricingLabel: { fontSize: scale(14), color: "#6B7280" },
+    pricingValue: { fontSize: scale(14), fontWeight: "600", color: "#111827" },
+    closeDetailsBtn: { backgroundColor: "#F3F4F6", paddingVertical: scale(14), borderRadius: scale(12), alignItems: "center", marginTop: scale(10) },
+    closeDetailsBtnText: { fontSize: scale(16), fontWeight: "700", color: "#4B5563" },
+    itemImgBox: { width: scale(40), height: scale(40), borderRadius: scale(8), backgroundColor: "#F3F4F6", justifyContent: "center", alignItems: "center", marginRight: scale(10), overflow: "hidden" },
+    itemImg: { width: "100%", height: "100%" },
+});
+
+export default OrderTrackingScreen;

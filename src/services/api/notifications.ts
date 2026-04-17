@@ -15,17 +15,17 @@ export const getNotifications = async (token: string) => {
     });
     if (!response.ok) {
       console.warn(`[Notifications] GET failed with status ${response.status}`);
-      return [];
+      return null;
     }
     const json = await response.json();
     // Handle various backend response shapes
     if (Array.isArray(json)) return json;
-    if (json?.data && Array.isArray(json.data)) return json.data;
-    if (json?.notifications && Array.isArray(json.notifications)) return json.notifications;
-    return [];
+    if (json?.data?.content && Array.isArray(json.data.content)) return json.data.content;
+    if (json?.content && Array.isArray(json.content)) return json.content;
+    return Array.isArray(json?.data) ? json.data : [];
   } catch (error) {
     console.warn("[Notifications] Fetch failed:", error);
-    return [];
+    return null;
   }
 };
 

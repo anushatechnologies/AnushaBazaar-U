@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Animated,
 } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -11,10 +11,10 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import HomeScreen from "../screens/HomeScreen";
-import CategoriesScreen from "../screens/CategoriesScreen";
-import TrendingScreen from "../screens/TrendingScreen";
-import OrderAgainScreen from "../screens/OrderAgainScreen";
+import HomeScreen from "../screens/home/HomeScreen";
+import CategoriesScreen from "../screens/categories/CategoriesScreen";
+import TrendingScreen from "../screens/home/TrendingScreen";
+import OrderAgainScreen from "../screens/orders/OrderAgainScreen";
 import { useTabBar } from "../context/TabBarContext";
 
 export type RootTabParamList = {
@@ -67,11 +67,11 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
           };
 
           return (
-            <TouchableOpacity
+            <Pressable
               key={route.key}
               onPress={onPress}
-              activeOpacity={0.8}
               style={styles.tab}
+              android_ripple={{ color: 'rgba(10, 135, 84, 0.12)', borderless: true, radius: 35 }}
             >
               {/* Active background pill */}
               {isFocused && <View style={styles.activePill} />}
@@ -87,7 +87,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarProps) => 
 
               {/* Active bottom dot */}
               {isFocused && <View style={styles.activeDot} />}
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>

@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,15 +15,36 @@ import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationsContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { scale } from "../utils/responsive";
+import { getStores } from "../services/api/stores";
 
 const DeliveryHeader = () => {
   const navigation = useNavigation<any>();
 
-  const { user } = useAuth();
   const { location, isDetecting } = useLocation();
-  const { points } = useWallet();
+  const { balance, loading: walletLoading } = useWallet();
   const { unreadCount } = useNotifications();
   const insets = useSafeAreaInsets();
+  
+  const [currentStore, setCurrentStore] = useState<any>(null);
+  const [loadingStore, setLoadingStore] = useState(true);
+
+  React.useEffect(() => {
+    const fetchStore = async () => {
+      try {
+        const storeData = await getStores();
+        const stores = Array.isArray(storeData) ? storeData : storeData?.content || storeData?.data || [];
+        if (stores.length > 0) {
+          // Use the first available store or find the nearest based on distance if coordinate support is added
+          setCurrentStore(stores[0]);
+        }
+      } catch (error) {
+        console.log("Error fetching nearby stores:", error);
+      } finally {
+        setLoadingStore(false);
+      }
+    };
+    fetchStore();
+  }, [location?.latitude, location?.longitude]);
 
   return (
     <LinearGradient
@@ -32,41 +53,48 @@ const DeliveryHeader = () => {
     >
       {/* TOP ROW */}
       <View style={styles.topRow}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.brand}>AnushaBazaar</Text>
-          <Text style={styles.storeName}>Manjeera Corporate Store</Text>
+          <Text style={styles.storeName} numberOfLines={1}>
+            {loadingStore ? "Finding nearby stores..." : (currentStore?.name || "Serving you nearby")}
+          </Text>
         </View>
 
         <View style={styles.icons}>
-          {/* WALLET - COMING SOON */}
           <Pressable
             style={styles.walletPill}
             onPress={() => navigation.navigate("Wallet")}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            android_ripple={{ color: 'rgba(10, 135, 84, 0.15)', borderless: true }}
           >
             <View style={styles.walletIconBox}>
               <Ionicons name="wallet-outline" size={scale(14)} color="#0A8754" />
             </View>
-            <Text style={styles.walletText}>
-              Wallet
-            </Text>
+            {walletLoading && balance === 0 ? (
+              <ActivityIndicator size="small" color="#0A8754" style={{ height: scale(16), transform: [{scale: 0.8}] }} />
+            ) : (
+              <Text style={styles.walletText}>
+                ₹{balance}
+              </Text>
+            )}
           </Pressable>
 
           {/* NOTIFICATIONS */}
-          <TouchableOpacity
+          <Pressable
             style={styles.iconBtn}
             onPress={() => navigation.navigate("Notifications")}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            android_ripple={{ color: 'rgba(0,0,0,0.1)', borderless: true, radius: scale(18) }}
           >
             <Ionicons name="notifications-outline" size={scale(22)} color="#333" />
             {unreadCount > 0 && <View style={styles.notifBadge} />}
-          </TouchableOpacity>
+          </Pressable>
 
           {/* PROFILE */}
           <Pressable
             onPress={() => navigation.navigate("Profile")}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            android_ripple={{ color: 'rgba(0,0,0,0.1)', borderless: true, radius: scale(20) }}
           >
             <Ionicons name="person-circle" size={scale(38)} color="#333" />
           </Pressable>
@@ -93,7 +121,7 @@ const DeliveryHeader = () => {
   );
 };
 
-export default DeliveryHeader;
+export default React.memo(DeliveryHeader);
 
 const styles = StyleSheet.create({
   container: {

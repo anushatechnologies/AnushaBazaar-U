@@ -7,20 +7,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/RootStack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCart } from "../context/CartContext";
-import { useWallet } from "../context/WalletContext";
 import { useNotifications } from "../context/NotificationsContext";
 import { useLocation } from "../context/LocationContext";
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Header = () => {
   const navigation = useNavigation<any>();
   const { cart } = useCart();
-  const { balance } = useWallet();
   const { unreadCount } = useNotifications();
   const { location } = useLocation();
 

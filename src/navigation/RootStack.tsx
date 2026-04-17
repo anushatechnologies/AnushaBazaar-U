@@ -5,40 +5,40 @@ import { useLocation } from "../context/LocationContext";
 import BottomTabs from "./BottomTabs";
 
 /* Core Screens */
-import WalletScreen from "../screens/WalletScreen";
-import SelectLocationScreen from "../screens/SelectLocationScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+import WalletScreen from "../screens/profile/WalletScreen";
+import SelectLocationScreen from "../screens/profile/SelectLocationScreen";
+import ProfileScreen from "../screens/profile/ProfileScreen";
 
 /* Auth */
-import LoginScreen from "../screens/LoginScreen";
-import SignupScreen from "../screens/SignupScreen";
-import OtpScreen from "../screens/OtpScreen";
+import LoginScreen from "../screens/auth/LoginScreen";
+import SignupScreen from "../screens/auth/SignupScreen";
+import OtpScreen from "../screens/auth/OtpScreen";
 
 /* Profile */
-import OrdersScreen from "../screens/OrdersScreen";
-import SavedAddressScreen from "../screens/SavedAddressScreen";
-import PaymentScreen from "../screens/PaymentScreen";
-import NotificationsScreen from "../screens/NotificationsScreen";
-import EditProfileScreen from "../screens/EditProfileScreen";
+import OrdersScreen from "../screens/orders/OrdersScreen";
+import SavedAddressScreen from "../screens/profile/SavedAddressScreen";
+import PaymentScreen from "../screens/cart/PaymentScreen";
+import NotificationsScreen from "../screens/profile/NotificationsScreen";
+import EditProfileScreen from "../screens/profile/EditProfileScreen";
 
 /* Product Flow */
-import ProductDetailScreen from "../screens/ProductDetailScreen";
-import CheckoutScreen from "../screens/CheckoutScreen";
-import CategoryProductsScreen from "../screens/CategoryProductsScreen";
+import ProductDetailScreen from "../screens/product/ProductDetailScreen";
+import CheckoutScreen from "../screens/cart/CheckoutScreen";
+import CategoryProductsScreen from "../screens/categories/CategoryProductsScreen";
 
 
 /* Address Flow */
-import AddressScreen from "../screens/AddressScreen";
-import AddAddressScreen from "../screens/AddAddressScreen";
-import OrderSuccessScreen from "../screens/OrderSuccessScreen";
+import AddressScreen from "../screens/profile/AddressScreen";
+import AddAddressScreen from "../screens/profile/AddAddressScreen";
+import OrderSuccessScreen from "../screens/cart/OrderSuccessScreen";
 
 /* Info */
-import PrivacyScreen from "../screens/PrivacyScreen";
-import TermsScreen from "../screens/TermsScreen";
-import GeneralInfoScreen from "../screens/GeneralInfoScreen";
-import AboutScreen from "../screens/AboutScreen";
-import HelpScreen from "../screens/HelpScreen";
-import PermissionScreen from "../screens/PermissionScreen";
+import PrivacyScreen from "../screens/profile/PrivacyScreen";
+import TermsScreen from "../screens/profile/TermsScreen";
+import GeneralInfoScreen from "../screens/profile/GeneralInfoScreen";
+import AboutScreen from "../screens/profile/AboutScreen";
+import HelpScreen from "../screens/profile/HelpScreen";
+import PermissionScreen from "../screens/auth/PermissionScreen";
 
 /* ================= TYPES ================= */
 
@@ -137,7 +137,7 @@ const RootStack = () => {
 
       <Stack.Screen
         name="Cart"
-        getComponent={() => require("../screens/CartScreen").default}
+        getComponent={() => require("../screens/cart/CartScreen").default}
       />
 
       {/* ADDRESS FLOW */}
@@ -186,7 +186,7 @@ const RootStack = () => {
 
       <Stack.Screen
         name="Wishlist"
-        getComponent={() => require("../screens/WishlistScreen").default}
+        getComponent={() => require("../screens/profile/WishlistScreen").default}
       />
 
       <Stack.Screen
@@ -232,14 +232,14 @@ const RootStack = () => {
 
       <Stack.Screen
         name="SearchResults"
-        getComponent={() => require("../screens/SearchResultsScreen").default}
+        getComponent={() => require("../screens/home/SearchResultsScreen").default}
       />
 
       <Stack.Screen
         name="OrderTracking"
-        getComponent={() => require("../screens/OrderTrackingScreen").default}
+        getComponent={() => require("../screens/orders/OrderTrackingScreen").default}
       />
-      
+
       <Stack.Screen name="Permission" component={PermissionScreen} />
     </Stack.Navigator>
   );

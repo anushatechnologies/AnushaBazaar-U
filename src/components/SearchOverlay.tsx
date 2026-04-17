@@ -6,13 +6,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  FlatList,
-  Image,
   Animated,
   Alert,
   Keyboard,
   BackHandler,
-  Platform,
   ToastAndroid,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -51,8 +48,6 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const insets = useSafeAreaInsets();
 
-  const { cart, addToCart, increaseQty, decreaseQty } = useCart();
-
   const handleVoiceResult = useCallback((text: string) => {
     setSearchText(text);
     Speech.speak(`Showing results for ${text}`, {
@@ -68,10 +63,15 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
   // Handle Voice Search Errors (Permissions, etc.)
   useEffect(() => {
     if (voiceError) {
-      if (voiceError.toLowerCase().includes('permission')) {
+      if (voiceError.toLowerCase().includes('permission') || voiceError.toLowerCase().includes('denied')) {
         Alert.alert(
-          "Microphone Permission Required",
-          "Anusha Bazaar needs access to your microphone to enable voice search. Please enable it in your device settings."
+          "Microphone Permission",
+          "Anusha Bazaar needs microphone access to search by voice. Please enable it in device settings."
+        );
+      } else if (voiceError.toLowerCase().includes('not available') || voiceError.toLowerCase().includes('rebuild')) {
+        Alert.alert(
+          "Voice Search Unavailable",
+          "Voice search is not available on this device at the moment. Please try again later or restart the app."
         );
       } else {
         ToastAndroid.show(voiceError, ToastAndroid.SHORT);
@@ -154,7 +154,13 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
     debounceTimer.current = setTimeout(async () => {
       try {
         const results = await searchProducts(text);
-        setSuggestions(results.slice(0, 6));
+        // Only show products whose name matches the search text as suggestions
+        const kw = text.toLowerCase().trim();
+        const filtered = results.filter((p: any) => {
+          const name = (p.name || '').toLowerCase();
+          return name.includes(kw) || kw.split(/\s+/).some((w: string) => w.length > 1 && name.includes(w));
+        });
+        setSuggestions(filtered.slice(0, 6));
       } catch {
         setSuggestions([]);
       } finally {
@@ -172,7 +178,7 @@ const SearchOverlay = ({ isVisible, onClose, initialVoiceMode }: SearchOverlayPr
     navigation.navigate("SearchResults", { query: q });
   };
 
-  const goToProduct = (item: any) => {
+  const _goToProduct = (item: any) => {
     saveRecent(item.name);
     onClose();
     navigation.navigate("ProductDetail", { product: item });

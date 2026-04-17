@@ -1,147 +1,103 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Audio } from 'expo-av';
-import { Platform } from 'react-native';
-
-const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+import { useState, useCallback, useEffect } from 'react';
+import { PermissionsAndroid, Platform } from 'react-native';
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
 export const useVoiceSearch = (onResult: (text: string) => void) => {
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Ref to hold the active recording instance
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  // Silence detection timer
-  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    Voice.onSpeechStart = onSpeechStart;
+    Voice.onSpeechEnd = onSpeechEnd;
+    Voice.onSpeechResults = onSpeechResults;
+    Voice.onSpeechError = onSpeechError;
+
     return () => {
-      // Cleanup on unmount
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch((e) => console.log('Cleanup error', e));
-      }
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
+      try {
+        Voice.destroy().then(Voice.removeAllListeners);
+      } catch (e) {
+        console.warn('Voice destroy error:', e);
       }
     };
   }, []);
 
+  const onSpeechStart = (e: any) => {
+    setIsListening(true);
+    setError(null);
+  };
+
+  const onSpeechEnd = (e: any) => {
+    setIsListening(false);
+  };
+
+  const onSpeechResults = (e: SpeechResultsEvent) => {
+    if (e.value && e.value.length > 0) {
+      onResult(e.value[0]);
+    }
+  };
+
+  const onSpeechError = (e: SpeechErrorEvent) => {
+    // Only show error if we are actively listening and it's not a generic cancel error
+    if (e.error?.message && e.error.message !== "7/No match") {
+       console.log('FCM Voice Error:', e.error);
+       setError(e.error?.message || "Speech recognition error");
+    }
+    setIsListening(false);
+  };
+
   const startListening = useCallback(async () => {
     try {
-      if (!OPENAI_API_KEY) {
-         setError("OpenAI API key missing. Add EXPO_PUBLIC_OPENAI_API_KEY to .env");
-         return;
-      }
-
-      setError(null);
-      
-      // Request permissions
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status !== 'granted') {
-        setError('Microphone permission denied');
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      // Start Recording
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      
-      recordingRef.current = recording;
-      setIsListening(true);
-
-      // Simple silence auto-stop mechanic
-      // When the user starts speaking, reset the timer. If they stop for N seconds, stop measuring and query.
-      let hasSpoken = false;
-      recording.setOnRecordingStatusUpdate((status) => {
-        if (!status.isRecording) return;
-        
-        const metering = status.metering ?? -160;
-        // -35 dB is a reasonable threshold for speech relative to background silence on mobile mics
-        if (metering > -35) {
-          hasSpoken = true;
-          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-          
-          silenceTimerRef.current = setTimeout(() => {
-            if (hasSpoken) {
-               stopListening(false);
-            }
-          }, 2000); // Wait 2 seconds of silence before firing Whisper
+      // 1. Android Runtime Permission Check
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: "Microphone Permission",
+            message: "Anusha Bazaar needs access to your microphone to search for products by voice.",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK"
+          }
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          setError("Microphone permission denied");
+          return;
         }
-      });
-      // Progress update every 100ms for accurate metering
-      recording.setProgressUpdateInterval(100);
+      }
 
+      // 2. Check if Voice module exists (Native Bridge check)
+      if (!Voice || typeof Voice.start !== 'function') {
+        throw new Error('VOICE_MODULE_NOT_FOUND');
+      }
+      
+      setError(null);
+      setIsListening(true);
+      await Voice.start('en-IN'); 
     } catch (e: any) {
       console.error('startListening error:', e);
-      setError(e.message);
+      
+      if (e.message === 'VOICE_MODULE_NOT_FOUND' || e.message?.includes('null')) {
+        setError("Voice search not available on this device. Please rebuild the app.");
+      } else {
+        setError(e.message || "Could not start voice search");
+      }
       setIsListening(false);
     }
   }, []);
 
   const stopListening = useCallback(async (cancelParam: any = false) => {
-    // React synthetic events might be passed if used directly in onPress
-    const isCancel = cancelParam === true;
-    
-    // If no recording is active, do nothing
-    if (!recordingRef.current) return;
-    
     try {
+      if (cancelParam === true) {
+        await Voice.cancel();
+      } else {
+        await Voice.stop();
+      }
       setIsListening(false);
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-
-      const activeRecording = recordingRef.current;
-      recordingRef.current = null;
-      
-      await activeRecording.stopAndUnloadAsync();
-      const uri = activeRecording.getURI();
-
-      if (isCancel || !uri) return;
-
-      // Ensure Audio mode stops capturing the device mic
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-
-      // Build Multipart form for Whisper
-      const extension = Platform.OS === 'ios' ? '.m4a' : '.m4a';
-      const formData = new FormData();
-      formData.append('file', {
-        uri,
-        name: `audio${extension}`,
-        type: `audio/m4a`, // Whisper accepts m4a directly
-      } as any);
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'en'); // Adjust for target demographic, English gives incredibly fast Indian English parses
-
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'multipart/form-data',
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Whisper Error:", errorText);
-        throw new Error(`Whisper API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.text && data.text.trim().length > 0) {
-        // Pass transcribed text back to UI
-        onResult(data.text.trim());
-      }
-      
     } catch (e: any) {
       console.error('stopListening error:', e);
       setError(e.message);
     }
-  }, [onResult]);
+  }, []);
 
   return {
     isListening,

@@ -36,16 +36,38 @@ export const placeOrder = async (
   addressId: number | string,
   paymentMethod: string,
   couponCode?: string,
-  discountAmount?: number
+  discountAmount?: number,
+  deliveryInstructions?: string,
+  extraCharges?: {
+    deliveryCharge?: number;
+    handlingCharge?: number;
+    smallCartFee?: number;
+    totalAmount?: number;
+  }
 ) => {
   const body: any = {
     addressId: Number(addressId),
     paymentMethod,
+    paymentStatus: "PENDING", // Ensures COD orders are not accidentally marked PAID by the backend
   };
 
   if (couponCode) {
     body.couponCode = couponCode;
     body.discountAmount = discountAmount || 0;
+  }
+
+  if (deliveryInstructions) {
+    body.deliveryInstructions = deliveryInstructions;
+  }
+
+  if (extraCharges) {
+    if (extraCharges.deliveryCharge !== undefined) body.deliveryCharge = extraCharges.deliveryCharge;
+    if (extraCharges.handlingCharge !== undefined) body.handlingCharge = extraCharges.handlingCharge;
+    if (extraCharges.smallCartFee !== undefined) body.smallCartFee = extraCharges.smallCartFee;
+    if (extraCharges.totalAmount !== undefined) {
+      body.totalAmount = extraCharges.totalAmount;
+      body.grandTotal = extraCharges.totalAmount;
+    }
   }
 
   const response = await fetchWithTimeout(API_BASE, {
@@ -70,14 +92,17 @@ export const placeOrder = async (
  * GET /api/orders/customer/{customerId} – get customer's order history
  * Falls back to GET /api/orders if customerId is not available
  */
-export const getOrders = async (token: string, _customerId?: number | string) => {
+export const getOrders = async (token: string, customerId?: number | string) => {
   try {
-    const response = await fetchWithTimeout(API_BASE, {
+    const ts = Date.now();
+    const url = customerId ? `${API_BASE}/customer/${customerId}?t=${ts}` : `${API_BASE}?t=${ts}`;
+    const response = await fetchWithTimeout(url, {
       headers: authHeaders(token),
+      cache: "no-store",
     });
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[getOrders] FAILED ${response.status}: ${API_BASE} - ${errorText}`);
+      console.error(`[getOrders] FAILED ${response.status}: ${url} - ${errorText}`);
       throw new Error(errorText || `HTTP ${response.status}`);
     }
     const json = await response.json();

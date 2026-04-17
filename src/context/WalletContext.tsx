@@ -1,15 +1,16 @@
-// Wallet State Management Context
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
-import { getWalletBalance } from "../services/api/wallet";
+import { getWalletBalance, addWalletMoney, spendWalletMoney } from "../services/api/wallet";
+import { startRazorpayCheckout, buildRazorpayOptions } from "../services/razorpay";
+import { ToastAndroid, Platform, Alert } from "react-native";
 
 export type WalletContextType = {
     balance: number;
     points: number;
     loading: boolean;
     addMoney: (amount: number) => Promise<void>;
-    spendMoney: (amount: number) => Promise<boolean>;
+    spendMoney: (amount: number, description?: string) => Promise<boolean>;
     addPoints: (amount: number) => Promise<void>;
     spendPoints: (amount: number) => Promise<boolean>;
 };
@@ -75,16 +76,63 @@ export const WalletProvider = ({ children }: any) => {
         }
     };
 
-    // DISABLED: Online payments not yet integrated
+    // Enable addMoney via Razorpay
     const addMoney = async (amount: number) => {
-        // Wallet top-up is disabled until payment gateway is integrated
-        console.log("[Wallet] addMoney disabled - no payment gateway");
+        if (!jwtToken || !user) {
+            Platform.OS === 'android' ? ToastAndroid.show("Please login to add money", ToastAndroid.SHORT) : Alert.alert("Error", "Please login to add money");
+            return;
+        }
+
+        try {
+            const uniqueId = `wallet_${Date.now()}`;
+            const options = buildRazorpayOptions({
+                razorpayOrderId: "", // Empty string to let Razorpay create a direct payment if allowed, usually backend order_id is required
+                amount: amount * 100, // INR to paise
+                receipt: uniqueId,
+                userEmail: user?.email || "",
+                userPhone: user?.phone || "",
+                userName: user?.name || "Customer",
+            });
+
+            // Open Razorpay SDK
+            const result = await startRazorpayCheckout(options);
+
+            // On success
+            if (result.razorpay_payment_id) {
+                const success = await addWalletMoney(jwtToken, user.customerId!, amount, `Razorpay Topup: ${result.razorpay_payment_id}`);
+                
+                if (success) {
+                    Platform.OS === 'android' ? ToastAndroid.show("Money added successfully!", ToastAndroid.SHORT) : Alert.alert("Success", "Money added successfully!");
+                    await fetchLiveBalance(); // Fetch updated live balance from backend
+                } else {
+                    Platform.OS === 'android' ? ToastAndroid.show("Payment successful but failed to update wallet on server. Please contact support.", ToastAndroid.LONG) : Alert.alert("Warning", "Payment successful but failed to update wallet on server. Please contact support.");
+                }
+            }
+        } catch (error: any) {
+            console.error("Razorpay Add Money Error:", error);
+            const msg = error?.description || error?.error?.description || error?.message || "Payment cancelled or failed.";
+            Platform.OS === 'android' ? ToastAndroid.show(msg, ToastAndroid.SHORT) : Alert.alert("Payment Info", msg);
+        }
     };
 
-    // DISABLED: Cannot spend wallet money
-    const spendMoney = async (amount: number): Promise<boolean> => {
-        // Wallet spending is disabled
-        return false;
+    const spendMoney = async (amount: number, description: string = "Payment for Order"): Promise<boolean> => {
+        if (!jwtToken || !user) return false;
+        if (balance < amount) {
+          Platform.OS === 'android' ? ToastAndroid.show("Insufficient wallet balance", ToastAndroid.SHORT) : Alert.alert("Error", "Insufficient wallet balance");
+          return false;
+        }
+
+        try {
+          const success = await spendWalletMoney(jwtToken, user.customerId!, amount, description);
+          if (success) {
+            await fetchLiveBalance(); // Sync with server
+            return true;
+          }
+          return false;
+        } catch (error) {
+          console.error("Wallet spend error:", error);
+          return false;
+        }
     };
 
     const addPoints = async (amount: number) => {

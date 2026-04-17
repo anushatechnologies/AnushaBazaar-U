@@ -1,10 +1,7 @@
-const normalizeEasebuzzPayMode = (value?: string): "test" | "production" => {
-  const normalized = String(value || "").trim().toLowerCase();
-  return normalized === "test" ? "test" : "production";
-};
-
 export const PAYMENT_CONFIG = {
-  EASEBUZZ_PAY_MODE: normalizeEasebuzzPayMode(process.env.EXPO_PUBLIC_EASEBUZZ_PAY_MODE),
+  // Only the key_id is needed client-side for Razorpay checkout.
+  // The secret must NEVER be shipped in the app bundle — the backend handles signature verification.
+  RAZORPAY_KEY_ID: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_SbM0kquPy1mbuq",
 };
 
 export default PAYMENT_CONFIG;

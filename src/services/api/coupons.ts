@@ -27,7 +27,7 @@ export interface CouponValidationResult {
 }
 
 /**
- * GET /api/customer/coupons/active
+ * GET /api/coupons/active
  * Returns all currently active coupons available to customers.
  */
 export const getActiveCoupons = async (token: string): Promise<Coupon[]> => {
@@ -73,27 +73,27 @@ export const validateCoupon = async (
       queryParams.append("customerId", customerId.toString());
     }
 
-    const url = `${API_CONFIG.BASE_URL}/coupons/apply?${queryParams.toString()}`;
+    // Correct endpoint: GET /api/coupons/apply
+    const url = `${API_BASE}/apply?${queryParams.toString()}`;
 
     const response = await fetchWithTimeout(url, {
       method: "GET",
       headers: authHeaders(token),
     });
 
-    const isJson = response.headers.get("content-type")?.includes("application/json");
-    
-    // In failure cases, backend returns error text or generic 400s
-    if (!response.ok) {
-      const errorText = isJson ? (await response.json()).message || (await response.text()) : await response.text();
-      console.error(`[validateCoupon] FAILED ${response.status}: ${errorText}`);
-
-      return { valid: false, discount: 0, message: typeof errorText === "string" ? errorText.replace(/["]/g, '') : "Could not validate coupon." };
-    }
-
+    // Backend always returns 200 — check response body for success/failure
     const data = await response.json();
 
+    if (!response.ok || data?.success === false) {
+      // Backend error shape: { success: false, error: "Coupon has expired" }
+      const errMsg = data?.error || data?.message || "Coupon is invalid or expired.";
+      console.error(`[validateCoupon] FAILED ${response.status}: ${errMsg}`);
+      return { valid: false, discount: 0, message: errMsg };
+    }
+
+    // Success shape: { success: true, code: "WELCOME20", discount: 100, finalValue: 400 }
     return {
-      valid: data?.success ?? true,
+      valid: true,
       discount: data?.discount ?? 0,
       message: "Coupon applied successfully!",
       coupon: { code: data?.code || code } as Coupon,

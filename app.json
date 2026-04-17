@@ -3,19 +3,19 @@
     "name": "AnushaBazaar",
     "slug": "AnushaBazaar",
     "scheme": "anushabazaar",
-    "version": "1.0.18",
-    "orientation": "portrait",
-    "icon": "./assets/company-logo.png",
+    "version": "1.0.51",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/company-logo.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#121212"
     },
     "android": {
-      "versionCode": 31,
+      "versionCode": 51,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/company-logo.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
@@ -33,7 +33,31 @@
         }
       },
       "package": "com.anusha.deliveryapp",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "queries": [
+        {
+          "intent": {
+            "action": "android.speech.RecognitionService"
+          }
+        }
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "anushabazaar.com",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "ios": {
       "supportsTablet": true,

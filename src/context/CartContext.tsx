@@ -18,7 +18,8 @@ import {
 } from "../services/api/products";
 import { validateCoupon } from "../services/api/coupons";
 import { normalizeImageUrl } from "../utils/image";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { isItemOutOfStock } from "../utils/product";
+import { View, Text, StyleSheet, Animated, Platform, ToastAndroid, Alert } from "react-native";
 import { scale } from "../utils/responsive";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -64,7 +65,10 @@ type CartContextType = {
   discount: number;
   usePoints: boolean;
   setUsePoints: (value: boolean) => void;
+  useWalletBalance: boolean;
+  setUseWalletBalance: (value: boolean) => void;
   pointsDiscount: number;
+  walletDiscount: number;
   addToCart: (product: Product, selectedVariant?: any) => void;
   removeFromCart: (id: string) => void;
   increaseQty: (id: string) => void;
@@ -75,6 +79,7 @@ type CartContextType = {
   removeCoupon: () => void;
   addToWishlist: (product: Product) => void;
   removeFromWishlist: (id: string) => void;
+  walletBalance: number;
 };
 
 const CartContext = createContext<CartContextType>({} as CartContextType);
@@ -255,6 +260,7 @@ export const CartProvider = ({ children }: any) => {
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discount, setDiscount] = useState<number>(0);
   const [usePoints, setUsePoints] = useState(false);
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
 
   // Wishlist popup state
@@ -262,7 +268,7 @@ export const CartProvider = ({ children }: any) => {
   const popupOpacity = useRef(new Animated.Value(0)).current;
   const popupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { points } = useWallet();
+  const { points, balance } = useWallet();
   const { jwtToken, loading: authLoading, user } = useAuth();
 
   const hasResolvedAuthRef = useRef(false);
@@ -337,6 +343,7 @@ export const CartProvider = ({ children }: any) => {
 
       console.log("[refreshCart] Raw server items:", JSON.stringify(serverItems.slice(0, 2), null, 2));
 
+<<<<<<< HEAD
       setCart(serverItems.map(mapServerCartItem));
       setServerSubtotal(
         Number(
@@ -358,6 +365,41 @@ export const CartProvider = ({ children }: any) => {
             0
         )
       );
+=======
+      if (serverItems.length > 0) {
+        // Server has items — use them as the source of truth
+        setCart(serverItems.map(mapServerCartItem));
+      } else {
+        // Server is empty — check if we have local items to preserve
+        setCart((currentLocalCart) => {
+          if (currentLocalCart.length > 0) {
+            console.log(
+              `[refreshCart] Server cart is empty but local has ${currentLocalCart.length} item(s). ` +
+              `Syncing local cart UP to server instead of wiping it.`
+            );
+            // Fire-and-forget: push local items to the server
+            const payload = currentLocalCart
+              .map((item) => ({
+                variantId: Number(item.variantId || item.id),
+                quantity: Number(item.quantity || 1),
+              }))
+              .filter((item) => Number.isFinite(item.variantId) && item.quantity > 0);
+
+            if (payload.length > 0) {
+              Promise.all(
+                payload.map((p) =>
+                  CartAPI.addCartItem(jwtToken!, Number(p.variantId), p.quantity, user?.customerId)
+                )
+              ).catch((err) => console.log("[refreshCart] Sync-up error:", err));
+            }
+            // Keep local cart as-is
+            return currentLocalCart;
+          }
+          // Both server and local are empty — nothing to do
+          return currentLocalCart;
+        });
+      }
+>>>>>>> 8f07c6e (hello)
     } catch (error) {
       console.log("Cart refresh error:", error);
     }
@@ -596,11 +638,19 @@ export const CartProvider = ({ children }: any) => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+<<<<<<< HEAD
   const subtotal = serverSubtotal ?? rawTotal;
   const totalAfterCoupon = subtotal - discount;
   const pointsDiscount = usePoints ? Math.min(points, totalAfterCoupon) : 0;
   const deliveryCharge = cart.length > 0 ? serverDeliveryCharge : 0;
   const total = totalAfterCoupon + deliveryCharge - pointsDiscount;
+=======
+  const totalAfterCoupon = rawTotal - discount;
+  const pointsDiscount = 0; // DISABLED REWARDS: usePoints ? Math.min(points, totalAfterCoupon) : 0;
+  const totalAfterPoints = totalAfterCoupon - pointsDiscount;
+  const walletDiscount = useWalletBalance ? Math.min(balance, totalAfterPoints) : 0;
+  const total = totalAfterPoints - walletDiscount;
+>>>>>>> 8f07c6e (hello)
 
   const addToCart = async (
     product: Product & { productVariants?: any[] },
@@ -626,6 +676,16 @@ export const CartProvider = ({ children }: any) => {
     );
     const productId = Number(product.productId || product.id);
     const imageUrl = getNormalizedProductImage(product as any, variant);
+
+    // Stock check
+    if (isItemOutOfStock(variant || product)) {
+      if (Platform.OS === "android") {
+        ToastAndroid.show("This item is currently out of stock", ToastAndroid.SHORT);
+      } else {
+        Alert.alert("Out of Stock", "This item is currently out of stock");
+      }
+      return;
+    }
 
     if (!variantId) {
       console.warn("[Cart] Cannot add to cart: missing variant id for", product.name);
@@ -721,6 +781,15 @@ export const CartProvider = ({ children }: any) => {
   const increaseQty = (id: string) => {
     const item = cart.find((cartItem) => cartItem.id === id);
     if (!item) return;
+
+    // Optional: We could check stock here too, but usually it's checked on initial add.
+    // However, if the user had it in cart and it WENT out of stock:
+    if (isItemOutOfStock(item)) {
+       if (Platform.OS === "android") {
+        ToastAndroid.show("Cannot increase: item is out of stock", ToastAndroid.SHORT);
+      }
+      return;
+    }
 
     const nextQuantity = item.quantity + 1;
 
@@ -888,6 +957,10 @@ export const CartProvider = ({ children }: any) => {
         removeCoupon,
         addToWishlist,
         removeFromWishlist,
+        walletDiscount,
+        walletBalance: balance,
+        useWalletBalance,
+        setUseWalletBalance,
       }}
     >
       {children}

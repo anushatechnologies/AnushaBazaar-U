@@ -51,3 +51,34 @@ export const getProductPackLabel = (item?: Record<string, any>, fallback?: Recor
 
   return "";
 };
+export const isItemOutOfStock = (item: any): boolean => {
+  if (!item) return false;
+
+  // 1. Explicit stock count check
+  // Covers: stock: 0, stock: "0"
+  if (item.stock != null) {
+    const s = Number(item.stock);
+    if (!isNaN(s) && s <= 0) return true;
+  }
+
+  // 2. Boolean availability flags
+  // Covers: available: false, active: false, isActive: false
+  if (item.available === false) return true;
+  if (item.active === false) return true;
+  if (item.isActive === false) return true;
+
+  // 3. Explicit "Out of Stock" flags
+  // Covers: outOfStock: true
+  if (item.outOfStock === true) return true;
+
+  // 4. Status-based check
+  // Covers: status: "OUT_OF_STOCK", status: "outofstock"
+  if (typeof item.status === "string") {
+    const s = item.status.trim().toUpperCase();
+    if (s === "OUT_OF_STOCK" || s === "OUTOFSTOCK" || s === "INACTIVE" || s === "DISABLED") {
+      return true;
+    }
+  }
+
+  return false;
+};

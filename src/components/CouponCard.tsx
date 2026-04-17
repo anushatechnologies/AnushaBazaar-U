@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { scale } from "../utils/responsive";
 import { useCart } from "../context/CartContext";
@@ -13,9 +13,14 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon }) => {
   const { applyCoupon, appliedCoupon } = useCart();
   const isApplied = appliedCoupon?.toUpperCase() === coupon.code.toUpperCase();
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!isApplied) {
-      applyCoupon(coupon.code);
+      const result = await applyCoupon(coupon.code);
+      if (result.success) {
+        Alert.alert("Success", result.message);
+      } else {
+        Alert.alert("Sorry", result.message);
+      }
     }
   };
 

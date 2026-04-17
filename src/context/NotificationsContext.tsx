@@ -5,6 +5,8 @@ import * as Notifications from "expo-notifications";
 import { getNotifications } from "../services/api/notifications";
 import { useAuth } from "./AuthContext";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,6 +26,7 @@ type LocalNotification = {
   time: string;
   unread: boolean;
   orderId?: string;
+  timestamp?: number;
 };
 
 type NotificationsContextType = {
@@ -34,6 +37,9 @@ type NotificationsContextType = {
 };
 
 export const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
+
+const LOCAL_NOTIFS_KEY = "@local_notifications";
+const MAX_NOTIFS = 50;
 
 const formatTime = (date: Date) => {
   return date.toLocaleDateString("en-IN", {
@@ -47,22 +53,57 @@ const formatTime = (date: Date) => {
 const parseRemoteMessage = (remoteMessage: FirebaseMessagingTypes.RemoteMessage): LocalNotification => {
   const data = remoteMessage.data || {};
   return {
-    id: remoteMessage.messageId || `fcm_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+    id: remoteMessage.messageId || `fcm_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
     type: (data.type as string) || "system",
     title: remoteMessage.notification?.title || (data.title as string) || "Notification",
     message: remoteMessage.notification?.body || (data.body as string) || (data.message as string) || "",
     time: formatTime(new Date()),
     unread: true,
     orderId: (data.orderId as string) || (data.order_id as string) || undefined,
+    timestamp: Date.now(),
   };
 };
 
 export const NotificationsProvider = ({ children }: any) => {
-  const { jwtToken } = useAuth();
+  const { jwtToken, user } = useAuth();
   const [serverUnreadCount, setServerUnreadCount] = useState(0);
-  const [localNotifications, setLocalNotifications] = useState<LocalNotification[]>([]);
+  const [localNotifications, setLocalNotificationsState] = useState<LocalNotification[]>([]);
   const [isBroken, setIsBroken] = useState(false);
   const appState = useRef(AppState.currentState);
+
+  // Safely write to state and AsyncStorage
+  const setLocalNotifications = useCallback((updater: (prev: LocalNotification[]) => LocalNotification[]) => {
+    setLocalNotificationsState((prev) => {
+      const nextRaw = updater(prev);
+      const nextFiltered = nextRaw
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, MAX_NOTIFS);
+      
+      AsyncStorage.setItem(LOCAL_NOTIFS_KEY, JSON.stringify(nextFiltered)).catch((e) =>
+        console.error("AsyncStorage error saving notifications:", e)
+      );
+      return nextFiltered;
+    });
+  }, []);
+
+  // Load from AsyncStorage explicitly on mount
+  useEffect(() => {
+    const loadCache = async () => {
+      try {
+        const cached = await AsyncStorage.getItem(LOCAL_NOTIFS_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+             setLocalNotificationsState(parsed);
+          }
+        }
+      } catch (e) {
+        console.error("AsyncStorage error loading local notifications:", e);
+      }
+    };
+    loadCache();
+  }, []);
+
 
   // ─── Fetch server notifications for badge count ───
   const fetchNotifications = useCallback(async () => {
@@ -165,7 +206,7 @@ export const NotificationsProvider = ({ children }: any) => {
   }, [fetchNotifications]);
 
   const clearLocalNotifications = () => {
-    setLocalNotifications([]);
+    setLocalNotifications(() => []);
   };
 
   // Total unread = server unread + local push unread

@@ -22,6 +22,10 @@ export interface AddressPayload {
   isDefault?: boolean;
   latitude?: number;
   longitude?: number;
+  contactName?: string;
+  contactPhone?: string;
+  receiverName?: string;
+  receiverPhone?: string;
 }
 
 /**

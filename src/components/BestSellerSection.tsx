@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   ActivityIndicator,
@@ -10,7 +9,7 @@ import { getBestSellerProducts } from "../services/api/products";
 import ProductCard from "./ProductCard";
 import { scale } from "../utils/responsive";
 
-const BestSellerSection = () => {
+const BestSellerSection = ({ filter }: { filter?: string }) => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -33,6 +32,16 @@ const BestSellerSection = () => {
     }
   };
 
+  const filtered = (!filter || filter === "All")
+    ? products
+    : products.filter((p: any) => {
+        const catName = (p.categoryName || "").toLowerCase();
+        const subName = (p.subCategoryName || "").toLowerCase();
+        const name = (p.name || "").toLowerCase();
+        const f = filter.toLowerCase();
+        return catName.includes(f) || subName.includes(f) || name.includes(f);
+      });
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -41,14 +50,14 @@ const BestSellerSection = () => {
     );
   }
 
-  if (error) return null; // Silent fail for section
+  if (error) return null;
 
-  if (products.length === 0) return null;
+  if (filtered.length === 0) return null;
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={products}
+        data={filtered}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item, index) => item.id?.toString() || index.toString()}

@@ -134,7 +134,7 @@ const FloatingCart = ({ currentRoute }: { currentRoute?: string }) => {
     );
 };
 
-export default FloatingCart;
+export default React.memo(FloatingCart);
 
 const styles = StyleSheet.create({
     container: {

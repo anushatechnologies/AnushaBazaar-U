@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Platform, PermissionsAndroid } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
-import AppLoader from "./src/components/AppLoader";
 import RootStack from "./src/navigation/RootStack";
 import { LocationProvider } from "./src/context/LocationContext";
-import { AuthProvider } from "./src/context/AuthContext";
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { CartProvider } from "./src/context/CartContext";
 import { AddressProvider } from "./src/context/AddressContext";
 import { WalletProvider } from "./src/context/WalletContext";
 import { TabBarProvider } from "./src/context/TabBarContext";
 import { NotificationsProvider } from "./src/context/NotificationsContext";
+import AppLoadingScreen from "./src/components/AppLoadingScreen";
 import * as Linking from "expo-linking";
 import * as Location from "expo-location";
 import messaging from '@react-native-firebase/messaging';
+import { useInAppUpdate } from "./src/hooks/useInAppUpdate";
 
 // ─── FCM: Background message handler (runs when app is in background/quit) ───
 // This MUST be registered at the top level, outside of any component
@@ -68,8 +69,42 @@ const requestAllPermissions = async () => {
   }
 };
 
+/** Inner app that can access AuthContext */
+const AppContent = () => {
+  const { loading } = useAuth();
+  const [minLoadingDone, setMinLoadingDone] = useState(false);
+
+  useEffect(() => {
+    // Show splash for at least 1.5s so animations play out
+    const timer = setTimeout(() => setMinLoadingDone(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading || !minLoadingDone) {
+    return <AppLoadingScreen />;
+  }
+
+  return (
+    <WalletProvider>
+      <CartProvider>
+        <LocationProvider>
+          <AddressProvider>
+            <TabBarProvider>
+              <NotificationsProvider>
+                <NavigationContainer linking={linking}>
+                  <RootStack />
+                </NavigationContainer>
+              </NotificationsProvider>
+            </TabBarProvider>
+          </AddressProvider>
+        </LocationProvider>
+      </CartProvider>
+    </WalletProvider>
+  );
+};
+
 export default function App() {
-  const [appIsReady, setAppIsReady] = useState(false);
+  useInAppUpdate();
 
   useEffect(() => {
     const initFCM = async () => {
@@ -107,41 +142,12 @@ export default function App() {
   useEffect(() => {
     // Request all permissions on app launch
     requestAllPermissions();
-
-    // Show splash animation for 3.5 seconds so grocery items orbit fully
-    const timer = setTimeout(() => {
-      setAppIsReady(true);
-    }, 3500);
-    return () => clearTimeout(timer);
   }, []);
-
-  if (!appIsReady) {
-    return (
-      <AppLoader
-        fullScreen
-        title="Anusha Bazaar"
-        subtitle="Fresh groceries, rice, fruits & daily essentials – handpicked just for you."
-      />
-    );
-  }
 
   return (
     <AuthProvider>
-      <WalletProvider>
-        <CartProvider>
-          <LocationProvider>
-            <AddressProvider>
-              <TabBarProvider>
-                <NotificationsProvider>
-                  <NavigationContainer linking={linking}>
-                    <RootStack />
-                  </NavigationContainer>
-                </NotificationsProvider>
-              </TabBarProvider>
-            </AddressProvider>
-          </LocationProvider>
-        </CartProvider>
-      </WalletProvider>
+      <AppContent />
     </AuthProvider>
   );
 }
+

@@ -58,7 +58,7 @@ const SearchSuggestions = ({ suggestions, searchText, isVisible, onClose }: Sear
   // Get unique product names for text suggestions
   const textSuggestions = [...new Set(suggestions.map(s => s.name))].slice(0, 5);
 
-  const renderTextSuggestion = ({ item, index }: { item: string; index: number }) => (
+  const renderTextSuggestion = ({ item, index: _index }: { item: string; index: number }) => (
     <TouchableOpacity
       style={styles.textRow}
       onPress={() => handleSearchTermTap(item)}
@@ -107,7 +107,7 @@ const SearchSuggestions = ({ suggestions, searchText, isVisible, onClose }: Sear
           <View style={styles.section}>
             <FlatList
               data={textSuggestions}
-              keyExtractor={(item, idx) => `text-${idx}`}
+              keyExtractor={(_item, idx) => `text-${idx}`}
               renderItem={renderTextSuggestion}
               keyboardShouldPersistTaps="handled"
               scrollEnabled={false}

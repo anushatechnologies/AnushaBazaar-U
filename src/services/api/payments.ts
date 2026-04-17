@@ -7,16 +7,24 @@ const authHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`,
 });
 
-export interface InitiateOnlinePaymentResponse {
-  success?: boolean;
-  access_key: string;
-  [key: string]: unknown;
+/* ================= RAZORPAY INTEGRATION ================= */
+
+export interface RazorpayInitResponse {
+  razorpayOrderId: string;
+  amount: number;
+  currency: string;
+  receipt: string;
+  keyId: string;
 }
 
-export const initiateOnlinePayment = async (
+/**
+ * POST /api/payment/initiate
+ * Initiate a Razorpay payment after placing an online order.
+ */
+export const initiateRazorpayPayment = async (
   token: string,
   orderId: number | string
-): Promise<InitiateOnlinePaymentResponse> => {
+): Promise<RazorpayInitResponse> => {
   const response = await fetchWithTimeout(`${API_BASE}/initiate`, {
     method: "POST",
     headers: authHeaders(token),
@@ -27,19 +35,39 @@ export const initiateOnlinePayment = async (
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`[initiateOnlinePayment] FAILED ${response.status}: ${errorText}`);
+    console.error(`[initiateRazorpayPayment] FAILED ${response.status}: ${errorText}`);
     throw new Error(errorText || `Request failed with error code ${response.status}`);
   }
 
-  const data = await response.json();
-  const accessKey = data?.access_key || data?.accessKey;
+  return await response.json();
+};
 
-  if (!accessKey) {
-    throw new Error("Payment initiation succeeded but no Easebuzz access key was returned.");
+export interface RazorpayVerifyPayload {
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+  receipt: string;
+}
+
+/**
+ * POST /api/payment/verify
+ * Verify Razorpay payment signature after successful checkout.
+ */
+export const verifyRazorpayPayment = async (
+  token: string,
+  payload: RazorpayVerifyPayload
+): Promise<{ success: boolean; message?: string }> => {
+  const response = await fetchWithTimeout(`${API_BASE}/verify`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[verifyRazorpayPayment] FAILED ${response.status}: ${errorText}`);
+    throw new Error(errorText || `Verification failed with error code ${response.status}`);
   }
 
-  return {
-    ...data,
-    access_key: accessKey,
-  };
+  return await response.json();
 };

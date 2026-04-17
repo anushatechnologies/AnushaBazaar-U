@@ -128,18 +128,127 @@ export const clearServerCart = async (token: string, _customerId?: number | stri
 /** POST /api/cart/merge - Merge guest cart */
 export const mergeCart = async (token: string, guestCart: any[]) => {
   try {
+    console.log(`[mergeCart] Sending ${guestCart.length} items:`, JSON.stringify(guestCart));
     const response = await fetchWithTimeout(`${API_BASE}/merge`, {
       method: "POST",
       headers: authHeaders(token),
       body: JSON.stringify(guestCart),
     });
     if (!response.ok) {
-      console.error(`[mergeCart] FAILED ${response.status}`);
+      const errorText = await response.text().catch(() => "");
+      console.error(`[mergeCart] FAILED ${response.status}: ${errorText}`);
       return false;
     }
+    console.log(`[mergeCart] SUCCESS - merged ${guestCart.length} items`);
     return true;
   } catch (error) {
     console.error("Error merging cart:", error);
+    return false;
+  }
+};
+
+/**
+ * Sync the local cart to the server before placing an order.
+ * 
+ * Strategy:
+ *   1. First, try POST /api/cart/merge with all local items — this is atomic
+ *      and the backend will create/update the cart in one transaction.
+ *   2. If merge fails, fall back to clearing the cart + adding items one-by-one.
+ * 
+ * We intentionally do NOT clear the server cart before merging, because delete
+ * can destroy the cart entity itself, making subsequent adds/merges fail with
+ * "Cart is empty" on order placement.
+ */
+export const syncCartToServer = async (
+  token: string,
+  localCart: { variantId: number | string; quantity: number }[]
+): Promise<boolean> => {
+  if (localCart.length === 0) {
+    console.log("[syncCartToServer] Local cart is empty, nothing to sync.");
+    return true;
+  }
+
+  console.log(`[syncCartToServer] Syncing ${localCart.length} item(s) to server...`,
+    JSON.stringify(localCart));
+
+  try {
+    // ── Strategy 1: Merge (atomic, preferred) ──────────────────────────
+    // Clear first, then merge so server has exactly what the user sees
+    await clearServerCart(token);
+
+    // Small delay to let the backend process the delete
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    const merged = await mergeCart(token, localCart);
+    if (merged) {
+      // Verify the merge actually persisted by reading back
+      const verifyCart = await getCart(token);
+      const verifyItems = Array.isArray(verifyCart)
+        ? verifyCart
+        : Array.isArray(verifyCart?.items)
+          ? verifyCart.items
+          : Array.isArray(verifyCart?.data?.items)
+            ? verifyCart.data.items
+            : Array.isArray(verifyCart?.data)
+              ? verifyCart.data
+              : [];
+
+      if (verifyItems.length > 0) {
+        console.log(`[syncCartToServer] ✅ Verified: server has ${verifyItems.length} item(s) after merge.`);
+        return true;
+      }
+
+      console.warn(`[syncCartToServer] Merge returned success but server cart is still empty! Falling back...`);
+    }
+
+    // ── Strategy 2: Sequential add (fallback) ──────────────────────────
+    console.log(`[syncCartToServer] Merge failed or empty after merge. Trying sequential add...`);
+
+    // Re-clear to avoid duplicates from partial merge
+    await clearServerCart(token);
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Add items one at a time, sequentially to avoid race conditions
+    let successCount = 0;
+    for (const item of localCart) {
+      const vid = Number(item.variantId);
+      const qty = Number(item.quantity || 1);
+      if (!Number.isFinite(vid) || vid <= 0) continue;
+
+      const res = await addCartItem(token, vid, qty);
+      if (res !== null) {
+        successCount++;
+      } else {
+        console.error(`[syncCartToServer] Failed to add variantId=${vid}, qty=${qty}`);
+      }
+    }
+
+    if (successCount === 0) {
+      console.error(`[syncCartToServer] ❌ All ${localCart.length} items failed to sync!`);
+      return false;
+    }
+
+    // Final verification
+    const finalCart = await getCart(token);
+    const finalItems = Array.isArray(finalCart)
+      ? finalCart
+      : Array.isArray(finalCart?.items)
+        ? finalCart.items
+        : Array.isArray(finalCart?.data?.items)
+          ? finalCart.data.items
+          : Array.isArray(finalCart?.data)
+            ? finalCart.data
+            : [];
+
+    if (finalItems.length > 0) {
+      console.log(`[syncCartToServer] ✅ Verified: server has ${finalItems.length} item(s) after sequential add.`);
+      return true;
+    }
+
+    console.error(`[syncCartToServer] ❌ Server cart still empty after sequential add!`);
+    return false;
+  } catch (error) {
+    console.error("[syncCartToServer] Fatal error:", error);
     return false;
   }
 };

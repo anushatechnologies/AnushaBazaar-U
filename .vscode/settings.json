@@ -1,3 +1,23 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.jdt.ls.java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-21",
+            "path": "C:\\Program Files\\Android\\Android Studio\\jbr",
+            "default": true
+        }
+    ],
+    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
+    "java.import.exclusions": [
+        "**/node_modules/**"
+    ],
+    "java.project.resourceFilters": [
+        "node_modules",
+        ".git"
+    ],
+    "files.exclude": {
+        "**/node_modules/**/.project": true,
+        "**/node_modules/**/.classpath": true,
+        "**/node_modules/**/.settings": true
+    }
 }

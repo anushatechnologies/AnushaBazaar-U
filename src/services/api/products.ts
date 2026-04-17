@@ -56,6 +56,12 @@ export interface Variant {
     discountPrice?: number;
     unit?: string;
     quantity?: string | number;
+    stock?: number | string;
+    available?: boolean;
+    outOfStock?: boolean;
+    active?: boolean;
+    isActive?: boolean;
+    status?: string;
 }
 
 export interface Product {
@@ -73,6 +79,16 @@ export interface Product {
     productVariants: Variant[];
     variantId?: string | number;
     minPrice?: number;
+    stock?: number | string;
+    available?: boolean;
+    outOfStock?: boolean;
+    active?: boolean;
+    isActive?: boolean;
+    status?: string;
+    gallery?: any[];
+    images?: any[];
+    imageUrls?: any[];
+    productImages?: any[];
 }
 
 const mapProducts = (json: any): Product[] => {
@@ -162,18 +178,146 @@ export const getProductById = async (id: string | number): Promise<Product | nul
     }
 };
 
+export const getProductImages = async (productId: string | number): Promise<any[]> => {
+    try {
+        const response = await fetchWithTimeout(`${API_BASE}/${productId}/images`);
+        if (!response.ok) {
+            console.error(`[getProductImages] FAILED ${response.status}: ${API_BASE}/${productId}/images`);
+            return [];
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching product images for ${productId}:`, error);
+        return [];
+    }
+};
+
+// Helper: Levenshtein distance for fuzzy matching
+const levenshteinDistance = (a: string, b: string): number => {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1, // deletion
+        matrix[i][j - 1] + 1, // insertion
+        matrix[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+  return matrix[a.length][b.length];
+};
+
+const SYNONYMS: Record<string, string[]> = {
+  dairy: ["milk", "paneer", "cheese", "curd", "butter"],
+  veggies: ["vegetables", "tomato", "potato", "onion"],
+  drinks: ["beverage", "juice", "coke", "pepsi", "water"],
+  sweets: ["chocolate", "candy", "dessert"],
+  milk: ["dairy"],
+};
+
+// Internal memory cache to prevent fetching all products repeatedly within a short timeframe
+let cachedCatalog: Product[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
 export const searchProducts = async (keyword: string): Promise<Product[]> => {
     try {
-          const response = await fetchWithTimeout(`${API_BASE}/search?keyword=${encodeURIComponent(keyword)}`);
-          if (!response.ok) {
-                  console.error(`[searchProducts] FAILED ${response.status}: ${API_BASE}/search?keyword=${keyword}`);
-                  throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          const json = await response.json();
-          return mapProducts(json);
+        const kw = keyword.toLowerCase().trim();
+        if (!kw) return [];
+        
+        // Use full catalog for robust fuzzy search
+        let products: Product[] = [];
+        if (cachedCatalog && Date.now() - cacheTimestamp < CACHE_TTL) {
+            products = cachedCatalog;
+        } else {
+            products = await getProducts();
+            cachedCatalog = products;
+            cacheTimestamp = Date.now();
+        }
+
+        const kwWords = kw.split(/\s+/).filter(w => w.length > 0);
+
+        // Expand with synonyms
+        let searchTerms = [...kwWords];
+        kwWords.forEach(word => {
+            if (SYNONYMS[word]) searchTerms.push(...SYNONYMS[word]);
+            // Also check reverse if a synonym matches the word exactly
+            Object.keys(SYNONYMS).forEach(k => {
+                if (SYNONYMS[k].includes(word) && !searchTerms.includes(k)) {
+                    searchTerms.push(k);
+                }
+            });
+        });
+
+        // Deduplicate
+        searchTerms = [...new Set(searchTerms)];
+
+        const scored = products.map(p => {
+            const name = (p.name || '').toLowerCase();
+            const words = name.split(/\s+/);
+            const catName = ((p as any).categoryName || '').toLowerCase();
+            const subCatName = ((p as any).subCategoryName || '').toLowerCase();
+
+            let score = 0;
+
+            // 1. Exact Name Match
+            if (name === kw) score = 100;
+            // 2. Starts with Exact Keyword
+            else if (name.startsWith(kw)) score = 90;
+            // 3. Name contains the exact keyword as a distinct word
+            else if (new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\b`, 'i').test(name)) score = 80;
+            // 4. Name contains the keyword as a substring
+            else if (name.includes(kw)) score = 70;
+            else {
+                // Try fuzzy matching and synonyms
+                let bestWordScore = 0;
+                searchTerms.forEach(term => {
+                    if (name.includes(term)) {
+                        bestWordScore = Math.max(bestWordScore, 65); // Synonym / Partial word match
+                    }
+                    
+                    // Allow up to 2 typos for words longer than 3 characters
+                    if (term.length > 3) {
+                       words.forEach(productWord => {
+                           if (Math.abs(productWord.length - term.length) <= 2) {
+                               const dist = levenshteinDistance(term, productWord);
+                               if (dist <= 1) bestWordScore = Math.max(bestWordScore, 62);
+                               else if (dist === 2 && term.length > 4) bestWordScore = Math.max(bestWordScore, 58);
+                           }
+                       });
+                    }
+                });
+                
+                if (bestWordScore > 0) {
+                    score = bestWordScore;
+                }
+                // Category/Subcategory exact match
+                else if (catName.includes(kw) || subCatName.includes(kw)) {
+                    score = 40;
+                }
+            }
+
+            return { product: p, score };
+        });
+
+        // Filter out results with score 0 (no reasonable match)
+        const filtered = scored.filter(s => s.score > 0);
+
+        // Sort by score descending, then by name alphabetically for ties
+        filtered.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return (a.product.name || '').localeCompare(b.product.name || '');
+        });
+
+        return filtered.map(s => s.product);
     } catch (error) {
-          console.error("Error searching products:", error);
-          return [];
+        console.error("Error searching products locally:", error);
+        return [];
     }
 };
 
@@ -272,18 +416,40 @@ export const submitProductRating = async (jwtToken: string | null, data: {
     const headers: any = { "Content-Type": "application/json" };
     if (jwtToken) headers["Authorization"] = `Bearer ${jwtToken}`;
 
+    // Backend expects 'review' not 'comment' (see normalizeRatingsList which reads entry.review)
+    const requestBody: any = {
+      productId: Number(data.productId),
+      rating: Number(data.rating),
+      review: data.comment,     // Backend field name
+      comment: data.comment,    // Send both for compatibility
+    };
+    if (data.customerId) {
+      requestBody.customerId = Number(data.customerId);
+    }
+
+    console.log("===== RATING SUBMIT =====");
+    console.log("URL:", `${CUSTOMER_BASE}/products/rating`);
+    console.log("Body:", JSON.stringify(requestBody, null, 2));
+
     const response = await fetchWithTimeout(`${CUSTOMER_BASE}/products/rating`, {
       method: "POST",
       headers,
-      body: JSON.stringify(data),
+      body: JSON.stringify(requestBody),
     });
+
+    console.log("RATING RESPONSE STATUS:", response.status);
     
     if (response.ok) {
       return { ok: true, status: response.status };
     }
     
-    const errorBody = await response.json().catch(() => ({}));
-    return { ok: false, status: response.status, message: errorBody.message };
+    const errorText = await response.text().catch(() => "");
+    console.log("RATING ERROR BODY:", errorText);
+
+    let errorBody: any = {};
+    try { errorBody = JSON.parse(errorText); } catch {}
+
+    return { ok: false, status: response.status, message: errorBody.message || errorBody.error || `Server returned ${response.status}` };
   } catch (error) {
     console.error("Error submitting rating:", error);
     return { ok: false, status: 500, message: "Network error" };

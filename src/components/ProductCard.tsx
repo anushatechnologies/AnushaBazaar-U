@@ -17,7 +17,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { scale } from "../utils/responsive";
 import { resolveImageSource } from "../utils/image";
-import { getProductPackLabel } from "../utils/product";
+import { getProductPackLabel, isItemOutOfStock } from "../utils/product";
 import { useCart } from "../context/CartContext";
 import QuantitySelector from "./common/QuantitySelector";
 
@@ -66,6 +66,12 @@ const ProductCard = ({ product }: any) => {
   const cartItem = cart?.find(
     (item: any) => item.id === cartLookupId || String(item.variantId) === cartLookupId
   );
+
+  // ─── Stock check ───
+  const variants = product?.productVariants || product?.variants || [];
+  const isOutOfStock = variants.length > 0
+    ? variants.every((v: any) => isItemOutOfStock(v))
+    : isItemOutOfStock(product);
 
   const wishItem = wishlist?.find((item: any) => String(item.id) === String(product?.id));
 
@@ -121,7 +127,7 @@ const ProductCard = ({ product }: any) => {
     product?.category?.title ||
     product?.subCategoryName ||
     product?.subCategory?.name;
-  const categoryLabel =
+  const _categoryLabel =
     categoryName ||
     "items";
 
@@ -134,7 +140,7 @@ const ProductCard = ({ product }: any) => {
     navigation.navigate("ProductDetail", { product });
   }, [navigation, product, route.name]);
 
-  const openCategoryProducts = React.useCallback(() => {
+  const _openCategoryProducts = React.useCallback(() => {
     if (categoryId) {
       navigation.navigate("CategoryProducts", {
         category: {
@@ -151,12 +157,12 @@ const ProductCard = ({ product }: any) => {
   }, [categoryId, categoryName, navigation]);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, isOutOfStock && styles.cardOutOfStock]}>
       <Pressable onPress={openProductDetail} style={styles.imageContainer}>
         {imageSource && !imageFailed ? (
           <Image
             source={imageSource}
-            style={styles.image}
+            style={[styles.image, isOutOfStock && { opacity: 0.45 }]}
             resizeMode="contain"
             onError={() => setImageFailed(true)}
           />
@@ -166,7 +172,13 @@ const ProductCard = ({ product }: any) => {
           </View>
         )}
 
-        {discount > 0 && (
+        {isOutOfStock && (
+          <View style={styles.outOfStockBadge}>
+            <Text style={styles.outOfStockText}>OUT OF STOCK</Text>
+          </View>
+        )}
+
+        {!isOutOfStock && discount > 0 && (
           <View style={styles.imageDiscountBadge}>
             <Text style={styles.imageDiscountText}>{discount}% OFF</Text>
           </View>
@@ -202,7 +214,13 @@ const ProductCard = ({ product }: any) => {
           </View>
 
           <View style={styles.addBtnWrapper}>
-            {!cartItem ? (
+            {isOutOfStock ? (
+              <View style={styles.addButtonVessel}>
+                <View style={[styles.addBtn, styles.addBtnDisabled]}>
+                  <Text style={[styles.addText, styles.addTextDisabled]}>ADD</Text>
+                </View>
+              </View>
+            ) : !cartItem ? (
               <View style={styles.addButtonVessel}>
                 <Pressable
                   style={styles.addBtn}
@@ -297,7 +315,7 @@ const ProductCard = ({ product }: any) => {
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={styles.modalScroll}
                 >
-                  {product?.productVariants?.map((variant: any, idx: number) => {
+                  {product?.productVariants?.map((variant: any, _idx: number) => {
                     const variantCartItem = cart?.find(
                       (item: any) => String(item.variantId) === String(variant.id)
                     );
@@ -305,9 +323,10 @@ const ProductCard = ({ product }: any) => {
                     const vSellingPrice = variant.sellingPrice;
                     const vMrp = variant.mrp > 0 ? variant.mrp : variant.originalPrice;
                     const vDiscount = (vMrp > vSellingPrice) ? Math.round(((vMrp - vSellingPrice) / vMrp) * 100) : 0;
+                    const variantOutOfStock = isItemOutOfStock(variant);
 
                     return (
-                      <View key={variant.id} style={[styles.variantRow, variantCartItem && styles.variantRowSelected]}>
+                      <View key={variant.id} style={[styles.variantRow, variantCartItem && styles.variantRowSelected, variantOutOfStock && styles.variantRowOutOfStock]}>
                         <View style={styles.variantImageWrapper}>
                           <Image
                             source={
@@ -323,10 +342,10 @@ const ProductCard = ({ product }: any) => {
                                 }
                               ) as any
                             }
-                            style={styles.variantImage}
+                            style={[styles.variantImage, variantOutOfStock && { opacity: 0.4 }]}
                             resizeMode="contain"
                           />
-                          {vDiscount > 0 && (
+                          {vDiscount > 0 && !variantOutOfStock && (
                             <View style={styles.variantDiscountBadge}>
                               <Text style={styles.variantDiscountText}>{vDiscount}% OFF</Text>
                             </View>
@@ -334,14 +353,17 @@ const ProductCard = ({ product }: any) => {
                         </View>
                         
                         <View style={styles.variantDetails}>
-                          <Text style={styles.variantName} numberOfLines={2}>
+                          <Text style={[styles.variantName, variantOutOfStock && { color: '#9CA3AF' }]} numberOfLines={2}>
                             {variant.variantName}
                           </Text>
                           {(getProductPackLabel(variant) || variant.unit) ? (
                             <Text style={styles.variantQtyLabel}>{getProductPackLabel(variant) || variant.unit}</Text>
                           ) : null}
+                          {variantOutOfStock && (
+                            <Text style={styles.variantOosLabel}>Out of stock</Text>
+                          )}
                           <View style={styles.variantPriceRow}>
-                            <Text style={styles.variantSellingPrice}>
+                            <Text style={[styles.variantSellingPrice, variantOutOfStock && { color: '#9CA3AF' }]}>
                               {"\u20B9"}{vSellingPrice}
                             </Text>
                             {vMrp > vSellingPrice && (
@@ -351,7 +373,11 @@ const ProductCard = ({ product }: any) => {
                         </View>
 
                         <View style={styles.variantAction}>
-                          {!variantCartItem ? (
+                          {variantOutOfStock ? (
+                            <View style={[styles.variantAddBtn, styles.variantAddBtnDisabled]}>
+                              <Text style={[styles.variantAddText, { color: '#9CA3AF' }]}>ADD</Text>
+                            </View>
+                          ) : !variantCartItem ? (
                             <Pressable
                               style={styles.variantAddBtn}
                               onPress={() => {
@@ -399,6 +425,25 @@ const styles = StyleSheet.create({
     borderColor: "#F0F0F0",
     padding: scale(6),
     marginBottom: scale(8),
+  },
+  cardOutOfStock: {
+    opacity: 0.85,
+  },
+  outOfStockBadge: {
+    position: "absolute",
+    bottom: scale(6),
+    left: scale(4),
+    right: scale(4),
+    backgroundColor: "rgba(0, 0, 0, 0.72)",
+    paddingVertical: scale(4),
+    borderRadius: scale(4),
+    alignItems: "center",
+  },
+  outOfStockText: {
+    color: "#fff",
+    fontSize: scale(9),
+    fontWeight: "900",
+    letterSpacing: 1,
   },
   imageContainer: {
     width: "100%",
@@ -479,11 +524,18 @@ const styles = StyleSheet.create({
     minWidth: scale(46),
     alignItems: "center",
   },
+  addBtnDisabled: {
+    borderColor: "#D1D5DB",
+    backgroundColor: "#F3F4F6",
+  },
   addText: {
     color: "#0C831F",
     fontWeight: "800",
     fontSize: scale(10),
     letterSpacing: 0.5,
+  },
+  addTextDisabled: {
+    color: "#9CA3AF",
   },
   optionsBadge: {
     position: "absolute",
@@ -647,6 +699,22 @@ const styles = StyleSheet.create({
   variantRowSelected: {
     borderColor: "#0A8754",
     backgroundColor: "#F0FDF4",
+  },
+  variantRowOutOfStock: {
+    backgroundColor: "#F9FAFB",
+    borderColor: "#E5E7EB",
+  },
+  variantOosLabel: {
+    fontSize: scale(10),
+    fontWeight: "700",
+    color: "#EF4444",
+    marginBottom: scale(2),
+  },
+  variantAddBtnDisabled: {
+    borderColor: "#D1D5DB",
+    backgroundColor: "#F3F4F6",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   variantImageWrapper: {
     position: "relative",

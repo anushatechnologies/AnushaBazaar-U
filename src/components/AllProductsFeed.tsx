@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import {
     View,
     Text,
@@ -8,17 +8,44 @@ import { getProducts } from "../services/api/products";
 import ProductCard from "./ProductCard";
 import ProductFilterBar, { SortOption, PRICE_RANGES } from "./ProductFilterBar";
 import SkeletonCard from "./SkeletonCard";
+import { scale } from "../utils/responsive";
 
 interface Props {
     categoryFilter?: string; // Passed from HomeScreen CategoryTabs
 }
 
-const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
+export interface AllProductsFeedHandle {
+    loadMore: () => void;
+    hasMore: () => boolean;
+    isLoadingMore: () => boolean;
+}
+
+const PAGE_SIZE = 12;
+
+const AllProductsFeed = forwardRef<AllProductsFeedHandle, Props>(({ categoryFilter = "All" }, ref) => {
     const [allProducts, setAllProducts] = useState<any[]>([]);
     const [displayed, setDisplayed] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [sortBy, setSort] = useState<SortOption>("default");
     const [priceRange, setPrice] = useState(PRICE_RANGES[0]);
+<<<<<<< HEAD
+=======
+    const [displayLimit, setDisplayLimit] = useState(PAGE_SIZE);
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    // Expose loadMore to parent via ref
+    useImperativeHandle(ref, () => ({
+        loadMore: () => {
+            if (displayLimit < displayed.length && !loadingMore) {
+                setLoadingMore(true);
+                setDisplayLimit(prev => prev + PAGE_SIZE);
+                setLoadingMore(false);
+            }
+        },
+        hasMore: () => displayLimit < displayed.length,
+        isLoadingMore: () => loadingMore,
+    }));
+>>>>>>> 8f07c6e (hello)
 
     useEffect(() => {
         loadProducts();
@@ -80,6 +107,10 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
         if (sort === "name_asc") result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
         setDisplayed(result);
+<<<<<<< HEAD
+=======
+        setDisplayLimit(PAGE_SIZE); // Reset count on filter change
+>>>>>>> 8f07c6e (hello)
     }, []);
 
     if (loading && allProducts.length === 0) {
@@ -87,13 +118,16 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
             <View style={styles.container}>
                 <Text style={styles.title}>Explore More ✨</Text>
                 <View style={styles.grid}>
-                    {[1, 2, 3, 4].map((i) => (
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
                         <SkeletonCard key={i} />
                     ))}
                 </View>
             </View>
         );
     }
+
+    const visibleItems = displayed.slice(0, displayLimit);
+    const hasMore = displayLimit < displayed.length;
 
     return (
         <View style={styles.container}>
@@ -118,7 +152,11 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
                 </View>
             ) : (
                 <View style={styles.grid}>
+<<<<<<< HEAD
                     {displayed.map((item, index) => (
+=======
+                    {visibleItems.map((item, index) => (
+>>>>>>> 8f07c6e (hello)
                         <View 
                             key={item.id?.toString() || index} 
                             style={{ 
@@ -130,17 +168,36 @@ const AllProductsFeed = ({ categoryFilter = "All" }: Props) => {
                             <ProductCard product={item} />
                         </View>
                     ))}
+<<<<<<< HEAD
+=======
+
+                    {/* Infinite scroll loading indicator */}
+                    {loadingMore && (
+                        <View style={styles.loadingMore}>
+                            <ActivityIndicator size="small" color="#0A8754" />
+                            <Text style={styles.loadingMoreText}>Loading more...</Text>
+                        </View>
+                    )}
+
+                    {/* End-of-list message */}
+                    {!hasMore && visibleItems.length > 0 && (
+                        <View style={styles.endMessage}>
+                            <Text style={styles.endEmoji}>🎉</Text>
+                            <Text style={styles.endText}>You've seen all products!</Text>
+                        </View>
+                    )}
+>>>>>>> 8f07c6e (hello)
                 </View>
             )}
         </View>
     );
-};
+});
 
 export default AllProductsFeed;
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: 0, // Let the filter bar handle its own padding
+        paddingHorizontal: 0,
         marginTop: 20,
     },
     title: {
@@ -177,4 +234,34 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         marginTop: 4,
     },
+<<<<<<< HEAD
+=======
+    loadingMore: {
+        width: "100%",
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: scale(16),
+        gap: scale(8),
+    },
+    loadingMoreText: {
+        color: "#6B7280",
+        fontSize: scale(13),
+        fontWeight: "600",
+    },
+    endMessage: {
+        width: "100%",
+        alignItems: "center",
+        paddingVertical: scale(20),
+        gap: scale(4),
+    },
+    endEmoji: {
+        fontSize: scale(24),
+    },
+    endText: {
+        color: "#9CA3AF",
+        fontSize: scale(13),
+        fontWeight: "600",
+    },
+>>>>>>> 8f07c6e (hello)
 });

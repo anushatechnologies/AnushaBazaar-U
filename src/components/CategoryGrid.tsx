@@ -178,4 +178,4 @@ const styles = StyleSheet.create({
     padding: scale(8),
     borderRadius: scale(14),
   },
-});
+});
